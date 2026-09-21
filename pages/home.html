@@ -1,11 +1,9 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <title>Construction Site</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
-<body>
+{% extends "base.html" %}
+{% block title %}
+Home - BuildBetter
+{% endblock %}
+
+{% block content %}
     <h1>U-Build</h1>
     <p>Descriptions come to life.</p>
-</body>
-</html>
+{% endblock %}
