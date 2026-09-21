@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{% block title %}BuildBetter{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+
+<body>
+        <h1>BuildBetter</h1>
+        <nav>
+            <a href="/">Home</a>
+            <a href="/products">Products</a>
+            <a href="/planner">AI Planner</a>
+            <a href="/dashboard">Dashboard</a>
+        </nav>
+    <main>
+        {% block content %}
+        {% endblock %}
+    </main>
+
+</body>
+</html>
