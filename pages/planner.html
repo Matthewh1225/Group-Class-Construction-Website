@@ -31,4 +31,12 @@ AI Planner - BuildBetter
 >{{ ai_response or "" }}</textarea>
 
 </div>
+
+{% if popup_message %}
+<script>
+    window.addEventListener("DOMContentLoaded", function () {
+        alert({{ popup_message | tojson }});
+    });
+</script>
+{% endif %}
 {% endblock %}
