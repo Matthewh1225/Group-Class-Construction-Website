@@ -3,7 +3,11 @@
 Home - BuildBetter
 {% endblock %}
 
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='home.css') }}">
+{% endblock %}
+
 {% block content %}
-    <h1>U-Build</h1>
+    <h1>HOME</h1>
     <p>Descriptions come to life.</p>
 {% endblock %}

@@ -1,20 +1,11 @@
+
+* {
+    box-sizing: border-box;
+}
 body {
-    background-color: #f4f4f4;
-    color: #333333;
+    background-color: #303030;
+    color: #919191;
     margin: 0;
     text-align: center;
-}
-
-header {
-    background-color: #e67e22;
-    color: white;
-    padding: 30px;
-}
-
-.content {
-    background-color: white;
-    margin: 30px auto;
-    max-width: 600px;
-    padding: 25px;
 }
 

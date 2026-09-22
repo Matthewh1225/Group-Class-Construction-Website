@@ -1,0 +1,7 @@
+1. After the material list is generated, run a second AI looking only for missing/overlooked. 
+
+3. Budgets,could have presets for ai budgets such as Economy, Standard, and Premium without changing the basic project. use more Premium material
+
+4. Project templates
+
+5. Large-project mode, like a ospital, have AI estimate using real building specs, return material categories/rough quantities/cost

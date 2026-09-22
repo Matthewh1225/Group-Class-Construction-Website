@@ -1,17 +1,28 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}BuildBetter{% endblock %}</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='base.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    {% block styles %}
+    {% endblock %}
 </head>
 
+{% block underConstruction %}
+    <img
+        src="{{ url_for('static', filename='images/underConstruction.png') }}"
+        alt="BuildBetter"
+    >
+{% endblock %}
 <body>
-        <h1>BuildBetter</h1>
-        <nav>
-            <a href="/">Home</a>
+        <nav class="navbar">
+            <a href="/" class="navbar-brand"> <img src="{{ url_for('static', filename='images/logo.png') }}"> </a>
             <a href="/products">Products</a>
             <a href="/planner">AI Planner</a>
             <a href="/dashboard">Dashboard</a>
+            <a class="nav-login" href="/login">Login</a>
         </nav>
     <main>
         {% block content %}

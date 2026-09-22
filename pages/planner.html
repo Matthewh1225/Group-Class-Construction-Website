@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block title %}
+AI Planner - BuildBetter
+{% endblock %}
+
+{% block underConstruction %}
+{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='planner.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="planner-container">
+<h1>AI Planner</h1>
+<form method="post" action="/planner">
+ <textarea
+    name="userInput"
+    class="planner-input"
+    placeholder="Enter project details here..."
+    required
+></textarea>
+    <button type="submit">Plan Project</button>
+</form>
+
+<textarea
+    class="planner-response"
+    placeholder="AI response will appear here..."
+    readonly
+>{{ ai_response or "" }}</textarea>
+
+</div>
+{% endblock %}
