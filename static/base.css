@@ -74,9 +74,11 @@ img[src$="underConstruction.png"] {
     box-sizing: border-box;
 }
 body {
-    background-color: #303030;
-    color: #919191;
+    background-color: #353535;
+    color: #cfcfcf;
     margin: 0;
     text-align: center;
+    min-height: 100vh;
 }
+
 
