@@ -3,4 +3,4 @@ mysql-connector-python==26.7.0
 python-dotenv==1.2.3
 gunicorn==23.0.0
 google-genai
-Flask-Limiter
+Flask-Limiter[redis]
