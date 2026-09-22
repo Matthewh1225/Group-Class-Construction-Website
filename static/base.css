@@ -70,3 +70,13 @@ img[src$="underConstruction.png"] {
         font-size: 14px;
     }
 }
+* {
+    box-sizing: border-box;
+}
+body {
+    background-color: #303030;
+    color: #919191;
+    margin: 0;
+    text-align: center;
+}
+
