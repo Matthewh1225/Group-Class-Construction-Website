@@ -9,13 +9,14 @@
     {% endblock %}
 </head>
 
-{% block underConstruction %}
+
+<body>
+    {% block underConstruction %}
     <img
         src="{{ url_for('static', filename='images/underConstruction.png') }}"
         alt="BuildBetter"
     >
-{% endblock %}
-<body>
+    {% endblock %}
         <nav class="navbar">
             <a href="/" class="navbar-brand"> <img src="{{ url_for('static', filename='images/logo.png') }}"> </a>
             <a href="/products">Products</a>
