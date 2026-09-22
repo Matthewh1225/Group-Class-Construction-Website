@@ -12,7 +12,7 @@
     overflow: hidden;
 }
 
-.navbar a {
+.navbar a:not(.nav-login) {
     text-decoration: none;
     color: #ddc32e;
     padding: 14px 16px;
@@ -33,10 +33,13 @@
 }
 
 .nav-login {
+    color: #b86f10;
     position: absolute;
     right: 0;
     padding: 14px 16px;
     font-size: 24px;
+    text-decoration: none;
+    border-radius: 8px;
 }
 
 .navbar-brand img {
