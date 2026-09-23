@@ -307,3 +307,33 @@
     "total_tokens": 1590
 }
 
+{
+    "id": "v1_ChctUEN6YXZfNUw2U2R6N0lQM09EcndRcxIXLVBDemF2XzVMNlNkejdJUDNPRHJ3UXM",
+    "model": "gemini-3.5-flash-lite",
+    "status": "completed",
+    "project_mode": "template",
+    "project_size": "medium",
+    "project_template": "shed",
+    "thinking_level": "medium",
+    "elapsed_seconds": 39.16,
+    "thinking_tokens": 712,
+    "input_tokens": 97,
+    "output_tokens": 369,
+    "total_tokens": 1178
+}
+
+{
+    "id": "v1_ChdQaGkwYXRIYkg3enB6N0lQd2IzLXNBMBIXUGhpMGF0SGJIN3pwejdJUHdiMy1zQTA",
+    "model": "gemini-3.5-flash-lite",
+    "status": "completed",
+    "project_mode": "custom",
+    "project_size": "small",
+    "project_template": "",
+    "thinking_level": "low",
+    "elapsed_seconds": 2.99,
+    "thinking_tokens": 0,
+    "input_tokens": 97,
+    "output_tokens": 283,
+    "total_tokens": 380
+}
+
