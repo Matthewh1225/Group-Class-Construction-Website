@@ -24,7 +24,7 @@ Give detailed raw materils list as well as quantitites
 TEMPLATES={
     "doghouse"            : "low" ,
     "concrete_slabs"      : "medium",
-    "patio_deck"          :"medium",
+    "deck"                :"medium",
     "residential_building":"high",
     "commercial_building" :"high",
     "wearhouse"           :"high"}
@@ -36,7 +36,6 @@ THINKING_LEVELS = {
     "mega": "high",}
 
 AI_ERROR_MESSAGES = {
-    400: "Gemini rejected the request. Check the server log for details.",
     401: "Gemini authentication failed. Check the configured API key.",
     403: "The configured API key does not have access to this Gemini request.",
     404: "The requested Gemini model could not be found.",
@@ -77,27 +76,29 @@ def planner():
 
     if request.method == "POST":
         user_input = request.form.get("userInput", "").strip()
-        if project_mode == "template" and project_template == "deck":
-            deck_data = {
-                "project_type": "deck",
-                "dimensions": {
-                    "length_ft": request.form.get("lengthFt", type=float),
-                    "width_ft": request.form.get("widthFt", type=float),
-                    "height_ft": request.form.get("heightFt", type=float),
-                },
-                "decking": request.form.get("decking"),
-                "railing": request.form.get("railing") == "yes",
-                "stairs": request.form.get("stairs") == "yes",
-                "description": user_input,
-            }
-            ai_input = json.dumps(deck_data, indent=2)
-        else:
-            ai_input = f"""
-            Planning method: {project_mode}
-            Selected template: {project_template or "None"}
-            Project size: {project_size}
-            Project description: {user_input}
-            """
+        if project_mode == "template":
+            if project_template == "deck":
+                from Templates.deckTemplate import deckTemplate
+                ai_input = deckTemplate()
+            elif project_template == "doghouse":
+                from Templates.doghouseTemplate import doghouseTemplate
+                ai_input = doghouseTemplate()
+                ai_input = concreteSlabsTemplate()
+            elif project_template == "residential_building":
+                from Templates.residentialBuilding import residentialBuilding
+                ai_input = residentialBuildingTemplate()
+            elif project_template == "commercial_building":
+                from Templates.commercialBuildingTemplate import commercialBuildingTemplate
+            else :
+                ai_input = f"""
+                Planning method: {project_mode}
+                Selected template: {project_template or "None"}
+                Project size: {project_size}
+                Project description: {user_input}
+                """
+          
+                
+
 
         thinking_level = THINKING_LEVELS.get(project_size or "", "low")
         started_at = monotonic()

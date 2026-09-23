@@ -50,7 +50,7 @@ AI Planner - BuildBetter
             id="deck-template"
             type="button"
             class="template-option">
-            Outdoor Deck
+            Outdoor Deck 
         </button>
     </div>
     <button class="back-button" type="button">Back</button>
@@ -157,6 +157,66 @@ AI Planner - BuildBetter
         >{{ request.form.get('userInput', '') }}</textarea>
 
         <button type="submit">Plan My Deck</button>
+        <button id="deck-back" type="button">Back</button>
+    </form>
+</section id="commercialBuilding" {% if project_template != 'commercialBuilding' %} hidden{% endif %}>
+
+    <h1>commercialBuilding Details</h1>
+
+    <form method="post" action="/planner">
+        <input type="hidden" name="projectMode" value="template">
+        <input type="hidden" name="projectTemplate" value="commercialBuilding">
+        <input type="hidden" name="projectSize" value="large">
+
+        <label for="Number of floor">number of floors</label>
+        <input
+            id="FloorsValue"
+            name="floors"
+            value="{{ request.form.get('floors', '') }}"
+            type="number"
+            min="1"
+            step="1"
+            required
+        >
+
+        <label for="Number of rooms">number of rooms</label>
+        <input
+            id="RoomsValue"
+            name="rooms"
+            value="{{ request.form.get('rooms', '') }}"
+            type="number"
+            min="1"
+            step="1"
+            required
+        >
+
+        </fieldset>
+
+        <fieldset>
+            <legend>elevator</legend>
+
+            <label>
+                <input type="radio" name="elevator" value="yes" required
+                    {% if request.form.get('elevator') == 'yes' %}checked{% endif %}>
+                Yes
+            </label>
+
+            <label>
+                <input type="radio" name="elevator" value="no"
+                    {% if request.form.get('elevator') == 'no' %}checked{% endif %}>
+                No
+            </label>
+        </fieldset>
+
+        <label for="deck-description">Additional description</label>
+        <textarea
+            id="commercialBuilding description"
+            class="planner-input"
+            name="userInput"
+            placeholder="Describe the location or special requirements..."
+        >{{ request.form.get('userInput', '') }}</textarea>
+
+        <button type="submit">Plan My building</button>
         <button id="deck-back" type="button">Back</button>
     </form>
 </section>
