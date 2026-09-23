@@ -6,7 +6,9 @@ from google import genai
 from utils.ratelimits import limiter
 
 planner_bp = Blueprint("planner", __name__)
-ai = genai.Client()
+import os
+Strongai = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
+weakai = genai.Client(api_key=os.environ["GEMINI_API_KEY2"])
 
 SYSTEM_INSTRUCTIONS = """
 You are the BuildBetter construction project planner.
@@ -21,13 +23,15 @@ THINKING_LEVELS = {
     "small": "low",
     "medium": "medium",
     "large": "high",
-    "mega": "high",
-}
+    "mega": "high",}
 
 AI_ERROR_MESSAGES = {
     429: " AI usage limit has been hit. try again later.",
-    503: "AI unavailable",
-}
+    503: "AI unavailable",}
+AI_MODELS={
+    "weak":  "gemini-3.5-flash-lite",
+    "strong":  "gemini-3.8-flash"
+    }
 
 @planner_bp.route("/planner", methods=["GET", "POST"])
 @limiter.limit(
@@ -80,13 +84,21 @@ def planner():
         thinking_level = THINKING_LEVELS.get(project_size, "low")
 
         try:
+            if thinking_level in {"low", "medium"}:
+                ai = weakai
+                model = AI_MODELS["weak"]
+            else:
+                ai = Strongai
+                model = AI_MODELS["strong"]
+
             response = ai.interactions.create(
-                model="gemini-3.5-flash-lite",
+                model=model,
                 system_instruction=SYSTEM_INSTRUCTIONS,
                 generation_config={"thinking_level": thinking_level},
                 input=ai_input,
                 timeout=20,
             )
+
         except Exception as error:
             current_app.logger.exception("Gemini request failed")
             status_code = getattr(error, "status_code", None)
