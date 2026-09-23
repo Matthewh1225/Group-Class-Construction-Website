@@ -86,10 +86,10 @@ def planner():
         try:
             if thinking_level in {"low", "medium"}:
                 ai = weakai
-                model = AI_MODELS["weak"]
+                model = AI_MODELS["weak"]#currednt model 3.5 flash light 
             else:
                 ai = Strongai
-                model = AI_MODELS["strong"]
+                model = AI_MODELS["weak"]#can change to strong t use gemini 3.8 flash
 
             response = ai.interactions.create(
                 model=model,
