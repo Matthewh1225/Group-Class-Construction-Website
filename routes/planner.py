@@ -1,12 +1,12 @@
+from enum import Enum
+import os
 import json
-
 from flask import Blueprint, current_app, make_response, render_template, request
 from google import genai
 
 from utils.ratelimits import limiter
 
 planner_bp = Blueprint("planner", __name__)
-import os
 Strongai = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
 weakai = genai.Client(api_key=os.environ["GEMINI_API_KEY2"])
 
@@ -18,6 +18,13 @@ Do not explain your reasoning.
 Do not calculate product prices.
 Give detailed raw materils list as well as quantitites 
 """
+ #TEMPLATE(Enum){
+   #doghouse:
+  # concrete_slabs:
+  #"patio_deck":
+  # "residential_building":
+ # "commercial_building":
+  #"wearhouse":
 
 THINKING_LEVELS = {
     "small": "low",
@@ -37,6 +44,7 @@ AI_MODELS={
 @limiter.limit(
     "2 per minute; 20 per hour",
     methods=["POST"],
+    #called when rate limit is hit
     on_breach=lambda _: make_response(
         render_template(
             "planner.html",
@@ -58,7 +66,6 @@ def planner():
 
     if request.method == "POST":
         user_input = request.form.get("userInput", "").strip()
-
         if project_mode == "template" and project_template == "deck":
             deck_data = {
                 "project_type": "deck",
@@ -96,7 +103,7 @@ def planner():
                 system_instruction=SYSTEM_INSTRUCTIONS,
                 generation_config={"thinking_level": thinking_level},
                 input=ai_input,
-                timeout=20,
+                timeout=120,
             )
 
         except Exception as error:

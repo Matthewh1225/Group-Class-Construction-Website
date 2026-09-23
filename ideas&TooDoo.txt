@@ -5,3 +5,5 @@
 4. Project templates
 
 5. Large-project mode, like a ospital, have AI estimate using real building specs, return material categories/rough quantities/cost
+
+
