@@ -5,15 +5,15 @@ Register - BuildBetter
 {% endblock %}
 
 {% block styles %}
-<link rel="stylesheet" href="{{ url_for('static', filename='register.css') }}">
-{% endblock %}  
+<link rel="stylesheet" href="{{ url_for('static', filename='forms.css') }}">
+{% endblock %}
 
 {% block underConstruction %}
 {% endblock %}
 
 {% block content %}
 <div class="form-container">
-    <form class="register-form" method="post" action="/register">
+    <form id="register-form" class="account-form" method="post" action="{{ url_for('auth.register') }}">
         <h2>Create Account</h2>
 
         <label for="username">Username</label>
@@ -24,10 +24,17 @@ Register - BuildBetter
 
         <label for="password">Password</label>
         <input type="password" id="password" name="password" required>
+
         <label for="confirm_password">Confirm Password</label>
         <input type="password" id="confirm_password" name="confirm_password" required>
 
+        <p id="register-message" role="alert"></p>
         <button type="submit">Register</button>
     </form>
 </div>
+
+<script
+    src="{{ url_for('static', filename='js/register.js') }}"
+    type="module"
+></script>
 {% endblock %}

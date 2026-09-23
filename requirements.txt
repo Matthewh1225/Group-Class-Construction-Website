@@ -4,3 +4,4 @@ python-dotenv==1.2.3
 gunicorn==23.0.0
 google-genai
 Flask-Limiter[redis]
+bcrypt==5.0.0

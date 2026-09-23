@@ -187,3 +187,53 @@
     "total_tokens": 61
 }
 
+{
+    "id": "v1_Chc5dml5YXJxeEpQV3R6N0lQMTc3OW9BURIXOXZpeWFycXhKUFd0ejdJUDE3NzlvQVE",
+    "model": "gemini-3.5-flash-lite",
+    "status": "completed",
+    "thinking tokens": 214,
+    "input_tokens": 49,
+    "output_tokens": 13,
+    "total_tokens": 276,
+    "thinking_level": "high"
+}
+
+{
+    "id": "v1_ChdCZm15YW9HeUpOVGp6N0lQODk3UXFROBIXQmZteWFvR3lKTlRqejdJUDg5N1FxUTg",
+    "model": "gemini-3.5-flash-lite",
+    "status": "completed",
+    "thinking tokens": 0,
+    "input_tokens": 47,
+    "output_tokens": 15,
+    "total_tokens": 62,
+    "thinking_level": "low"
+}
+
+{
+    "id": "v1_ChdqZ3l6YW9tWkdvSFV6N0lQaDZ5VDRRVRIXamd5emFvbVpHb0hVejdJUGg2eVQ0UVU",
+    "model": "gemini-3.5-flash-lite",
+    "status": "completed",
+    "project_mode": "template",
+    "project_size": "large",
+    "project_template": "deck",
+    "thinking_level": "high",
+    "thinking_tokens": 765,
+    "input_tokens": 158,
+    "output_tokens": 173,
+    "total_tokens": 1096
+}
+
+{
+    "id": "v1_ChdJakt6YXRpYkxwUFF6N0lQeHZUdHlBdxIXSWpLemF0aWJMcFBRejdJUHh2VHR5QXc",
+    "model": "gemini-3.5-flash-lite",
+    "status": "completed",
+    "project_mode": "template",
+    "project_size": "large",
+    "project_template": "deck",
+    "thinking_level": "high",
+    "thinking_tokens": 801,
+    "input_tokens": 155,
+    "output_tokens": 223,
+    "total_tokens": 1179
+}
+

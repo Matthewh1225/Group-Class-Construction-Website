@@ -22,7 +22,13 @@
             <a href="/products">Products</a>
             <a href="/planner">AI Planner</a>
             <a href="/dashboard">Dashboard</a>
-            <a class="nav-login" href="/login">Login</a>
+            {% if session.get("user_id") %}
+            <form class="nav-session" method="post" action="{{ url_for('auth.logout') }}">
+                <button type="submit">Logout</button>
+            </form>
+            {% else %}
+            <a class="nav-session" href="{{ url_for('auth.login') }}">Login</a>
+            {% endif %}
         </nav>
     <main>
         {% block content %}

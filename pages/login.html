@@ -5,7 +5,7 @@ Login - BuildBetter
 {% endblock %}
 
 {% block styles %}
-<link rel="stylesheet" href="{{ url_for('static', filename='login.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='forms.css') }}">
 {% endblock %}
 
 {% block underConstruction %}
@@ -13,18 +13,23 @@ Login - BuildBetter
 
 {% block content %}
 <div class="form-container">
-    <form class="login-form" method="post" action="/login">
+    <form id="login-form" class="account-form" method="post" action="/login">
         <h2>Login</h2>
-
         <label for="username">Username</label>
         <input type="text" id="username" name="username" required>
-
         <label for="password">Password</label>
         <input type="password" id="password" name="password" required>
-
+        <p id="login-message" role="alert"></p>
         <button type="submit">Login</button>
     </form>
 </div>
-<p>Don't have an account? <span class="register-link"><a href="/register">Register here</a></span>.</p>
+<p>
+    Don't have an account?
+    <span class="register-link"><a href="{{ url_for('auth.register') }}">Register here</a></span>.
+</p>
 
+<script
+    src="{{ url_for('static', filename='js/login.js') }}"
+    type="module"
+></script>
 {% endblock %}

@@ -1,5 +1,127 @@
 h1 {
     font-size: 2em;
     color: #b86f10;
+}
 
+.dashboard-container {
+    width: min(100% - 2rem, 1100px);
+    margin: 2rem auto;
+    text-align: left;
+}
+
+.dashboard-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    color: #e0e0e0;
+}
+
+.dashboard-panel {
+    margin-top: 1.5rem;
+    padding: 1.5rem;
+    background: #171a1f;
+    color: #e0e0e0;
+    border: 1px solid #303640;
+    border-radius: 0.5rem;
+}
+
+.add-user-form {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 0.75rem 1rem;
+    align-items: center;
+}
+
+.add-user-form button {
+    grid-column: 2;
+}
+
+.add-user-form input,
+.add-user-form select {
+    padding: 0.65rem;
+    background-color: #0d0f12;
+    color: #eeeeee;
+    border: 1px solid #454b55;
+    border-radius: 4px;
+}
+
+.add-user-form button {
+    padding: 0.65rem 1rem;
+    background-color: #b86f10;
+    color: #080808;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.table-wrapper {
+    overflow-x: auto;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: #111419;
+}
+
+th {
+    background-color: #0b0d10;
+    color: #ddc32e;
+}
+
+th,
+td {
+    padding: 0.75rem;
+    border-bottom: 1px solid #303640;
+    text-align: left;
+}
+
+.dashboard-message {
+    color: #eeeeee;
+    padding: 0.75rem;
+    border-radius: 0.25rem;
+}
+
+.dashboard-message.success {
+    background: #183323;
+    border: 1px solid #2f6b43;
+}
+
+.dashboard-message.error {
+    background: #3a1717;
+    border: 1px solid #7c3030;
+}
+
+.dashboard-link {
+    display: inline-block;
+    margin-top: 0.75rem;
+    color: #b86f10;
+}
+
+.delete-user-button {
+    background: #a51010;
+    color: white;
+    border: 0;
+    border-radius: 4px;
+    padding: 0.5rem 0.75rem;
+    cursor: pointer;
+}
+
+.delete-user-button:hover {
+    background: #7c0c0c;
+}
+
+@media (max-width: 600px) {
+    .dashboard-heading {
+        align-items: flex-start;
+    }
+
+    .add-user-form {
+        grid-template-columns: 1fr;
+    }
+
+    .add-user-form button {
+        grid-column: 1;
+    }
 }

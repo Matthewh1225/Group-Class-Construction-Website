@@ -4,10 +4,103 @@
 Dashboard - BuildBetter
 {% endblock %}
 
+{% block underConstruction %}
+{% endblock %}
+
 {% block styles %}
 <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
 {% endblock %}
 
 {% block content %}
-<h1>Dashboard</h1>
+<div class="dashboard-container">
+    <div class="dashboard-heading">
+        <div>
+            <h1>{{ "Admin Dashboard" if permission_level == "admin" else "Dashboard" }}</h1>
+            <p>Welcome, {{ username }}.</p>
+        </div>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}
+            <p class="dashboard-message {{ category }}" role="alert">{{ message }}</p>
+        {% endfor %}
+    {% endwith %}
+
+    {% if permission_level == "admin" %}
+        <section class="dashboard-panel">
+            <h2>Add User</h2>
+            <form class="add-user-form" method="post" action="{{ url_for('dashboard.dashboard') }}">
+                <label for="username">Username</label>
+                <input id="username" name="username" type="text" required>
+
+                <label for="email">Email</label>
+                <input id="email" name="email" type="email" required>
+
+                <label for="password">Password</label>
+                <input id="password" name="password" type="password" required>
+
+                <label for="confirm_password">Confirm Password</label>
+                <input id="confirm_password" name="confirm_password" type="password" required>
+
+                <label for="permission_level">Permission Level</label>
+                <select id="permission_level" name="permission_level">
+                    <option value="user">User</option>
+                    <option value="admin">Admin</option>
+                </select>
+
+                <button type="submit">Add User</button>
+            </form>
+        </section>
+
+        <section id="user-management" class="dashboard-panel">
+            <h2>User Management</h2>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Username</th>
+                            <th>Email</th>
+                            <th>Permission Level</th>
+                            <th>Created</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="user-list">
+                        {% for user in users %}
+                        <tr>
+                            <td>{{ user.id }}</td>
+                            <td>{{ user.username }}</td>
+                            <td>{{ user.email }}</td>
+                            <td>{{ user.permission_level }}</td>
+                            <td>{{ user.created_at }}</td>
+                            <td>
+                                {% if user.id != session.get('user_id') %}
+                                <form class="delete-user-form" method="post"
+                                      action="{{ url_for('dashboard.delete_user', user_id=user.id) }}"
+                                      data-username="{{ user.username }}">
+                                    <button class="delete-user-button" type="submit">Delete</button>
+                                </form>
+                                {% else %}
+                                Your account
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="6">No users found.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    {% else %}
+        <section class="dashboard-panel">
+            <h2>Project Dashboard</h2>
+            <p> saved projects and material lists here.</p>
+        </section>
+    {% endif %}
+</div>
+<script src="{{ url_for('static', filename='js/dashboard.js') }}" defer></script>
 {% endblock %}
