@@ -1,8 +1,11 @@
 import os
 import json
 from time import monotonic
+from typing import cast
+
 from flask import Blueprint, current_app, make_response, render_template, request
 from google import genai
+from google.genai.interactions import Interaction
 
 from utils.ratelimits import limiter
 
@@ -96,7 +99,7 @@ def planner():
             Project description: {user_input}
             """
 
-        thinking_level = THINKING_LEVELS.get(project_size, "low")
+        thinking_level = THINKING_LEVELS.get(project_size or "", "low")
         started_at = monotonic()
 
         try:
@@ -110,12 +113,16 @@ def planner():
             current_app.logger.info(
                 "Gemini request: model=%s thinking_level=%s", model, thinking_level
             )
-            response = ai.interactions.create(
-                model=model,
-                system_instruction=SYSTEM_INSTRUCTIONS,
-                generation_config={"thinking_level": thinking_level},
-                input=ai_input,
-                timeout=120,
+            response = cast(
+                Interaction,
+                ai.interactions.create(
+                    model=model,
+                    system_instruction=SYSTEM_INSTRUCTIONS,
+                    generation_config={"thinking_level": thinking_level},
+                    input=ai_input,
+                    stream=False,
+                    timeout=120,
+                ),
             )
             ai_response = response.output_text
 
@@ -127,7 +134,7 @@ def planner():
                 monotonic() - started_at,
             )
             popup_message = AI_ERROR_MESSAGES.get(
-                status_code,
+                status_code or 0,
                 "The AI planner could not complete the request.Check the server log for details.",
             )
         else:
