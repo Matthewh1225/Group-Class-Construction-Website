@@ -21,8 +21,8 @@ def refresh_dashboard_user():
     if user is None:
         session.clear()
     else:
-        session["username"] = user["username"]
-        session["permission_level"] = user["permission_level"]
+        session["username"] = user.get("username")
+        session["permission_level"] = user.get("permission_level")
 
 
 @dashboard_bp.route("/dashboard", methods=["GET", "POST"])
