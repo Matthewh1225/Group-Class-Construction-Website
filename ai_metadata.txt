@@ -352,3 +352,1478 @@
     "total_tokens": 1430
 }
 
+{
+    "status": "completed",
+    "thinking_tokens": null,
+    "input_tokens": 1626,
+    "output_tokens": 3863,
+    "total_tokens": 5489,
+    "provider": "groq",
+    "id": "chatcmpl-d3f94202-d213-4911-9766-e460f5f23252",
+    "model": "openai/gpt-oss-120b",
+    "thinking_level": "medium",
+    "elapsed_seconds": 13.14,
+    "steps": [
+        {
+            "status": "completed",
+            "thinking_tokens": 0,
+            "input_tokens": 214,
+            "output_tokens": 1005,
+            "total_tokens": 1219,
+            "provider": "gemini",
+            "id": "v1_Chc0MzIwYXNxX05vblJ6N0lQX29HWXlBbxIXNDMyMGFzcV9Ob25SejdJUF9vR1l5QW8",
+            "model": "gemini-3.5-flash-lite",
+            "thinking_level": "low",
+            "elapsed_seconds": 4.62
+        },
+        {
+            "status": "completed",
+            "thinking_tokens": null,
+            "input_tokens": 1626,
+            "output_tokens": 3863,
+            "total_tokens": 5489,
+            "provider": "groq",
+            "id": "chatcmpl-d3f94202-d213-4911-9766-e460f5f23252",
+            "model": "openai/gpt-oss-120b",
+            "thinking_level": "medium",
+            "elapsed_seconds": 8.52
+        }
+    ],
+    "plan_type": "pro",
+    "project_mode": "custom",
+    "project_size": "medium",
+    "project_template": ""
+}
+
+{
+    "status": "completed",
+    "thinking_tokens": null,
+    "input_tokens": 1667,
+    "output_tokens": 3201,
+    "total_tokens": 4868,
+    "provider": "groq",
+    "id": "chatcmpl-88118fcb-1487-482c-b80e-41bc455457ba",
+    "model": "openai/gpt-oss-120b",
+    "thinking_level": "medium",
+    "elapsed_seconds": 11.3,
+    "plan": {
+        "project_type": "residential_building",
+        "summary": "1-story residential building with 2 bedrooms, 1 bathroom, large kitchen, office, 2-car garage, slab foundation, brick exterior, and asphalt shingle roof.",
+        "materials": [
+            {
+                "name": "Foundation Slab Concrete",
+                "category": "Concrete & Masonry",
+                "subcategory": "Ready-Mix Concrete",
+                "product_type": "Concrete",
+                "specification": "3000 PSI, 4\" thickness",
+                "quantity": 31,
+                "unit": "cubic yards",
+                "notes": "Concrete volume for 2500\u202fsq\u202fft footprint slab."
+            },
+            {
+                "name": "Foundation Vapor Barrier",
+                "category": "Site Prep",
+                "subcategory": "Waterproofing",
+                "product_type": "Polyethylene Sheeting",
+                "specification": "6\u2011mil polyethylene",
+                "quantity": 2750,
+                "unit": "sq ft",
+                "notes": "Under\u2011slab vapor barrier, includes 10% waste."
+            },
+            {
+                "name": "Foundation Reinforcement",
+                "category": "Concrete & Masonry",
+                "subcategory": "Reinforcement",
+                "product_type": "Welded Wire Mesh",
+                "specification": "10\u202fgauge welded wire mesh",
+                "quantity": 2750,
+                "unit": "sq ft",
+                "notes": "Slab reinforcement, includes 10% waste."
+            },
+            {
+                "name": "Exterior Wall Framing",
+                "category": "Building Materials",
+                "subcategory": "Framing Lumber",
+                "product_type": "Dimensional Lumber",
+                "specification": "2x6 SPF Grade #2 or better",
+                "quantity": 2200,
+                "unit": "linear ft",
+                "notes": "Studs, plates, and headers for exterior walls (perimeter 200\u202fft, 8\u202fft height, plus plates and headers)."
+            },
+            {
+                "name": "Interior Wall Framing",
+                "category": "Building Materials",
+                "subcategory": "Framing Lumber",
+                "product_type": "Dimensional Lumber",
+                "specification": "2x4 SPF Grade #2 or better",
+                "quantity": 1200,
+                "unit": "linear ft",
+                "notes": "Studs for interior partitions (approx. 150\u202fft wall length, 8\u202fft height)."
+            },
+            {
+                "name": "Roof Framing",
+                "category": "Building Materials",
+                "subcategory": "Roofing",
+                "product_type": "Wood Trusses",
+                "specification": "Engineered roof trusses, 24\" oc",
+                "quantity": 26,
+                "unit": "pieces",
+                "notes": "Based on 50\u202fft span, 24\" spacing."
+            },
+            {
+                "name": "Wall Sheathing",
+                "category": "Building Materials",
+                "subcategory": "Sheathing",
+                "product_type": "OSB",
+                "specification": "7/16\" OSB, 4x8 sheets",
+                "quantity": 55,
+                "unit": "sheets",
+                "notes": "Exterior wall sheathing, includes 10% waste."
+            },
+            {
+                "name": "Roof Sheathing",
+                "category": "Building Materials",
+                "subcategory": "Sheathing",
+                "product_type": "OSB",
+                "specification": "1/2\" OSB, 4x8 sheets",
+                "quantity": 92,
+                "unit": "sheets",
+                "notes": "Roof deck sheathing, includes 10% waste."
+            },
+            {
+                "name": "Exterior Brick Veneer",
+                "category": "Exterior Finishes",
+                "subcategory": "Masonry",
+                "product_type": "Brick",
+                "specification": "Standard modular brick (8\"\u202fx\u202f2.25\"\u202fx\u202f3.5\")",
+                "quantity": 11760,
+                "unit": "units",
+                "notes": "Brick veneer for exterior walls, 7 bricks per\u202fsq\u202fft, includes 5% waste."
+            },
+            {
+                "name": "Brick Mortar",
+                "category": "Masonry",
+                "subcategory": "Mortar",
+                "product_type": "Mortar Bag",
+                "specification": "80\u202flb Type\u202fS mortar bag (\u22480.6\u202fcu\u202fft)",
+                "quantity": 59,
+                "unit": "bags",
+                "notes": "Mortar for brick veneer, based on 0.3\u202fcu\u202fft per 100 bricks plus waste."
+            },
+            {
+                "name": "Asphalt Shingles",
+                "category": "Roofing",
+                "subcategory": "Shingles",
+                "product_type": "Asphalt Shingles",
+                "specification": "Standard asphalt shingles, 100\u202fsq\u202fft per bundle",
+                "quantity": 30,
+                "unit": "bundles",
+                "notes": "Roof covering, includes 10% waste."
+            },
+            {
+                "name": "Roofing Underlayment",
+                "category": "Roofing",
+                "subcategory": "Underlayment",
+                "product_type": "Felt Roll",
+                "specification": "15\u202flb felt, 400\u202fsq\u202fft per roll",
+                "quantity": 8,
+                "unit": "rolls",
+                "notes": "Underlayment for asphalt shingles, includes waste."
+            },
+            {
+                "name": "Roofing Nails",
+                "category": "Fasteners",
+                "subcategory": "Nails",
+                "product_type": "8d Roofing Nails",
+                "specification": "8\u2011d nails, galvanized",
+                "quantity": 10,
+                "unit": "lbs",
+                "notes": "Nails for shingle installation."
+            },
+            {
+                "name": "Roof Flashing",
+                "category": "Roofing",
+                "subcategory": "Flashings",
+                "product_type": "Aluminum Flashing",
+                "specification": "Aluminum, 1\u2011in wide",
+                "quantity": 200,
+                "unit": "linear ft",
+                "notes": "Edge and wall flashing for roof."
+            }
+        ],
+        "assumptions": [
+            "Living area + garage = 2500\u202fsq\u202fft assumed rectangular 50\u202fft\u202fx\u202f50\u202fft for calculations.",
+            "Slab thickness assumed 4\u202fin (0.333\u202fft).",
+            "Concrete volume converted to cubic yards (1\u202fyd\u00b3\u202f=\u202f27\u202fft\u00b3).",
+            "Vapor barrier and mesh coverage equal slab area plus 10% waste.",
+            "Exterior wall perimeter = 200\u202fft, wall height = 8\u202fft.",
+            "Stud spacing 16\" oc, top/bottom plates added, plus extra for headers (~200\u202fft).",
+            "Interior partition length estimated 150\u202fft.",
+            "Roof pitch assumed 4:12, roof area \u2248 footprint\u202f\u00d7\u202f1.054.",
+            "Truss spacing 24\" oc, resulting in 26 trusses.",
+            "Sheathing sheets 4x8 (32\u202fsq\u202fft) with 10% waste.",
+            "Brick coverage 7 bricks per\u202fsq\u202fft, 5% waste added.",
+            "Mortar volume 0.3\u202fft\u00b3 per 100 bricks, 80\u202flb bag \u22480.6\u202fft\u00b3.",
+            "Asphalt shingle coverage 100\u202fsq\u202fft per bundle, 10% waste.",
+            "Felt roll covers 400\u202fsq\u202fft, waste added.",
+            "No special wind or seismic loads required."
+        ],
+        "questions": [],
+        "corrections": [
+            "All quantities previously null were calculated based on the 2500\u202fsq\u202fft footprint and standard construction assumptions.",
+            "Added exterior brick veneer, mortar, asphalt shingles, roofing underlayment, roofing nails, and flashing to reflect the specified exterior finish and roof material.",
+            "Adjusted wall and roof sheathing quantities to include 10% waste.",
+            "Specified slab thickness, vapor barrier, and reinforcement areas.",
+            "Clarified units and specifications for each material."
+        ]
+    },
+    "steps": [
+        {
+            "status": "completed",
+            "thinking_tokens": 0,
+            "input_tokens": 366,
+            "output_tokens": 928,
+            "total_tokens": 1294,
+            "provider": "gemini",
+            "id": "v1_ChdEb1MwYXEzMERkUFd6N0lQOTZERHFRcxIXRG9TMGFxMzBEZFBXejdJUDk2RERxUXM",
+            "model": "gemini-3.5-flash-lite",
+            "thinking_level": "low",
+            "elapsed_seconds": 4.07
+        },
+        {
+            "status": "completed",
+            "thinking_tokens": null,
+            "input_tokens": 1667,
+            "output_tokens": 3201,
+            "total_tokens": 4868,
+            "provider": "groq",
+            "id": "chatcmpl-88118fcb-1487-482c-b80e-41bc455457ba",
+            "model": "openai/gpt-oss-120b",
+            "thinking_level": "medium",
+            "elapsed_seconds": 7.23
+        }
+    ],
+    "plan_type": "pro",
+    "project_mode": "template",
+    "project_size": "mega",
+    "project_template": "residential_building"
+}
+
+{
+    "status": "completed",
+    "thinking_tokens": 1289,
+    "input_tokens": 302,
+    "output_tokens": 612,
+    "total_tokens": 2203,
+    "provider": "gemini",
+    "id": "v1_ChdDWWkwYW95U0NhdXFxdHNQNmVqbS1BYxIXQ1lpMGFveVNDYXVxcXRzUDZlam0tQWM",
+    "model": "gemini-3.5-flash-lite",
+    "thinking_level": "high",
+    "elapsed_seconds": 7.37,
+    "steps": [
+        {
+            "status": "completed",
+            "thinking_tokens": 1289,
+            "input_tokens": 302,
+            "output_tokens": 612,
+            "total_tokens": 2203,
+            "provider": "gemini",
+            "id": "v1_ChdDWWkwYW95U0NhdXFxdHNQNmVqbS1BYxIXQ1lpMGFveVNDYXVxcXRzUDZlam0tQWM",
+            "model": "gemini-3.5-flash-lite",
+            "thinking_level": "high",
+            "elapsed_seconds": 7.37
+        }
+    ],
+    "plan_type": "basic",
+    "plan": {
+        "project_type": "Cedar Fence",
+        "summary": "Materials list for building a 7-foot cedar privacy fence around a 0.8-acre property.",
+        "materials": [
+            {
+                "name": "Fence Posts",
+                "category": "Building Materials",
+                "subcategory": "Lumber",
+                "product_type": "Wood Post",
+                "specification": "4x4x10, Pressure-Treated",
+                "quantity": 95,
+                "unit": "posts",
+                "notes": "Spaced 8 feet apart"
+            },
+            {
+                "name": "Fence Rails",
+                "category": "Building Materials",
+                "subcategory": "Lumber",
+                "product_type": "Dimensional Lumber",
+                "specification": "2x4x8, Cedar",
+                "quantity": 282,
+                "unit": "boards",
+                "notes": "3 rails per section"
+            },
+            {
+                "name": "Fence Pickets",
+                "category": "Building Materials",
+                "subcategory": "Lumber",
+                "product_type": "Picket",
+                "specification": "1x6x7, Cedar",
+                "quantity": 1500,
+                "unit": "pickets",
+                "notes": "Standard privacy spacing"
+            },
+            {
+                "name": "Post Concrete",
+                "category": "Building Materials",
+                "subcategory": "Concrete",
+                "product_type": "Concrete Mix",
+                "specification": "50 lb bag",
+                "quantity": 190,
+                "unit": "bags",
+                "notes": "2 bags per post hole"
+            },
+            {
+                "name": "Fence Fasteners",
+                "category": "Hardware",
+                "subcategory": "Fasteners",
+                "product_type": "Exterior Screws",
+                "specification": "Exterior Grade, 3-inch",
+                "quantity": 6,
+                "unit": "boxes",
+                "notes": "Box of 500"
+            }
+        ],
+        "assumptions": [
+            "Property shape is assumed to be square, resulting in an estimated perimeter of 750 linear feet.",
+            "Post spacing is assumed to be 8 feet on center.",
+            "Fence height is 7 feet with 3 horizontal rails per section."
+        ],
+        "questions": [
+            "What is the exact property perimeter and terrain layout?",
+            "How many gates are required and what are their dimensions?",
+            "Are property slope adjustments or stepped sections required?"
+        ],
+        "corrections": []
+    },
+    "project_mode": "custom",
+    "project_size": "small",
+    "project_template": ""
+}
+
+{
+    "status": "completed",
+    "thinking_tokens": 919,
+    "input_tokens": 287,
+    "output_tokens": 370,
+    "total_tokens": 1576,
+    "provider": "gemini",
+    "id": "v1_Chc4b2kwYXN5eUlJMnN6N0lQM0xtY3FRMBIXOG9pMGFzeXlJSTJzejdJUDNMbWNxUTA",
+    "model": "gemini-3.5-flash-lite",
+    "thinking_level": "high",
+    "elapsed_seconds": 5.04,
+    "steps": [
+        {
+            "status": "completed",
+            "thinking_tokens": 919,
+            "input_tokens": 287,
+            "output_tokens": 370,
+            "total_tokens": 1576,
+            "provider": "gemini",
+            "id": "v1_Chc4b2kwYXN5eUlJMnN6N0lQM0xtY3FRMBIXOG9pMGFzeXlJSTJzejdJUDNMbWNxUTA",
+            "model": "gemini-3.5-flash-lite",
+            "thinking_level": "high",
+            "elapsed_seconds": 5.04
+        }
+    ],
+    "plan_type": "basic",
+    "plan": {
+        "project_type": "bird house",
+        "summary": "Materials for building a small wooden bird house.",
+        "materials": [
+            {
+                "name": "Wall and Roof Panels",
+                "category": "Building Materials",
+                "subcategory": "Lumber",
+                "product_type": "Cedar Board",
+                "specification": "1x6 nominal, exterior grade",
+                "quantity": null,
+                "unit": "board feet",
+                "notes": "Exact quantity depends on bird house dimensions."
+            },
+            {
+                "name": "Fasteners",
+                "category": "Hardware",
+                "subcategory": "Fasteners",
+                "product_type": "Wood Screw",
+                "specification": "#8 x 1-1/4 inch, exterior grade",
+                "quantity": null,
+                "unit": "pieces",
+                "notes": ""
+            },
+            {
+                "name": "Adhesive",
+                "category": "Adhesives",
+                "subcategory": "Glue",
+                "product_type": "Wood Glue",
+                "specification": "Waterproof, exterior grade",
+                "quantity": null,
+                "unit": "bottle",
+                "notes": ""
+            }
+        ],
+        "assumptions": [
+            "Assuming a standard small single-chamber bird house design.",
+            "Assuming exterior-grade materials are preferred."
+        ],
+        "questions": [
+            "What are the exact dimensions of the bird house?",
+            "What species of bird is the house intended for to determine entrance hole size?"
+        ],
+        "corrections": []
+    },
+    "project_mode": "custom",
+    "project_size": "small",
+    "project_template": ""
+}
+
+{
+    "status": "completed",
+    "thinking_tokens": null,
+    "input_tokens": 2305,
+    "output_tokens": 3701,
+    "total_tokens": 6006,
+    "provider": "groq",
+    "id": "chatcmpl-f4a6dc74-0d09-4f66-9969-40f63c6df0d2",
+    "model": "openai/gpt-oss-120b",
+    "thinking_level": "medium",
+    "elapsed_seconds": 26.05,
+    "plan": {
+        "project_type": "shed",
+        "summary": "Corrected materials list for a 12\u202f\u00d7\u202f7\u202f\u00d7\u202f7\u202fft shed with concrete slab foundation, pre\u2011hung double doors, entrance ramp, window, interior lighting, and a window\u2011type air conditioner.",
+        "materials": [
+            {
+                "name": "Concrete Slab",
+                "category": "Concrete",
+                "subcategory": "Slab",
+                "product_type": "Ready\u2011Mix Concrete",
+                "specification": "1.5\u202fcubic\u202fyards, 4\u202fin thickness",
+                "quantity": 1.5,
+                "unit": "cubic yards",
+                "notes": "Foundation slab poured on compacted base"
+            },
+            {
+                "name": "Gravel Base",
+                "category": "Aggregate",
+                "subcategory": "Base Material",
+                "product_type": "Crushed Gravel",
+                "specification": "0.5\u202fcubic\u202fyards, 2\u202fin thickness",
+                "quantity": 0.5,
+                "unit": "cubic yards",
+                "notes": "Placed beneath concrete slab for drainage"
+            },
+            {
+                "name": "Vapor Barrier",
+                "category": "Building Materials",
+                "subcategory": "Moisture Barrier",
+                "product_type": "Polyethylene Sheeting",
+                "specification": "6\u202fmil, 1000\u202fsq\u202fft roll",
+                "quantity": 1,
+                "unit": "roll",
+                "notes": "Laid over gravel before concrete"
+            },
+            {
+                "name": "Form Lumber",
+                "category": "Lumber",
+                "subcategory": "Formwork",
+                "product_type": "2x4 Pressure\u2011Treated",
+                "specification": "60\u202fft total length for slab edges and braces",
+                "quantity": 60,
+                "unit": "feet",
+                "notes": "Used to build concrete forms"
+            },
+            {
+                "name": "Rebar",
+                "category": "Hardware",
+                "subcategory": "Reinforcement",
+                "product_type": "Steel Rebar",
+                "specification": "No.\u202f3 (3/8\u202fin), 100\u202fft total",
+                "quantity": 100,
+                "unit": "feet",
+                "notes": "Grid reinforcement for slab"
+            },
+            {
+                "name": "Wall Studs and Plates",
+                "category": "Lumber",
+                "subcategory": "Dimensional Lumber",
+                "product_type": "Standard Lumber",
+                "specification": "2x4, 8\u202fft length, 16\u202fin O.C.",
+                "quantity": 38,
+                "unit": "pieces",
+                "notes": "Wall framing, includes top/bottom plates and headers"
+            },
+            {
+                "name": "Wall Siding",
+                "category": "Building Materials",
+                "subcategory": "Siding",
+                "product_type": "SmartSide Panel",
+                "specification": "7/16\u202fin, 4x8\u202fft",
+                "quantity": 12,
+                "unit": "sheets",
+                "notes": "Exterior wall covering"
+            },
+            {
+                "name": "Roof Rafters",
+                "category": "Lumber",
+                "subcategory": "Dimensional Lumber",
+                "product_type": "Standard Lumber",
+                "specification": "2x4, 10\u202fft length",
+                "quantity": 14,
+                "unit": "pieces",
+                "notes": "Gable roof framing"
+            },
+            {
+                "name": "Roof Sheathing",
+                "category": "Building Materials",
+                "subcategory": "Sheathing",
+                "product_type": "OSB",
+                "specification": "7/16\u202fin, 4x8\u202fft",
+                "quantity": 4,
+                "unit": "sheets",
+                "notes": "Roof decking"
+            },
+            {
+                "name": "Roof Underlayment",
+                "category": "Roofing",
+                "subcategory": "Underlayment",
+                "product_type": "Synthetic Underlayment",
+                "specification": "Standard roll, covers ~400\u202fsq\u202fft",
+                "quantity": 1,
+                "unit": "roll",
+                "notes": "Moisture barrier under shingles"
+            },
+            {
+                "name": "Roof Shingles",
+                "category": "Roofing",
+                "subcategory": "Shingles",
+                "product_type": "Asphalt Shingles",
+                "specification": "Architectural grade, ~100\u202fsq\u202fft per bundle",
+                "quantity": 2,
+                "unit": "bundles",
+                "notes": "Roof waterproofing finish"
+            },
+            {
+                "name": "Exterior Primer",
+                "category": "Finishes",
+                "subcategory": "Primer",
+                "product_type": "Exterior Primer",
+                "specification": "Gallon",
+                "quantity": 1,
+                "unit": "gallon",
+                "notes": "Prep coat for siding"
+            },
+            {
+                "name": "Exterior Paint",
+                "category": "Finishes",
+                "subcategory": "Paint",
+                "product_type": "Exterior Latex Paint",
+                "specification": "Blue, Gallon",
+                "quantity": 2,
+                "unit": "gallons",
+                "notes": "Exterior finish coat"
+            },
+            {
+                "name": "Shed Window",
+                "category": "Doors & Windows",
+                "subcategory": "Windows",
+                "product_type": "Fixed Window",
+                "specification": "24\u202fx\u202f36\u202fin",
+                "quantity": 1,
+                "unit": "unit",
+                "notes": "Provides natural lighting"
+            },
+            {
+                "name": "Prehung Double Doors",
+                "category": "Doors & Windows",
+                "subcategory": "Doors",
+                "product_type": "Prehung Double Doors",
+                "specification": "7\u202fft height, 6\u202fft total width, insulated, blue finish",
+                "quantity": 1,
+                "unit": "unit",
+                "notes": "Back entry, includes hardware"
+            },
+            {
+                "name": "Ramp Framing Lumber",
+                "category": "Lumber",
+                "subcategory": "Dimensional Lumber",
+                "product_type": "Pressure\u2011Treated 2x6",
+                "specification": "8\u202fft length, 4\u202fpieces for joists",
+                "quantity": 4,
+                "unit": "pieces",
+                "notes": "Supports ramp deck"
+            },
+            {
+                "name": "Ramp Decking Boards",
+                "category": "Building Materials",
+                "subcategory": "Decking",
+                "product_type": "Pressure\u2011Treated 5/4x6",
+                "specification": "12\u202fft length, 6\u202fpieces",
+                "quantity": 6,
+                "unit": "pieces",
+                "notes": "Surface of entrance ramp"
+            },
+            {
+                "name": "Electrical Wire",
+                "category": "Electrical",
+                "subcategory": "Wiring",
+                "product_type": "Romex NM\u2011B",
+                "specification": "14/2, 250\u202fft roll",
+                "quantity": 1,
+                "unit": "roll",
+                "notes": "For lighting and AC circuits"
+            },
+            {
+                "name": "Lighting Fixture",
+                "category": "Electrical",
+                "subcategory": "Lighting",
+                "product_type": "LED Utility Light",
+                "specification": "Surface\u2011mount, 120\u202fV",
+                "quantity": 1,
+                "unit": "unit",
+                "notes": "Interior illumination"
+            },
+            {
+                "name": "Electrical Outlets & Switch",
+                "category": "Electrical",
+                "subcategory": "Devices",
+                "product_type": "Outlet and Switch Combo",
+                "specification": "Standard 15\u202fA residential",
+                "quantity": 2,
+                "unit": "sets",
+                "notes": "One duplex outlet, one single\u2011pole switch"
+            },
+            {
+                "name": "Air Conditioner",
+                "category": "HVAC",
+                "subcategory": "Air Conditioning",
+                "product_type": "Window Air Conditioner",
+                "specification": "5000\u202fBTU, 115\u202fV, single\u2011phase",
+                "quantity": 1,
+                "unit": "unit",
+                "notes": "Provides cooling for interior"
+            }
+        ],
+        "assumptions": [
+            "Concrete slab is 4\u202fin thick over a 2\u202fin compacted gravel base; 1.5\u202fcubic\u202fyards of ready\u2011mix concrete provides sufficient volume with waste allowance.",
+            "Ramp is 8\u202fft long, 4\u202fft wide, 3\u202fft rise, built with 2x6 joists and 5/4x6 decking boards.",
+            "Roof pitch is moderate (approximately 4:12) yielding a roof area near 90\u202fsq\u202fft; 4 sheathing sheets and 2 shingle bundles cover the roof with standard waste factor.",
+            "Pre\u2011hung double doors include all necessary hinges, latch, and weatherstripping; no additional door hardware required.",
+            "Window is a fixed 24\u202fx\u202f36\u202fin unit placed on one wall for daylight.",
+            "Electrical circuit runs from an existing house panel; 250\u202fft of 14/2 NM\u2011B is sufficient for wiring, outlets, and lighting.",
+            "Air conditioner is a standard 5000\u202fBTU window unit suitable for the shed\u2019s 84\u202fsq\u202fft floor area."
+        ],
+        "questions": [],
+        "corrections": [
+            "Removed floor skids, floor joists, and subfloor decking; added concrete slab, gravel base, vapor barrier, form lumber, and rebar for a poured concrete foundation.",
+            "Replaced generic door hardware with a pre\u2011hung double\u2011door unit that includes all hardware.",
+            "Adjusted roof sheathing from 6 to 4 sheets and roof shingles from 3 to 2 bundles to match actual roof area.",
+            "Added a window\u2011type air\u2011conditioner unit as the cooling solution.",
+            "Expanded ramp materials into separate framing lumber and decking board entries with realistic quantities.",
+            "Updated quantities for concrete, gravel, and reinforcement to reflect a 4\u2011in slab over a 12\u202f\u00d7\u202f7\u202fft footprint."
+        ]
+    },
+    "steps": [
+        {
+            "status": "completed",
+            "thinking_tokens": 3057,
+            "input_tokens": 412,
+            "output_tokens": 1699,
+            "total_tokens": 5168,
+            "provider": "gemini",
+            "id": "v1_Chdsb3EwYXBXRUR2VFV6N0lQOG83eXFBcxIXbG9xMGFwV0VEdlRVejdJUDhvN3lxQXM",
+            "model": "gemini-3.5-flash-lite",
+            "thinking_level": "high",
+            "elapsed_seconds": 16.26
+        },
+        {
+            "status": "completed",
+            "thinking_tokens": null,
+            "input_tokens": 2305,
+            "output_tokens": 3701,
+            "total_tokens": 6006,
+            "provider": "groq",
+            "id": "chatcmpl-f4a6dc74-0d09-4f66-9969-40f63c6df0d2",
+            "model": "openai/gpt-oss-120b",
+            "thinking_level": "medium",
+            "elapsed_seconds": 9.79
+        }
+    ],
+    "plan_type": "pro",
+    "project_mode": "template",
+    "project_size": "medium",
+    "project_template": "shed"
+}
+
+{
+    "status": "completed",
+    "thinking_tokens": 1057,
+    "input_tokens": 374,
+    "output_tokens": 519,
+    "total_tokens": 1950,
+    "provider": "gemini",
+    "id": "v1_Chc4b3kwYXBMbE84M1J6N0lQdkptTTJRaxIXOG95MGFwTGxPODNSejdJUHZKbU0yUWs",
+    "model": "gemini-3.5-flash-lite",
+    "thinking_level": "high",
+    "elapsed_seconds": 5.94,
+    "steps": [
+        {
+            "status": "completed",
+            "thinking_tokens": 1057,
+            "input_tokens": 374,
+            "output_tokens": 519,
+            "total_tokens": 1950,
+            "provider": "gemini",
+            "id": "v1_Chc4b3kwYXBMbE84M1J6N0lQdkptTTJRaxIXOG95MGFwTGxPODNSejdJUHZKbU0yUWs",
+            "model": "gemini-3.5-flash-lite",
+            "thinking_level": "high",
+            "elapsed_seconds": 5.94
+        }
+    ],
+    "plan_type": "basic",
+    "plan": {
+        "project_type": "birdhouse",
+        "summary": "Wooden birdhouse measuring 12x12x24 inches with a 2-inch entrance hole, perch, and yellow exterior finish.",
+        "materials": [
+            {
+                "name": "Birdhouse Structure",
+                "category": "Building Materials",
+                "subcategory": "Lumber",
+                "product_type": "Cedar Board",
+                "specification": "3/4 inch thickness, exterior grade",
+                "quantity": null,
+                "unit": "boards",
+                "notes": "Exact board quantities depend on the specific cut layout."
+            },
+            {
+                "name": "Assembly Fasteners",
+                "category": "Hardware",
+                "subcategory": "Fasteners",
+                "product_type": "Exterior Wood Screws",
+                "specification": "#8 x 1-5/8 inch, corrosion-resistant",
+                "quantity": null,
+                "unit": "box",
+                "notes": "For securing walls, floor, and roof panels."
+            },
+            {
+                "name": "Birdhouse Perch",
+                "category": "Building Materials",
+                "subcategory": "Lumber",
+                "product_type": "Wood Dowel",
+                "specification": "3/8 inch diameter x 4 inch length",
+                "quantity": 1,
+                "unit": "pieces",
+                "notes": "Mounted below the 2-inch entrance hole."
+            },
+            {
+                "name": "Exterior Paint",
+                "category": "Finishes",
+                "subcategory": "Paint",
+                "product_type": "Exterior Latex Paint",
+                "specification": "Yellow, waterproof",
+                "quantity": 1,
+                "unit": "quart",
+                "notes": "For weatherproofing and coloring the exterior."
+            }
+        ],
+        "assumptions": [
+            "Exterior-grade cedar lumber is used for weather resistance.",
+            "A 3/8-inch wood dowel is appropriate for the perch."
+        ],
+        "questions": [
+            "What specific wood species and board dimensions do you prefer?",
+            "What style of roof (pitched, flat, or slanted) should be used?"
+        ],
+        "corrections": []
+    },
+    "project_mode": "template",
+    "project_size": "small",
+    "project_template": "birdhouse"
+}
+
+{
+    "status": "completed",
+    "thinking_tokens": null,
+    "input_tokens": 1729,
+    "output_tokens": 2423,
+    "total_tokens": 4152,
+    "provider": "groq",
+    "id": "chatcmpl-f3c895e3-b3a2-4b81-8e13-c4b9ff047323",
+    "model": "openai/gpt-oss-120b",
+    "thinking_level": "medium",
+    "elapsed_seconds": 18.0,
+    "plan": {
+        "project_type": "custom",
+        "summary": "Materials estimate for a 10\u2011story, 100\u2011room steel\u2011frame hotel with stucco exterior and asphalt corrugated roofing.",
+        "materials": [
+            {
+                "name": "Foundation Concrete",
+                "category": "Concrete & Masonry",
+                "subcategory": "Foundations",
+                "product_type": "Ready-Mix Concrete",
+                "specification": "4000 PSI",
+                "quantity": 1500,
+                "unit": "cubic yards",
+                "notes": "Estimated for slab\u2011on\u2011grade and footings; includes 10% waste."
+            },
+            {
+                "name": "Foundation Reinforcement",
+                "category": "Concrete & Masonry",
+                "subcategory": "Reinforcement",
+                "product_type": "Steel Rebar",
+                "specification": "Grade 60, #5",
+                "quantity": 35000,
+                "unit": "lbs",
+                "notes": "Reinforcement for foundation and slab; includes waste."
+            },
+            {
+                "name": "Structural Framing Beams",
+                "category": "Structural",
+                "subcategory": "Steel",
+                "product_type": "Wide Flange Beams",
+                "specification": "W10x30, 20\u202fft length",
+                "quantity": 200,
+                "unit": "pieces",
+                "notes": "Primary steel framing members; includes 10% waste."
+            },
+            {
+                "name": "Steel Studs (Interior Partitions)",
+                "category": "Structural",
+                "subcategory": "Steel",
+                "product_type": "Steel Studs",
+                "specification": "2\u202fin x 3\u202fin, 12\u202fft length",
+                "quantity": 10000,
+                "unit": "linear ft",
+                "notes": "Interior non\u2011load\u2011bearing partitions; includes waste."
+            },
+            {
+                "name": "Exterior Sheathing",
+                "category": "Framing",
+                "subcategory": "Sheathing",
+                "product_type": "OSB",
+                "specification": "23/32\u202fin x 4\u202fft x 8\u202fft",
+                "quantity": 1200,
+                "unit": "sheets",
+                "notes": "Exterior wall sheathing for stucco finish; includes 10% waste."
+            },
+            {
+                "name": "Stucco Finish",
+                "category": "Exterior Finishes",
+                "subcategory": "Stucco",
+                "product_type": "Portland\u2011Cement Stucco",
+                "specification": "1.5\u202fgal per 100\u202fsq\u202fft",
+                "quantity": 112,
+                "unit": "5\u2011gal buckets",
+                "notes": "Base and finish coats for exterior walls; includes waste."
+            },
+            {
+                "name": "Metal Lath (Stucco Base)",
+                "category": "Exterior Finishes",
+                "subcategory": "Lath",
+                "product_type": "Metal Lath",
+                "specification": "0.5\u202flb per 100\u202fsq\u202fft",
+                "quantity": 17000,
+                "unit": "lbs",
+                "notes": "Provides keying for stucco; includes waste."
+            },
+            {
+                "name": "Roofing Panels (Asphalt Corrugated)",
+                "category": "Roofing",
+                "subcategory": "Panels",
+                "product_type": "Asphalt Corrugated Roofing Panels",
+                "specification": "3\u202fft\u202f\u00d7\u202f10\u202fft panels, 30\u202fsq\u202fft each",
+                "quantity": 190,
+                "unit": "panels",
+                "notes": "Flat roof covering; includes 10% waste."
+            },
+            {
+                "name": "Roof Underlayment",
+                "category": "Roofing",
+                "subcategory": "Underlayment",
+                "product_type": "Asphalt Felt",
+                "specification": "400\u202fsq\u202fft per roll",
+                "quantity": 15,
+                "unit": "rolls",
+                "notes": "Protective layer beneath roofing panels; includes waste."
+            },
+            {
+                "name": "Interior Wallboard",
+                "category": "Interior Finishes",
+                "subcategory": "Drywall",
+                "product_type": "Gypsum Board",
+                "specification": "1/2\u202fin x 4\u202fft x 8\u202fft",
+                "quantity": 3500,
+                "unit": "sheets",
+                "notes": "Walls and ceilings; includes waste."
+            },
+            {
+                "name": "Drywall Fasteners",
+                "category": "Fasteners",
+                "subcategory": "Screws",
+                "product_type": "Drywall Screws",
+                "specification": "1\u20111/4\u202fin, 5\u202flb box",
+                "quantity": 440,
+                "unit": "boxes",
+                "notes": "Secures interior gypsum board; includes waste."
+            },
+            {
+                "name": "Steel Stud Fasteners",
+                "category": "Fasteners",
+                "subcategory": "Screws",
+                "product_type": "Self\u2011Drilling Screws",
+                "specification": "1\u20111/2\u202fin, 5\u202flb box",
+                "quantity": 200,
+                "unit": "boxes",
+                "notes": "Fastens steel studs to sheathing; includes waste."
+            },
+            {
+                "name": "Stucco Fasteners (Nails)",
+                "category": "Fasteners",
+                "subcategory": "Nails",
+                "product_type": "Stucco Nails",
+                "specification": "1\u2011in, 5\u202flb box",
+                "quantity": 500,
+                "unit": "boxes",
+                "notes": "Secures metal lath to sheathing; includes waste."
+            }
+        ],
+        "assumptions": [
+            "Total floor area approximated at 50,000\u202fsq\u202fft (\u22485,000\u202fsq\u202fft per floor for 10\u202fstories).",
+            "Exterior wall area estimated at 33,600\u202fsq\u202fft based on a 70\u202fft\u202f\u00d7\u202f70\u202fft footprint and 12\u202fft floor\u2011to\u2011floor height.",
+            "Roof area approximated at 5,000\u202fsq\u202fft (building footprint).",
+            "10\u202f% waste factor applied to all material quantities.",
+            "Standard material coverage rates used for stucco, roofing panels, and drywall."
+        ],
+        "questions": [],
+        "corrections": [
+            "Removed wood wall studs and replaced with steel studs for interior partitions.",
+            "Replaced TPO roof membrane with asphalt corrugated roofing panels and added underlayment.",
+            "Added exterior stucco system components (stucco mix, metal lath).",
+            "Adjusted exterior sheathing quantity to match estimated wall area.",
+            "Increased structural steel beam count to reflect full\u2011height steel frame.",
+            "Updated drywall sheet and fastener quantities for 50,000\u202fsq\u202fft interior surface area."
+        ]
+    },
+    "steps": [
+        {
+            "status": "completed",
+            "thinking_tokens": 2924,
+            "input_tokens": 386,
+            "output_tokens": 1002,
+            "total_tokens": 4312,
+            "provider": "gemini",
+            "id": "v1_ChdabzYwYW9mY0l2LUh6N0lQOGRMV29BMBIXWm82MGFvZmNJdi1IejdJUDhkTFdvQTA",
+            "model": "gemini-3.5-flash-lite",
+            "thinking_level": "high",
+            "elapsed_seconds": 12.56
+        },
+        {
+            "status": "completed",
+            "thinking_tokens": null,
+            "input_tokens": 1729,
+            "output_tokens": 2423,
+            "total_tokens": 4152,
+            "provider": "groq",
+            "id": "chatcmpl-f3c895e3-b3a2-4b81-8e13-c4b9ff047323",
+            "model": "openai/gpt-oss-120b",
+            "thinking_level": "medium",
+            "elapsed_seconds": 5.44
+        }
+    ],
+    "plan_type": "pro",
+    "project_mode": "custom",
+    "project_size": "mega",
+    "project_template": ""
+}
+
+{
+    "status": "completed",
+    "thinking_tokens": null,
+    "input_tokens": 1981,
+    "output_tokens": 2983,
+    "total_tokens": 4964,
+    "provider": "groq",
+    "id": "chatcmpl-11e176cb-a58b-4bd6-8447-d781715bf38a",
+    "model": "openai/gpt-oss-120b",
+    "thinking_level": "medium",
+    "elapsed_seconds": 13.49,
+    "plan": {
+        "project_type": "custom",
+        "summary": "Updated material quantities for a 2,500\u202fsq\u202fft (1,250\u202fsq\u202fft per floor) two\u2011story home with a full basement and pre\u2011engineered roof trusses.",
+        "materials": [
+            {
+                "name": "Foundation Concrete",
+                "category": "Concrete & Masonry",
+                "subcategory": "Foundations",
+                "product_type": "Ready-Mix Concrete",
+                "specification": "3000\u202fPSI, 4\u2011in slab + 8\u2011in basement walls",
+                "quantity": 48,
+                "unit": "cubic yards",
+                "notes": "Includes 10\u202f% waste; sized for full basement slab and perimeter walls."
+            },
+            {
+                "name": "Foundation Rebar",
+                "category": "Concrete & Masonry",
+                "subcategory": "Reinforcement",
+                "product_type": "Steel Rebar",
+                "specification": "#4 (\u00bd\u202fin) x 20\u202fft",
+                "quantity": 200,
+                "unit": "pieces",
+                "notes": "Reinforcement for slab and basement wall footings; includes 10\u202f% waste."
+            },
+            {
+                "name": "Gravel Base",
+                "category": "Concrete & Masonry",
+                "subcategory": "Sub\u2011Base",
+                "product_type": "Crushed Stone",
+                "specification": "\u00bd\u202fin depth under slab",
+                "quantity": 26,
+                "unit": "cubic yards",
+                "notes": "Compacted base for slab; 10\u202f% waste."
+            },
+            {
+                "name": "Concrete Formwork",
+                "category": "Concrete & Masonry",
+                "subcategory": "Formwork",
+                "product_type": "Plywood Sheathing",
+                "specification": "3/4\u202fin, 4\u00d78\u202fft sheets",
+                "quantity": 30,
+                "unit": "sheets",
+                "notes": "Form panels for basement walls and slab edges; includes waste."
+            },
+            {
+                "name": "Floor Joists",
+                "category": "Framing",
+                "subcategory": "Flooring",
+                "product_type": "Engineered Lumber I\u2011Joists",
+                "specification": "11\u20117/8\u202fin\u202f\u00d7\u202f30\u202fft",
+                "quantity": 30,
+                "unit": "pieces",
+                "notes": "Spaced 16\u202fin\u202foc for 1,250\u202fsq\u202fft second floor; includes 10\u202f% waste."
+            },
+            {
+                "name": "Wall Studs Exterior",
+                "category": "Framing",
+                "subcategory": "Walls",
+                "product_type": "Dimensional Lumber",
+                "specification": "2\u00d76\u202f\u00d7\u202f92\u20115/8\u202fin",
+                "quantity": 220,
+                "unit": "pieces",
+                "notes": "Exterior walls for both stories; 16\u202fin\u202foc; includes waste."
+            },
+            {
+                "name": "Wall Studs Interior",
+                "category": "Framing",
+                "subcategory": "Walls",
+                "product_type": "Dimensional Lumber",
+                "specification": "2\u00d74\u202f\u00d7\u202f92\u20115/8\u202fin",
+                "quantity": 80,
+                "unit": "pieces",
+                "notes": "Interior partition studs; 16\u202fin\u202foc; includes waste."
+            },
+            {
+                "name": "Subfloor Sheathing",
+                "category": "Framing",
+                "subcategory": "Flooring",
+                "product_type": "OSB",
+                "specification": "23/32\u202fin tongue\u2011and\u2011groove, 4\u00d78\u202fft",
+                "quantity": 44,
+                "unit": "sheets",
+                "notes": "Covers 1,250\u202fsq\u202fft second floor; 10\u202f% waste."
+            },
+            {
+                "name": "Wall Sheathing",
+                "category": "Framing",
+                "subcategory": "Walls",
+                "product_type": "OSB",
+                "specification": "7/16\u202fin, 4\u00d78\u202fft",
+                "quantity": 78,
+                "unit": "sheets",
+                "notes": "Exterior wall sheathing; 10\u202f% waste."
+            },
+            {
+                "name": "Roof Trusses",
+                "category": "Framing",
+                "subcategory": "Roofing",
+                "product_type": "Wood Trusses",
+                "specification": "Pre\u2011engineered, standard pitch, 30\u2011ft span",
+                "quantity": 20,
+                "unit": "pieces",
+                "notes": "Spaced 24\u202fin\u202foc for 1,250\u202fsq\u202fft roof (\u22481.2\u00d7 area); includes waste."
+            },
+            {
+                "name": "Roof Sheathing",
+                "category": "Framing",
+                "subcategory": "Roofing",
+                "product_type": "CDX Plywood",
+                "specification": "1/2\u202fin, 4\u00d78\u202fft",
+                "quantity": 52,
+                "unit": "sheets",
+                "notes": "Deck for roof area; 10\u202f% waste."
+            },
+            {
+                "name": "House Wrap",
+                "category": "Exterior",
+                "subcategory": "Weather Barrier",
+                "product_type": "Synthetic House Wrap",
+                "specification": "9\u202fft\u202f\u00d7\u202f100\u202fft roll",
+                "quantity": 3,
+                "unit": "rolls",
+                "notes": "Wraps exterior walls; 10\u202f% waste."
+            },
+            {
+                "name": "Framing Nails",
+                "category": "Fasteners",
+                "subcategory": "Nails",
+                "product_type": "Collated Framing Nails",
+                "specification": "3\u20111/4\u202fin hot\u2011dip galvanized",
+                "quantity": 6,
+                "unit": "boxes",
+                "notes": "For all framing connections; includes waste."
+            },
+            {
+                "name": "Anchor Bolts",
+                "category": "Fasteners",
+                "subcategory": "Bolts",
+                "product_type": "Concrete Anchor Bolts",
+                "specification": "\u00bd\u202fin\u202f\u00d7\u202f6\u202fin",
+                "quantity": 30,
+                "unit": "pieces",
+                "notes": "Secures sill plates to foundation."
+            },
+            {
+                "name": "Rebar Ties (Wire)",
+                "category": "Fasteners",
+                "subcategory": "Wire",
+                "product_type": "Steel Rebar Tie Wire",
+                "specification": "#3 (0.1\u202fin) wire",
+                "quantity": 10,
+                "unit": "lbs",
+                "notes": "For tying rebar in foundation."
+            },
+            {
+                "name": "Wall Insulation",
+                "category": "Insulation",
+                "subcategory": "Batts",
+                "product_type": "Fiberglass Batts",
+                "specification": "R\u201113, 2\u00d76 cavity, 15\u202fsq\u202fft per pack",
+                "quantity": 150,
+                "unit": "packs",
+                "notes": "Exterior wall cavity insulation; includes 10\u202f% waste."
+            }
+        ],
+        "assumptions": [
+            "Total footprint 1,250\u202fsq\u202fft per floor (2,500\u202fsq\u202fft total).",
+            "Full basement foundation with 4\u2011in slab and 8\u2011in perimeter walls.",
+            "Pre\u2011engineered roof trusses as specified.",
+            "Standard stud spacing 16\u202fin\u202foc; roof truss spacing 24\u202fin\u202foc; roof area approximated as 1.2\u202f\u00d7 footprint.",
+            "All material quantities include a single 10\u202f% waste factor where applicable."
+        ],
+        "corrections": [
+            "Increased foundation concrete from 45\u202fcy to 48\u202fcy to account for basement walls.",
+            "Changed foundation type from crawlspace to full basement, adding gravel base and formwork.",
+            "Reduced floor joist count from 55 to 30 reflecting actual floor area and spacing.",
+            "Adjusted exterior wall studs from 350 to 220 based on perimeter calculations.",
+            "Adjusted interior studs from 400 to 80 reflecting partition area.",
+            "Reduced subfloor sheathing from 65 to 44 sheets (plus waste).",
+            "Reduced wall sheathing from 110 to 78 sheets (plus waste).",
+            "Reduced roof trusses from 42 to 20 pieces for pre\u2011engineered design.",
+            "Reduced roof sheathing from 120 to 52 sheets (plus waste).",
+            "Reduced house wrap rolls from 4 to 3.",
+            "Reduced framing nail boxes from 8 to 6.",
+            "Added gravel base, concrete formwork, anchor bolts, rebar ties, and wall insulation not present in original draft."
+        ],
+        "questions": [
+            "What type of exterior siding (e.g., vinyl, fiber\u2011cement, wood) will be installed?",
+            "What roofing material (e.g., asphalt shingles, metal panels) is planned?",
+            "Do you require exterior insulation or a rain screen system?",
+            "Will the basement walls be finished with block, poured concrete, or another system?",
+            "Do you need interior finish materials (drywall, trim) included in the plan?"
+        ]
+    },
+    "steps": [
+        {
+            "status": "completed",
+            "thinking_tokens": 608,
+            "input_tokens": 376,
+            "output_tokens": 1259,
+            "total_tokens": 2243,
+            "provider": "gemini",
+            "id": "v1_ChdoSlcwYXJmeE84clF6N0lQcVp2NW1BMBIXaEpXMGFyZnhPOHJRejdJUHFadjVtQTA",
+            "model": "gemini-3.5-flash-lite",
+            "thinking_level": "medium",
+            "elapsed_seconds": 6.67
+        },
+        {
+            "status": "completed",
+            "thinking_tokens": null,
+            "input_tokens": 1981,
+            "output_tokens": 2983,
+            "total_tokens": 4964,
+            "provider": "groq",
+            "id": "chatcmpl-11e176cb-a58b-4bd6-8447-d781715bf38a",
+            "model": "openai/gpt-oss-120b",
+            "thinking_level": "medium",
+            "elapsed_seconds": 6.82
+        }
+    ],
+    "plan_type": "pro",
+    "project_mode": "custom",
+    "project_size": "large",
+    "project_template": ""
+}
+
+{
+    "status": "completed",
+    "thinking_tokens": null,
+    "input_tokens": 1990,
+    "output_tokens": 4764,
+    "total_tokens": 6754,
+    "provider": "groq",
+    "id": "chatcmpl-45067b37-659d-43fd-9fad-d44f8f410ed2",
+    "model": "openai/gpt-oss-120b",
+    "thinking_level": "medium",
+    "elapsed_seconds": 17.03,
+    "plan": {
+        "project_type": "doghouse",
+        "summary": "Materials list for a large 8x8\u202fft insulated doghouse with interior partition, raised floor on skids, and standard entry flap.",
+        "materials": [
+            {
+                "name": "Floor Joists (2x6)",
+                "category": "Lumber",
+                "subcategory": "Dimensional Lumber",
+                "product_type": "Pressure-Treated Lumber",
+                "specification": "2 in x 6 in x 8 ft",
+                "quantity": 12,
+                "unit": "boards",
+                "notes": "Raised floor joists spaced 16\" oc, includes 10% waste."
+            },
+            {
+                "name": "Floor Skid Posts",
+                "category": "Lumber",
+                "subcategory": "Dimensional Lumber",
+                "product_type": "Pressure-Treated Lumber",
+                "specification": "4 in x 4 in x 8 ft",
+                "quantity": 4,
+                "unit": "boards",
+                "notes": "Supports raised floor, placed at each corner."
+            },
+            {
+                "name": "Floor Sheathing",
+                "category": "Lumber",
+                "subcategory": "Sheet Goods",
+                "product_type": "Plywood",
+                "specification": "3/4 in x 4 ft x 8 ft",
+                "quantity": 3,
+                "unit": "sheets",
+                "notes": "Provides decking for floor, includes 10% waste."
+            },
+            {
+                "name": "Wall Studs and Plates",
+                "category": "Lumber",
+                "subcategory": "Dimensional Lumber",
+                "product_type": "Standard Lumber",
+                "specification": "2 in x 4 in x 8 ft",
+                "quantity": 45,
+                "unit": "boards",
+                "notes": "Perimeter walls and interior partition, 16\" oc, includes waste."
+            },
+            {
+                "name": "Wall Sheathing (T-111 Siding)",
+                "category": "Lumber",
+                "subcategory": "Sheet Goods",
+                "product_type": "T-111 Siding",
+                "specification": "19/32 in x 4 ft x 8 ft",
+                "quantity": 7,
+                "unit": "sheets",
+                "notes": "Exterior wall covering, includes 10% waste."
+            },
+            {
+                "name": "Partition Sheathing",
+                "category": "Lumber",
+                "subcategory": "Sheet Goods",
+                "product_type": "Plywood",
+                "specification": "3/4 in x 4 ft x 8 ft",
+                "quantity": 1,
+                "unit": "sheets",
+                "notes": "Sheaths interior partition wall."
+            },
+            {
+                "name": "Roof Rafters",
+                "category": "Lumber",
+                "subcategory": "Dimensional Lumber",
+                "product_type": "Standard Lumber",
+                "specification": "2 in x 4 in x 10 ft",
+                "quantity": 13,
+                "unit": "boards",
+                "notes": "Gable roof rafters spaced 24\" oc, includes overhang and waste."
+            },
+            {
+                "name": "Roof Sheathing",
+                "category": "Lumber",
+                "subcategory": "Sheet Goods",
+                "product_type": "OSB",
+                "specification": "7/16 in x 4 ft x 8 ft",
+                "quantity": 4,
+                "unit": "sheets",
+                "notes": "Decking for roof, includes 10% waste."
+            },
+            {
+                "name": "Roof Shingles",
+                "category": "Roofing",
+                "subcategory": "Shingles",
+                "product_type": "Asphalt Shingles",
+                "specification": "Architectural grade",
+                "quantity": 3,
+                "unit": "bundles",
+                "notes": "Covers approx 100 sq ft, includes 10% waste."
+            },
+            {
+                "name": "Roof Underlayment",
+                "category": "Roofing",
+                "subcategory": "Underlayment",
+                "product_type": "Felt Paper",
+                "specification": "#15 felt, 100 sq ft roll",
+                "quantity": 1,
+                "unit": "rolls",
+                "notes": ""
+            },
+            {
+                "name": "Drip Edge",
+                "category": "Roofing",
+                "subcategory": "Flashing",
+                "product_type": "Aluminum Drip Edge",
+                "specification": "10 ft length",
+                "quantity": 2,
+                "unit": "pieces",
+                "notes": ""
+            },
+            {
+                "name": "Framing Nails",
+                "category": "Fasteners",
+                "subcategory": "Nails",
+                "product_type": "Collated Framing Nails",
+                "specification": "3-1/4 in, hot-dipped galvanized",
+                "quantity": 1,
+                "unit": "box",
+                "notes": "5 lb box for all framing."
+            },
+            {
+                "name": "Sheathing Fasteners",
+                "category": "Fasteners",
+                "subcategory": "Nails",
+                "product_type": "Ring Shank Nails",
+                "specification": "2-3/8 in",
+                "quantity": 1,
+                "unit": "box",
+                "notes": "5 lb box for wall, roof, and partition sheathing."
+            },
+            {
+                "name": "Wall Insulation Batts",
+                "category": "Insulation",
+                "subcategory": "Batts",
+                "product_type": "Fiberglass Batts",
+                "specification": "R-13, 4x8 ft, 32 sq ft per pack",
+                "quantity": 7,
+                "unit": "packs",
+                "notes": "Covers all exterior walls, includes 10% waste."
+            },
+            {
+                "name": "Roof Insulation Batts",
+                "category": "Insulation",
+                "subcategory": "Batts",
+                "product_type": "Fiberglass Batts",
+                "specification": "R-19, 4x8 ft, 32 sq ft per pack",
+                "quantity": 4,
+                "unit": "packs",
+                "notes": "Covers roof deck, includes 10% waste."
+            },
+            {
+                "name": "Exterior Paint",
+                "category": "Finishes",
+                "subcategory": "Paint",
+                "product_type": "Acrylic Latex Exterior Paint",
+                "specification": "1 gallon",
+                "quantity": 2,
+                "unit": "gallons",
+                "notes": "For siding and trim."
+            },
+            {
+                "name": "Exterior Caulk",
+                "category": "Finishes",
+                "subcategory": "Sealant",
+                "product_type": "Acrylic Latex Caulk",
+                "specification": "10 oz tube",
+                "quantity": 1,
+                "unit": "tube",
+                "notes": "Seals gaps around siding and roof edge."
+            },
+            {
+                "name": "Dog Door Flap",
+                "category": "Hardware",
+                "subcategory": "Dog Door",
+                "product_type": "Plastic Dog Door",
+                "specification": "12 in x 12 in opening",
+                "quantity": 1,
+                "unit": "piece",
+                "notes": "Standard size, install in exterior wall."
+            }
+        ],
+        "assumptions": [
+            "Doghouse footprint 8\u202fft\u202fx\u202f8\u202fft with 6\u202fft wall height.",
+            "Gable roof pitch assumed standard (approx 4:12).",
+            "Interior partition creates two 8\u202fft\u202fx\u202f4\u202fft rooms.",
+            "Insulation uses 4\u202fx\u202f8\u202fft fiberglass batts (R\u201113 walls, R\u201119 roof).",
+            "All sheet material quantities include 10% waste factor.",
+            "Raised floor built on pressure\u2011treated 4\u202fx\u202f4 corner posts and 2\u202fx\u202f6 joists.",
+            "Dog door size assumed 12\u202fin\u202fx\u202f12\u202fin standard opening."
+        ],
+        "questions": [
+            "What type of entry door flaps or security features do you prefer?"
+        ],
+        "corrections": [
+            "Corrected typo \"yess\" to \"yes\" in clarification response.",
+            "Added interior partition framing and sheathing.",
+            "Added wall and roof insulation materials.",
+            "Added raised\u2011floor skid components.",
+            "Added standard dog\u2011door flap.",
+            "Adjusted quantities to reflect 8\u202fft\u202fx\u202f8\u202fft footprint and waste factors."
+        ]
+    },
+    "steps": [
+        {
+            "status": "completed",
+            "thinking_tokens": 672,
+            "input_tokens": 380,
+            "output_tokens": 1295,
+            "total_tokens": 2347,
+            "provider": "gemini",
+            "id": "v1_Chc1cFcwYXJUWU9lamxxdHNQc1lEVHlRcxIXNXBXMGFyVFlPZWpscXRzUHNZRFR5UXM",
+            "model": "gemini-3.5-flash-lite",
+            "thinking_level": "medium",
+            "elapsed_seconds": 6.66
+        },
+        {
+            "status": "completed",
+            "thinking_tokens": null,
+            "input_tokens": 1990,
+            "output_tokens": 4764,
+            "total_tokens": 6754,
+            "provider": "groq",
+            "id": "chatcmpl-45067b37-659d-43fd-9fad-d44f8f410ed2",
+            "model": "openai/gpt-oss-120b",
+            "thinking_level": "medium",
+            "elapsed_seconds": 10.37
+        }
+    ],
+    "plan_type": "pro",
+    "project_mode": "custom",
+    "project_size": "large",
+    "project_template": ""
+}
+

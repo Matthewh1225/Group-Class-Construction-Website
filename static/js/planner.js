@@ -1,12 +1,14 @@
-const deckQuestionsStep = document.getElementById("deck-questions-step");
+
+import "./plannersubmit.js";
+
 const methodStep = document.getElementById("method-step");
 const templateStep = document.getElementById("template-step");
 const sizeStep = document.getElementById("size-step");
 const plannerStep = document.getElementById("planner-form");
 const plannerResult = document.getElementById("planner-result");
 const responseOutput = plannerResult.querySelector("textarea");
-const steps = [deckQuestionsStep, methodStep, templateStep, sizeStep, plannerStep];
-
+const templateQuestionSteps = document.querySelectorAll(".template-questions");
+const steps = [methodStep, templateStep, sizeStep, plannerStep, ...templateQuestionSteps];
 const modeInput = document.getElementById("project-mode");
 const sizeInput = document.getElementById("project-size");
 const templateInput = document.getElementById("project-template");
@@ -17,7 +19,7 @@ function showStep(selectedStep) {
         step.hidden = step !== selectedStep;
     }
 
-    plannerResult.hidden = selectedStep !== plannerStep && selectedStep !== deckQuestionsStep;
+    plannerResult.hidden = true;
     responseOutput.value = "";
 }
 
@@ -40,28 +42,21 @@ document.querySelectorAll(".project-option").forEach(function (button) {
     });
 });
 
-document.getElementById("birdhouse-template").addEventListener("click", function () {
-    templateInput.value = "birdhouse";
-    sizeInput.value = "small";
-    descriptionInput.value = "I want to build a wooden birdhouse.";
-    showStep(plannerStep);
+document.querySelectorAll(".template-option").forEach(function (button) {
+    button.addEventListener("click", function () {
+        const templateName = button.dataset.template;
+        templateInput.value = templateName;
+        sizeInput.value = button.dataset.size;
+        showStep(document.getElementById(`${templateName}-questions-step`));
+    });
 });
 
-document.getElementById("shed-template").addEventListener("click", function () {
-    templateInput.value = "shed";
-    sizeInput.value = "medium";
-    descriptionInput.value = "I want to build a backyard storage shed.";
-    showStep(plannerStep);
-});
-
-document.getElementById("deck-template").addEventListener("click", function () {
-    templateInput.value = "deck";
-    sizeInput.value = "large";
-    showStep(deckQuestionsStep);
-});
-
-document.getElementById("deck-back").addEventListener("click", function () {
-    showStep(templateStep);
+document.querySelectorAll(".template-back").forEach(function (button) {
+    button.addEventListener("click", function () {
+        templateInput.value = "";
+        sizeInput.value = "";
+        showStep(templateStep);
+    });
 });
 
 document.querySelectorAll(".back-button").forEach(function (button) {

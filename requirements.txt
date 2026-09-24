@@ -3,5 +3,6 @@ mysql-connector-python==26.7.0
 python-dotenv==1.2.3
 gunicorn==23.0.0
 google-genai
+groq
 Flask-Limiter[redis]
 bcrypt==5.0.0

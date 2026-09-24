@@ -34,208 +34,41 @@ AI Planner - BuildBetter
     <h1>Choose a Template</h1>
 
     <div class="planner-buttons">
+        {% for template_id, template in project_templates.items() %}
         <button
-            id="birdhouse-template"
+            id="template-{{ template_id }}"
             type="button"
-            class="template-option">
-            Birdhouse
+            class="template-option"
+            data-template="{{ template_id }}"
+            data-size="{{ template.size }}">
+            {{ template.title }}
         </button>
-        <button
-            id="shed-template"
-            type="button"
-            class="template-option">
-            Storage Shed
-        </button>
-        <button
-            id="deck-template"
-            type="button"
-            class="template-option">
-            Outdoor Deck 
-        </button>
+        {% endfor %}
     </div>
     <button class="back-button" type="button">Back</button>
 </section>
-<section id="deck-questions-step" class="planner-step"
-    {% if project_template != 'deck' %}hidden{% endif %}>
-    <h1>Backyard Deck Details</h1>
 
-    <form method="post" action="/planner">
-        <input type="hidden" name="projectMode" value="template">
-        <input type="hidden" name="projectTemplate" value="deck">
-        <input type="hidden" name="projectSize" value="large">
-
-        <label for="deck-length">Length in feet</label>
-        <input
-            id="deck-length"
-            name="lengthFt"
-            value="{{ request.form.get('lengthFt', '') }}"
-            type="number"
-            min="1"
-            step="1"
-            required
-        >
-
-        <label for="deck-width">Width in feet</label>
-        <input
-            id="deck-width"
-            name="widthFt"
-            value="{{ request.form.get('widthFt', '') }}"
-            type="number"
-            min="1"
-            step="1"
-            required
-        >
-
-        <label for="deck-height">Height above ground in feet</label>
-        <input
-            id="deck-height"
-            name="heightFt"
-            value="{{ request.form.get('heightFt', '') }}"
-            type="number"
-            min="0"
-            step="1"
-            required
-        >
-
-        <fieldset>
-            <legend>Decking material</legend>
-
-            <label>
-                <input
-                    type="radio"
-                    name="decking"
-                    value="pressure-treated wood"
-                    {% if request.form.get('decking') == 'pressure-treated wood' %}checked{% endif %}
-                    required>
-                Pressure-treated wood
-            </label>
-
-            <label>
-                <input type="radio" name="decking" value="cedar"
-                    {% if request.form.get('decking') == 'cedar' %}checked{% endif %}>
-                Cedar
-            </label>
-        </fieldset>
-
-        <fieldset>
-            <legend>Railing</legend>
-            <label>
-                <input type="radio" name="railing" value="yes" required
-                    {% if request.form.get('railing') == 'yes' %}checked{% endif %}>
-                Yes
-            </label>
-
-            <label>
-                <input type="radio" name="railing" value="no"
-                    {% if request.form.get('railing') == 'no' %}checked{% endif %}>
-                No
-            </label>
-        </fieldset>
-
-        <fieldset>
-            <legend>Stairs</legend>
-
-            <label>
-                <input type="radio" name="stairs" value="yes" required
-                    {% if request.form.get('stairs') == 'yes' %}checked{% endif %}>
-                Yes
-            </label>
-
-            <label>
-                <input type="radio" name="stairs" value="no"
-                    {% if request.form.get('stairs') == 'no' %}checked{% endif %}>
-                No
-            </label>
-        </fieldset>
-
-        <label for="deck-description">Additional description</label>
-        <textarea
-            id="deck-description"
-            class="planner-input"
-            name="userInput"
-            placeholder="Describe the location or special requirements..."
-        >{{ request.form.get('userInput', '') }}</textarea>
-
-        <button type="submit">Plan My Deck</button>
-        <button id="deck-back" type="button">Back</button>
-    </form>
-</section id="commercialBuilding" {% if project_template != 'commercialBuilding' %} hidden{% endif %}>
-
-    <h1>commercialBuilding Details</h1>
-
-    <form method="post" action="/planner">
-        <input type="hidden" name="projectMode" value="template">
-        <input type="hidden" name="projectTemplate" value="commercialBuilding">
-        <input type="hidden" name="projectSize" value="large">
-
-        <label for="Number of floor">number of floors</label>
-        <input
-            id="FloorsValue"
-            name="floors"
-            value="{{ request.form.get('floors', '') }}"
-            type="number"
-            min="1"
-            step="1"
-            required
-        >
-
-        <label for="Number of rooms">number of rooms</label>
-        <input
-            id="RoomsValue"
-            name="rooms"
-            value="{{ request.form.get('rooms', '') }}"
-            type="number"
-            min="1"
-            step="1"
-            required
-        >
-
-        </fieldset>
-
-        <fieldset>
-            <legend>elevator</legend>
-
-            <label>
-                <input type="radio" name="elevator" value="yes" required
-                    {% if request.form.get('elevator') == 'yes' %}checked{% endif %}>
-                Yes
-            </label>
-
-            <label>
-                <input type="radio" name="elevator" value="no"
-                    {% if request.form.get('elevator') == 'no' %}checked{% endif %}>
-                No
-            </label>
-        </fieldset>
-
-        <label for="deck-description">Additional description</label>
-        <textarea
-            id="commercialBuilding description"
-            class="planner-input"
-            name="userInput"
-            placeholder="Describe the location or special requirements..."
-        >{{ request.form.get('userInput', '') }}</textarea>
-
-        <button type="submit">Plan My building</button>
-        <button id="deck-back" type="button">Back</button>
-    </form>
-</section>
+<div id="template-forms" {% if ai_response %}hidden{% endif %}>
+    {% for template_id, template in project_templates.items() %}
+        {% include template.form %}
+    {% endfor %}
+</div>
 
 <!-- Project size -->
 <section id="size-step" class="planner-step" hidden>
     <h1>Choose Your Project Size</h1>
 
     <div class="planner-buttons">
-        <button type="button" class="project-option" data-size="small">
+        <button id="size-small" type="button" class="project-option" data-size="small">
             Small Project
         </button>
-        <button type="button" class="project-option" data-size="medium">
+        <button id="size-medium" type="button" class="project-option" data-size="medium">
             Medium Project
         </button>
-        <button type="button" class="project-option" data-size="large">
+        <button id="size-large" type="button" class="project-option" data-size="large">
             Large Project
         </button>
-        <button type="button" class="project-option" data-size="mega">
+        <button id="size-mega" type="button" class="project-option" data-size="mega">
             Mega Project
         </button>
     </div>
@@ -246,11 +79,11 @@ AI Planner - BuildBetter
 <div
     id="planner-form"
     class="planner-container"
-    {% if not project_mode or project_template == 'deck' %}hidden{% endif %}
+    {% if ai_response or not project_mode or project_mode == 'template' %}hidden{% endif %}
 >
     <h1>Describe Your Project</h1>
 
-    <form method="post" action="/planner">
+    <form method="post" action="{{ url_for('planner.planner') }}">
         <input
             id="project-mode"
             name="projectMode"
@@ -273,12 +106,18 @@ AI Planner - BuildBetter
             class="planner-input"
             placeholder="Describe your project..."
             required
-        >{{ request.form.get('userInput', '') }}</textarea>
+        >{{ form_data.get('userInput', '') }}</textarea>
 
-        <button type="submit">Plan Project</button>
+        <div class="plan-actions">
+            <button type="submit">
+                <strong>Generate Plan</strong>
+                <span>Build your materials list</span>
+            </button>
+        </div>
+        <p class="plan-status" role="status" aria-live="polite" hidden></p>
     </form>
 </div>
-<div id="planner-result" class="planner-container" {% if not project_mode %}hidden{% endif %}>
+<div id="planner-result" class="planner-container" {% if not ai_response %}hidden{% endif %}>
     <textarea
         class="planner-response"
         placeholder="AI response will appear here..."
@@ -295,5 +134,6 @@ AI Planner - BuildBetter
 
 <script
     src="{{ url_for('static', filename='js/planner.js') }}"
+    type="module"
 ></script>
 {% endblock %}

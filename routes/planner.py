@@ -1,170 +1,30 @@
-import os
 import json
-from time import monotonic
-from typing import cast
+from pathlib import Path
 
 from flask import Blueprint, current_app, make_response, render_template, request
-from google import genai
-from google.genai.interactions import Interaction
+from itsdangerous import BadData, URLSafeTimedSerializer
 
+from Templates.projectTemplates import PROJECT_TEMPLATES
+from utils.aiTools import plan_project, audit_project
 from utils.ratelimits import limiter
 
 planner_bp = Blueprint("planner", __name__)
-Strongai = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
-weakai = genai.Client(api_key=os.environ["GEMINI_API_KEY2"])
+DRAFT_MAX_AGE = 1800  # 30 minutes to submit
 
-SYSTEM_INSTRUCTIONS = """
-You are the BuildBetter construction project planner.
-Be concise.
-Only answer questions related to construction or DIY projects.
-Do not explain your reasoning.
-Do not calculate product prices.
-Give detailed raw materils list as well as quantitites 
-"""
-TEMPLATES={
-    "doghouse"            : "low" ,
-    "concrete_slabs"      : "medium",
-    "deck"                :"medium",
-    "residential_building":"high",
-    "commercial_building" :"high",
-    "wearhouse"           :"high"}
-
-THINKING_LEVELS = {
-    "small": "low",
-    "medium": "medium",
-    "large": "high",
-    "mega": "high",}
-
-AI_ERROR_MESSAGES = {
-    401: "Gemini authentication failed. Check the configured API key.",
-    403: "The configured API key does not have access to this Gemini request.",
-    404: "The requested Gemini model could not be found.",
-    429: "Gemini's usage limit has been reached. Please try again later.",
-    500: "Gemini reported an internal server error. Please try again shortly.",
-    502: "Gemini is temporarily unavailable. Please try again shortly.",
-    503: "Gemini is busy or unavailable. Please try again shortly.",
-    504: "Gemini could not finish before its deadline. Try a smaller project or try again later.",
-}
-AI_MODELS={
-    "weak":  "gemini-3.5-flash-lite",
-    "strong":  "gemini-3.8-flash"
-    }
-
-@planner_bp.route("/planner", methods=["GET", "POST"])
-@limiter.limit(
-    "2 per minute; 20 per hour",
-    methods=["POST"],
-    #called when rate limit is hit
-    on_breach=lambda _: make_response(
-        render_template(
-            "planner.html",
-            ai_response=None,
-            popup_message="You have planned too many projects. Please wait.",
-            project_mode=request.form.get("projectMode"),
-            project_size=request.form.get("projectSize"),
-            project_template=request.form.get("projectTemplate"),
-        ),
-        429,
-    ),
-)
-def planner():
-    project_mode = request.form.get("projectMode")
-    project_size = request.form.get("projectSize")
-    project_template = request.form.get("projectTemplate")
-    popup_message = None
-    ai_response = None
-
-    if request.method == "POST":
-        user_input = request.form.get("userInput", "").strip()
-        if project_mode == "template":
-            if project_template == "deck":
-                from Templates.deckTemplate import deckTemplate
-                ai_input = deckTemplate()
-            elif project_template == "doghouse":
-                from Templates.doghouseTemplate import doghouseTemplate
-                ai_input = doghouseTemplate()
-                ai_input = concreteSlabsTemplate()
-            elif project_template == "residential_building":
-                from Templates.residentialBuilding import residentialBuilding
-                ai_input = residentialBuildingTemplate()
-            elif project_template == "commercial_building":
-                from Templates.commercialBuildingTemplate import commercialBuildingTemplate
-            else :
-                ai_input = f"""
-                Planning method: {project_mode}
-                Selected template: {project_template or "None"}
-                Project size: {project_size}
-                Project description: {user_input}
-                """
-          
-                
+#save and encrypt the project draft from 1st ai for 2nd
+def draft_signer():
+    return URLSafeTimedSerializer(current_app.secret_key, salt="planner-draft")
 
 
-        thinking_level = THINKING_LEVELS.get(project_size or "", "low")
-        started_at = monotonic()
+def show_questions(draft, token, popup_message=None):
+    return render_template(
+        "planner_questions.html", draft=draft, draft_token=token,
+        answers=request.form.getlist("answers"), popup_message=popup_message,
+    )
 
-        try:
-            if thinking_level in {"low", "medium"}:
-                ai = weakai
-                model = AI_MODELS["weak"]#currednt model 3.5 flash light 
-            else:
-                ai = Strongai
-                model = AI_MODELS["weak"]#can change to strong t use gemini 3.8 flash
 
-            current_app.logger.info(
-                "Gemini request: model=%s thinking_level=%s", model, thinking_level
-            )
-            response = cast(
-                Interaction,
-                ai.interactions.create(
-                    model=model,
-                    system_instruction=SYSTEM_INSTRUCTIONS,
-                    generation_config={"thinking_level": thinking_level},
-                    input=ai_input,
-                    stream=False,
-                    timeout=120,
-                ),
-            )
-            ai_response = response.output_text
-
-        except Exception as error:
-            status_code = getattr(error, "status_code", None) or getattr(error, "code", None)
-            current_app.logger.exception(
-                "Gemini request failed: model=%s thinking_level=%s error=%s status=%s elapsed=%.1fs",
-                model, thinking_level, type(error).__name__, status_code,
-                monotonic() - started_at,
-            )
-            popup_message = AI_ERROR_MESSAGES.get(
-                status_code or 0,
-                "The AI planner could not complete the request.Check the server log for details.",
-            )
-        else:
-            if not ai_response:
-                popup_message = "Gemini returned no plan. Try a smaller project or rephrase your request."
-            # Usage is optional. A metadata problem must not discard a valid plan.
-            usage = getattr(response, "usage", None)
-            metadata = {
-                "id": response.id,
-                "model": response.model,
-                "status": response.status,
-                "project_mode": project_mode,
-                "project_size": project_size,
-                "project_template": project_template,
-                "thinking_level": thinking_level,
-                "elapsed_seconds": round(monotonic() - started_at, 2),
-                "thinking_tokens": getattr(usage, "total_thought_tokens", None),
-                "input_tokens": getattr(usage, "total_input_tokens", None),
-                "output_tokens": getattr(usage, "total_output_tokens", None),
-                "total_tokens": getattr(usage, "total_tokens", None),
-            }
-
-            try:
-                with open("ai_metadata.txt", "a", encoding="utf-8") as file:
-                    json.dump(metadata, file, indent=4, default=str)
-                    file.write("\n\n")
-            except OSError:
-                current_app.logger.exception("Could not save Gemini response metadata")
-
+def show_planner(ai_response, popup_message, project_mode, project_size,
+                 project_template, form_data):
     return render_template(
         "planner.html",
         ai_response=ai_response,
@@ -172,4 +32,159 @@ def planner():
         project_mode=project_mode,
         project_size=project_size,
         project_template=project_template,
+        project_templates=PROJECT_TEMPLATES,
+        form_data=form_data,
     )
+
+
+def format_plan(plan):
+    lines = []
+    for material in plan["materials"]:
+        amount = f"{material['quantity']:g} {material['unit']}"
+
+        description = material["name"]
+        if material["product_type"]:
+            description += f" ({material['product_type']})"
+        if material["specification"]:
+            description += f" - {material['specification']}"
+        if material["notes"]:
+            description += f" - {material['notes']}"
+        lines.append(f"{amount} - {description}")
+
+    if not lines:
+        lines.append("No materials found for this request.")
+
+    if plan.get("corrections"):
+        lines.append("\nCorrections:")
+        lines.extend(plan["corrections"])
+
+    return "\n".join(lines)
+
+
+def planner_limit_reached(_limit):
+    message = "Too many requests. Please wait."
+    token = request.form.get("draftToken", "")
+    if token:
+        try:
+            project_draft = draft_signer().loads(token, max_age=DRAFT_MAX_AGE)
+        except BadData:
+            pass
+        else:
+            return make_response(show_questions(project_draft, token, message), 429)
+    return make_response(
+        show_planner(
+            None,
+            message,
+            request.form.get("projectMode"),
+            request.form.get("projectSize"),
+            request.form.get("projectTemplate"),
+            request.form,
+        ),
+        429,
+    )
+
+
+@planner_bp.route("/planner", methods=["GET", "POST"])
+@limiter.limit("2 per minute; 20 per hour", methods=["POST"], on_breach=planner_limit_reached)
+def planner():
+    form = request.form
+    project_mode = form.get("projectMode")
+    project_size = form.get("projectSize")
+    project_template = form.get("projectTemplate")
+    form_data = form
+
+    if request.method == "GET":
+        return show_planner(None, None, project_mode, project_size,
+                            project_template, form_data)
+
+    project_draft = None
+    project_token = form.get("draftToken", "")
+    popup_message = None
+    ai_response = None
+
+    try:
+        if form.get("plannerAction") == "audit":
+            project_draft = draft_signer().loads(project_token, max_age=DRAFT_MAX_AGE)
+            form_data = project_draft["form"]
+            project_data = project_draft["project"]
+            project_mode = project_data["project_mode"]
+            project_size = project_data["project_size"]
+            project_template = project_data["project_template"]
+            answers = form.getlist("answers")
+            questions = project_draft["plan"]["questions"]
+            if (len(answers) != len(questions)
+                    or any(not answer.strip() for answer in answers)):
+                return show_questions(project_draft, project_token, "Answer each question, or enter 'Not sure'.")
+            result = audit_project(project_draft, answers)
+        else:
+            if project_mode == "template":
+                selected_template = PROJECT_TEMPLATES.get(project_template)
+                if selected_template is None:
+                    project_mode = None
+                    project_template = None
+                    raise ValueError("Choose a valid project template.")
+                project_size = selected_template["size"]
+                project_data = selected_template["handler"](form)
+            elif project_mode == "custom":
+                user_input = form.get("userInput", "").strip()
+                if not user_input:
+                    raise ValueError("Describe your project first.")
+                project_data = {"project_type": "custom", "description": user_input}
+            else:
+                project_mode = None
+                raise ValueError("Choose a template or custom project.")
+
+            project_data.update(
+                project_mode=project_mode,
+                project_size=project_size,
+                project_template=project_template,
+            )
+            if project_mode == "custom" and project_size in {"large", "mega"}:
+                plan_type = "pro"
+            elif project_mode == "custom":
+                plan_type = "basic"
+            else:
+                plan_type = form.get("planType", "basic")
+            current_app.logger.info("AI request: plan_type=%s", plan_type)
+            result = plan_project(project_data, plan_type)
+
+            if plan_type == "pro":
+                project_draft = result
+                project_draft["form"] = dict(form)
+                project_token = draft_signer().dumps(project_draft)
+                if project_draft["plan"]["questions"]:
+                    return show_questions(project_draft, project_token)
+                result = audit_project(project_draft, [])
+
+        ai_response = format_plan(result["plan"])
+
+    except BadData:
+        popup_message = "This draft expired or is invalid. Please start again."
+    except ValueError as error:
+        popup_message = str(error)
+    except Exception as error:
+        status_code = getattr(error, "status_code", None) or getattr(error, "code", None)
+        current_app.logger.exception("AI planning failed")
+        if status_code == 429:
+            popup_message = "AI limit reached."
+        else:
+            popup_message = "AI unavailable. Please try again later."
+    else:
+        metadata = result.copy()
+        del metadata["text"]
+        metadata.update({
+            "project_mode": project_mode,
+            "project_size": project_size,
+            "project_template": project_template,
+        })
+
+        metadata_file = Path(current_app.root_path) / "ai_metadata.txt"
+        with open(metadata_file, "a", encoding="utf-8") as file:
+            json.dump(metadata, file, indent=4, default=str)
+            file.write("\n\n")
+
+    if project_draft is not None and popup_message:
+        return show_questions(project_draft, project_token, popup_message)
+
+    return show_planner(ai_response, popup_message, project_mode, project_size,
+                        project_template, form_data)

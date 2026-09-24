@@ -33,10 +33,6 @@ h1 {
     align-items: center;
 }
 
-.add-user-form button {
-    grid-column: 2;
-}
-
 .add-user-form input,
 .add-user-form select {
     padding: 0.65rem;
@@ -47,6 +43,7 @@ h1 {
 }
 
 .add-user-form button {
+    grid-column: 2;
     padding: 0.65rem 1rem;
     background-color: #b86f10;
     color: #080808;
@@ -91,12 +88,6 @@ td {
 .dashboard-message.error {
     background: #3a1717;
     border: 1px solid #7c3030;
-}
-
-.dashboard-link {
-    display: inline-block;
-    margin-top: 0.75rem;
-    color: #b86f10;
 }
 
 .delete-user-button {

@@ -1,0 +1,29 @@
+<section
+    id="residential_building-questions-step"
+    class="planner-step template-questions"
+    {% if project_template != "residential_building" %}hidden{% endif %}
+>
+    <h1>Residential Building Details</h1>
+
+    <form method="post" action="{{ url_for('planner.planner') }}">
+        <input type="hidden" name="projectMode" value="template">
+        <input type="hidden" name="projectTemplate" value="{{ template_id }}">
+        <label for="residential-floors">Number of floors</label>
+        <input id="residential-floors" name="floors" type="number" min="1" step="1"
+               value="{{ form_data.get('floors', '') }}" required>
+
+        <label for="residential-bedrooms">Number of bedrooms</label>
+        <input id="residential-bedrooms" name="bedrooms" type="number" min="1" step="1"
+               value="{{ form_data.get('bedrooms', '') }}" required>
+
+        <label for="residential-bathrooms">Number of bathrooms</label>
+        <input id="residential-bathrooms" name="bathrooms" type="number" min="1" step="1"
+               value="{{ form_data.get('bathrooms', '') }}" required>
+
+        <label for="residential-description">Additional description</label>
+        <textarea id="residential-description" class="planner-input" name="userInput">{{ form_data.get('userInput', '') }}</textarea>
+
+        {% include "project_forms/plan_buttons.html" %}
+        <button class="template-back" type="button">Back</button>
+    </form>
+</section>

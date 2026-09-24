@@ -13,7 +13,7 @@ Login - BuildBetter
 
 {% block content %}
 <div class="form-container">
-    <form id="login-form" class="account-form" method="post" action="/login">
+    <form id="login-form" class="account-form" method="post" action="{{ url_for('auth.login') }}">
         <h2>Login</h2>
         <label for="username">Username</label>
         <input type="text" id="username" name="username" required>

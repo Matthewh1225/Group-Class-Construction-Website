@@ -1,0 +1,85 @@
+<section
+    id="shed-questions-step"
+    class="planner-step template-questions"
+    {% if project_template != "shed" %}hidden{% endif %}
+>
+    <h1>Storage Shed Details</h1>
+
+    <form method="post" action="{{ url_for('planner.planner') }}">
+        <input type="hidden" name="projectMode" value="template">
+        <input type="hidden" name="projectTemplate" value="{{ template_id }}">
+        <label for="shed-length">Length in feet</label>
+        <input id="shed-length" name="lengthFt" type="number" min="1" step="0.5"
+               value="{{ form_data.get('lengthFt', '') }}" required>
+
+        <label for="shed-width">Width in feet</label>
+        <input id="shed-width" name="widthFt" type="number" min="1" step="0.5"
+               value="{{ form_data.get('widthFt', '') }}" required>
+
+        <label for="shed-height">Height in feet</label>
+        <input id="shed-height" name="heightFt" type="number" min="1" step="0.5"
+               value="{{ form_data.get('heightFt', '') }}" required>
+
+        <fieldset>
+            <legend>Include a ramp?</legend>
+            <label>
+                <input type="radio" name="ramp" value="yes"
+                       {% if form_data.get('ramp') == 'yes' %}checked{% endif %} required>
+                Yes
+            </label>
+            <label>
+                <input type="radio" name="ramp" value="no"
+                       {% if form_data.get('ramp') == 'no' %}checked{% endif %}>
+                No
+            </label>
+        </fieldset>
+
+        <fieldset>
+            <legend>Include a window?</legend>
+            <label>
+                <input type="radio" name="window" value="yes"
+                       {% if form_data.get('window') == 'yes' %}checked{% endif %} required>
+                Yes
+            </label>
+            <label>
+                <input type="radio" name="window" value="no"
+                       {% if form_data.get('window') == 'no' %}checked{% endif %}>
+                No
+            </label>
+        </fieldset>
+
+        <fieldset>
+            <legend>Include air conditioning?</legend>
+            <label>
+                <input type="radio" name="ac" value="yes"
+                       {% if form_data.get('ac') == 'yes' %}checked{% endif %} required>
+                Yes
+            </label>
+            <label>
+                <input type="radio" name="ac" value="no"
+                       {% if form_data.get('ac') == 'no' %}checked{% endif %}>
+                No
+            </label>
+        </fieldset>
+
+        <fieldset>
+            <legend>Include lighting?</legend>
+            <label>
+                <input type="radio" name="lighting" value="yes"
+                       {% if form_data.get('lighting') == 'yes' %}checked{% endif %} required>
+                Yes
+            </label>
+            <label>
+                <input type="radio" name="lighting" value="no"
+                       {% if form_data.get('lighting') == 'no' %}checked{% endif %}>
+                No
+            </label>
+        </fieldset>
+
+        <label for="shed-description">Describe the storage shed</label>
+        <textarea id="shed-description" class="planner-input" name="userInput" required>{{ form_data.get('userInput', 'I want to build a backyard storage shed.') }}</textarea>
+
+        {% include "project_forms/plan_buttons.html" %}
+        <button class="template-back" type="button">Back</button>
+    </form>
+</section>

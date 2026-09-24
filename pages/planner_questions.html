@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Project Questions - BuildBetter{% endblock %}
+{% block underConstruction %}{% endblock %}
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='planner.css') }}">
+{% endblock %}
+{% block content %}
+<section class="planner-container">
+    <h1>{% if draft.plan.questions %}A Few Project Details{% else %}Finish Your Pro Plan{% endif %}</h1>
+    <p>{{ draft.plan.summary }}</p>
+    {% if draft.plan.questions %}
+    <p>Answer these questions to refine your materials list. Enter "Not sure" if you don't know.</p>
+    {% endif %}
+    {% if popup_message %}<p role="alert">{{ popup_message }}</p>{% endif %}
+    <form method="post" action="{{ url_for('planner.planner') }}" id="clarification-form">
+        <input type="hidden" name="plannerAction" value="audit">
+        <input type="hidden" name="draftToken" value="{{ draft_token }}">
+        {% for question in draft.plan.questions %}
+        <label for="answer-{{ loop.index }}">{{ question }}</label>
+        <textarea id="answer-{{ loop.index }}" name="answers" class="planner-input clarification-answer"
+                  required maxlength="2000">{{ answers[loop.index0] if loop.index0 < answers|length else '' }}</textarea>
+        {% endfor %}
+        <div class="plan-actions">
+            <button type="submit">Finish Plan</button>
+        </div>
+        <p class="plan-status" role="status" hidden>Auditing and updating your materials list...</p>
+        <a href="{{ url_for('planner.planner') }}">Start a new project</a>
+    </form>
+    <details class="planner-draft">
+        <summary>View initial materials list</summary>
+        <pre>{{ draft.text }}</pre>
+    </details>
+</section>
+<script src="{{ url_for('static', filename='js/plannersubmit.js') }}" type="module"></script>
+{% endblock %}

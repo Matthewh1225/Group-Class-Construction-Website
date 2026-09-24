@@ -80,6 +80,10 @@ img[src$="underConstruction.png"] {
         margin-right: 0;
     }
 
+    .navbar .nav-session {
+        font-size: 14px;
+    }
+
     .navbar-brand img {
         height: 48px;
     }

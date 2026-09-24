@@ -8,9 +8,5 @@ loginForm.addEventListener("submit", function (event) {
     message.textContent = "";
     const data = Object.fromEntries(new FormData(loginForm));
     data.username = data.username.trim();
-    if (!data.username || !data.password) {
-        message.textContent = "Please enter both username and password.";
-        return;
-    }
     submitAccountForm(loginForm, message, data);
 });

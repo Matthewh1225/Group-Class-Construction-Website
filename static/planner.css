@@ -50,7 +50,8 @@
     box-shadow: 0 0 10px #000000;
 }
 
-.planner-step input[type="number"] {
+.planner-step input[type="number"],
+.planner-step input[type="text"] {
     padding: 10px;
     background-color: #0d0f12;
     color: #eeeeee;
@@ -78,6 +79,60 @@ h1 {
     color: #f59709e8;
     text-align: center;
 }
+.plan-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.plan-actions button {
+    flex: 1 1 180px;
+    width: auto;
+    min-height: 80px;
+}
+
+.plan-actions strong,
+.plan-actions span {
+    display: block;
+}
+
+.plan-actions strong {
+    font-size: 20px;
+    margin-bottom: 6px;
+}
+
+.plan-actions button:hover,
+.plan-actions button:focus-visible {
+    background-color: #f7ad40;
+}
+
+.plan-actions button:focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: 3px;
+}
+
+.plan-status {
+    margin: 0;
+    color: #f7ad40;
+}
+
+.clarification-answer {
+    height: 90px;
+}
+
+.planner-draft {
+    width: 100%;
+    max-width: 700px;
+    padding: 16px;
+    background-color: #15181d;
+    border: 1px solid #303640;
+    border-radius: 8px;
+}
+
+.planner-draft pre {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
 .planner-buttons {
     width: 100%;
     max-width: 800px;
@@ -95,14 +150,59 @@ h1 {
     max-width: 300px;
     padding: 8px 14px;
     font-size: 14px;
-    background-color: #f7ad40e8;
+    background-color: #dd890ae8;
     transition: background-color 0.2s, transform 0.2s;
 }
 
 .project-option:hover {
     background-color: #e28f13a9;
 }
-.back-button {
+#size-small {
+
+}
+#size-medium {
+
+}
+#size-large {
+
+}
+#size-mega   {
+
+}
+#choose-template {
+ transition: box-shadow 0.35s ease; 
+}
+#choose-custom {
+    transition: box-shadow 0.35s ease;
+}
+
+#size-small:hover {
+    transform: scale(1.1);
+}
+#size-medium:hover {
+    transform: scale(1.35);
+}
+#size-large:hover {
+    transform: scale(1.75);
+}
+#size-mega:hover {
+    transform: scale(2.3);
+}
+#choose-template:hover {
+    transform: scale(1.05);
+    box-shadow:
+        0 0 5px #ff8c00,
+        0 0 15px #ff8c00,
+        0 0 30px #ff8c00;
+}
+#choose-custom:hover {
+    transform: scale(1.05);
+    box-shadow:
+        0 0 5px #ff8c00,
+        0 0 15px #ff8c00,
+        0 0 30px #ff8c00;
+}
+.planner-step .back-button {
     margin-top: 15px;
     width: 200px;
     max-width: 100%;
@@ -112,8 +212,35 @@ h1 {
 .back-button:hover {
     background-color: #e28f13a9;
     transform: scale(1.1);
+    margin-top: 15px;
 }
 #method-step {
     min-height: 75vh;
     justify-content: center;
+}
+#template-birdhouse {
+}
+#template-shed {
+}
+#template-deck {
+}
+#template-residential_building {
+}
+#template-commercial_building {
+}
+
+#template-birdhouse:hover {
+    transform: scale(1.1);
+}
+#template-shed:hover {
+    transform: scale(1.1);
+}
+#template-deck:hover {
+    transform: scale(1.1);
+}
+#template-residential_building:hover {
+    transform: scale(1.1);
+}
+#template-commercial_building:hover {
+    transform: scale(1.1);
 }

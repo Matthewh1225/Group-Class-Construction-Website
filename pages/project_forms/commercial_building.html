@@ -1,0 +1,39 @@
+<section
+    id="commercial_building-questions-step"
+    class="planner-step template-questions"
+    {% if project_template != "commercial_building" %}hidden{% endif %}
+>
+    <h1>Commercial Building Details</h1>
+
+    <form method="post" action="{{ url_for('planner.planner') }}">
+        <input type="hidden" name="projectMode" value="template">
+        <input type="hidden" name="projectTemplate" value="{{ template_id }}">
+        <label for="commercial-floors">Number of floors</label>
+        <input id="commercial-floors" name="floors" type="number" min="1" step="1"
+               value="{{ form_data.get('floors', '') }}" required>
+
+        <label for="commercial-rooms">Number of rooms</label>
+        <input id="commercial-rooms" name="rooms" type="number" min="1" step="1"
+               value="{{ form_data.get('rooms', '') }}" required>
+
+        <fieldset>
+            <legend>Elevator</legend>
+            <label>
+                <input type="radio" name="elevator" value="yes"
+                       {% if form_data.get('elevator') == 'yes' %}checked{% endif %} required>
+                Yes
+            </label>
+            <label>
+                <input type="radio" name="elevator" value="no"
+                       {% if form_data.get('elevator') == 'no' %}checked{% endif %}>
+                No
+            </label>
+        </fieldset>
+
+        <label for="commercial-description">Additional description</label>
+        <textarea id="commercial-description" class="planner-input" name="userInput">{{ form_data.get('userInput', '') }}</textarea>
+
+        {% include "project_forms/plan_buttons.html" %}
+        <button class="template-back" type="button">Back</button>
+    </form>
+</section>

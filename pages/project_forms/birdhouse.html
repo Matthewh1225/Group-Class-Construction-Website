@@ -1,0 +1,51 @@
+<section
+    id="birdhouse-questions-step"
+    class="planner-step template-questions"
+    {% if project_template != "birdhouse" %}hidden{% endif %}
+>
+    <h1>Birdhouse Details</h1>
+
+    <form method="post" action="{{ url_for('planner.planner') }}">
+        <input type="hidden" name="projectMode" value="template">
+        <input type="hidden" name="projectTemplate" value="{{ template_id }}">
+        <label for="birdhouse-width">Width in inches</label>
+        <input id="birdhouse-width" name="widthInches" type="number" min="1" step="0.25"
+               value="{{ form_data.get('widthInches', '') }}" required>
+
+        <label for="birdhouse-depth">Depth in inches</label>
+        <input id="birdhouse-depth" name="depthInches" type="number" min="1" step="0.25"
+               value="{{ form_data.get('depthInches', '') }}" required>
+
+        <label for="birdhouse-height">Height in inches</label>
+        <input id="birdhouse-height" name="heightInches" type="number" min="1" step="0.25"
+               value="{{ form_data.get('heightInches', '') }}" required>
+
+        <label for="birdhouse-hole-size">Entrance-hole diameter in inches</label>
+        <input id="birdhouse-hole-size" name="entranceHoleInches" type="number"
+               min="0.5" step="0.125" value="{{ form_data.get('entranceHoleInches', '') }}" required>
+
+        <fieldset>
+            <legend>Include a perch?</legend>
+            <label>
+                <input type="radio" name="perch" value="yes"
+                       {% if form_data.get('perch') == 'yes' %}checked{% endif %} required>
+                Yes
+            </label>
+            <label>
+                <input type="radio" name="perch" value="no"
+                       {% if form_data.get('perch') == 'no' %}checked{% endif %}>
+                No
+            </label>
+        </fieldset>
+
+        <label for="birdhouse-color">Color</label>
+        <input id="birdhouse-color" name="color" type="text"
+               value="{{ form_data.get('color', '') }}" placeholder="Natural, blue, red..." required>
+
+        <label for="birdhouse-description">Describe the birdhouse</label>
+        <textarea id="birdhouse-description" class="planner-input" name="userInput" required>{{ form_data.get('userInput', 'I want to build a wooden birdhouse.') }}</textarea>
+
+        {% include "project_forms/plan_buttons.html" %}
+        <button class="template-back" type="button">Back</button>
+    </form>
+</section>
