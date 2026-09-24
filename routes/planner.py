@@ -4,8 +4,7 @@ from pathlib import Path
 from flask import Blueprint, current_app, make_response, render_template, request
 from itsdangerous import BadData, URLSafeTimedSerializer
 
-from Templates.projectTemplates import PROJECT_TEMPLATES
-from utils.aiTools import plan_project, audit_project
+from ProjectTemplates.projectTemplates import PROJECT_TEMPLATES
 from utils.ratelimits import limiter
 
 planner_bp = Blueprint("planner", __name__)
@@ -85,7 +84,7 @@ def planner_limit_reached(_limit):
 
 
 @planner_bp.route("/planner", methods=["GET", "POST"])
-@limiter.limit("2 per minute; 20 per hour", methods=["POST"], on_breach=planner_limit_reached)
+@limiter.limit("4 per minute; 30 per hour", methods=["POST"], on_breach=planner_limit_reached)
 def planner():
     form = request.form
     project_mode = form.get("projectMode")
