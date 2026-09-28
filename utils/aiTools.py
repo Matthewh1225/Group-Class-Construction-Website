@@ -44,7 +44,7 @@ Do not ask for information already supplied.
 Use an empty questions array when no clarification is needed.
 """
 
-AUDIT_INSTRUCTIONS = SYSTEM_INSTRUCTIONS + """
+REVIEW_INSTRUCTIONS = SYSTEM_INSTRUCTIONS + """
 Review the draft against the original project details and clarification answers.
 Use clarification answers to update materials, quantities, and assumptions.
 Fix incorrect materials, units, quantities, duplicates, and missing items.
@@ -107,7 +107,7 @@ strong_gemini = genai.Client(api_key=gemini_strong_key) if gemini_strong_key els
 weak_gemini = genai.Client(api_key=gemini_weak_key) if gemini_weak_key else None
 groq_client = Groq(api_key=groq_key) if groq_key else None
 
-AI_AGENTS = {
+AI_MODELS = {
     "gemini_weak": {
         "provider": "gemini", "client": weak_gemini, "model": "gemini-3.5-flash-lite",
     },
@@ -122,15 +122,15 @@ AI_AGENTS = {
 AI_TIMEOUT = 120
 
 def get_ai_response(
-    agent_name, prompt, thinking_level="low",
+    model_name, prompt, thinking_level="low",
     system_instruction=SYSTEM_INSTRUCTIONS, response_schema=None,
 ):
-    agent = AI_AGENTS[agent_name]
-    if agent["provider"] == "gemini":
+    model_config = AI_MODELS[model_name]
+    if model_config["provider"] == "gemini":
         thinking_level = "medium"
     started_at = monotonic()
 
-    if agent["provider"] == "groq":
+    if model_config["provider"] == "groq":
         response_format = {"type": "text"}
         if response_schema is not None:
             response_format = {
@@ -141,8 +141,8 @@ def get_ai_response(
                     "schema": response_schema,
                 },
             }
-        response = agent["client"].chat.completions.create(
-            model=agent["model"],
+        response = model_config["client"].chat.completions.create(
+            model=model_config["model"],
             messages=[
                 {"role": "system", "content": system_instruction},
                 {"role": "user", "content": prompt},
@@ -175,8 +175,8 @@ def get_ai_response(
                 "mime_type": "application/json",
                 "schema": response_schema,
             }
-        response = agent["client"].interactions.create(
-            model=agent["model"],
+        response = model_config["client"].interactions.create(
+            model=model_config["model"],
             system_instruction=system_instruction,
             generation_config={"thinking_level": thinking_level},
             input=prompt,
@@ -195,7 +195,7 @@ def get_ai_response(
         }
 
     result.update({
-        "provider": agent["provider"],
+        "provider": model_config["provider"],
         "id": response.id,
         "model": response.model,
         "thinking_level": thinking_level,
@@ -224,27 +224,27 @@ def plan_project(project_data, plan_type="basic"):
     return draft
 
 
-def audit_project(draft, answers):
+def review_plan(draft, answers):
     questions = draft["plan"]["questions"]
 
-    clarification = []
+    answered_questions = []
     for question, answer in zip(questions, answers):
-        clarification.append({"question": question, "answer": answer.strip()})
+        answered_questions.append({"question": question, "answer": answer.strip()})
 
-    audit_input = {
+    review_data = {
         "project": draft["project"],
         "gemini_draft": draft["plan"],
-        "clarification": clarification,
+        "clarification": answered_questions,
     }
-    final_report = get_ai_response(
-        "groq", json.dumps(audit_input, indent=2), "medium",
-        system_instruction=AUDIT_INSTRUCTIONS, response_schema=PROJECT_STRUCTURE,
+    result = get_ai_response(
+        "groq", json.dumps(review_data, indent=2), "medium",
+        system_instruction=REVIEW_INSTRUCTIONS, response_schema=PROJECT_STRUCTURE,
     )
-    plan = json.loads(final_report["text"])
-    metadata = final_report.copy()
+    plan = json.loads(result["text"])
+    metadata = result.copy()
     del metadata["text"]
-    final_report["plan"] = plan
-    final_report["steps"] = draft["steps"] + [metadata]
-    final_report["plan_type"] = "pro"
-    final_report["elapsed_seconds"] = round(draft["elapsed_seconds"] + final_report["elapsed_seconds"], 2)
-    return final_report
+    result["plan"] = plan
+    result["steps"] = draft["steps"] + [metadata]
+    result["plan_type"] = "pro"
+    result["elapsed_seconds"] = round(draft["elapsed_seconds"] + result["elapsed_seconds"], 2)
+    return result

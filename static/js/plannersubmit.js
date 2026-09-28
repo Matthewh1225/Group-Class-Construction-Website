@@ -4,12 +4,12 @@ plannerForms.forEach(function (form) {
     form.addEventListener("submit", function (event) {
         const mode = form.querySelector('[name="projectMode"]')?.value;
         const size = form.querySelector('[name="projectSize"]')?.value;
-        const isreviewing = form.querySelector('[name="plannerAction"]');
+        const reviewInput = form.querySelector('[name="plannerAction"]');
         const reviewMode = mode === "custom" && ["large", "mega"].includes(size);
         const chosePro = event.submitter?.value === "pro";
         const status = form.querySelector(".plan-status");
 
-        if (isreviewing) {
+        if (reviewInput) {
             status.textContent = "reviewing and updating your materials list...";
         } else if (reviewMode || chosePro) {
             status.textContent = "reviewing your project and checking for missing details...";

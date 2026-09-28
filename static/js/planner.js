@@ -6,7 +6,7 @@ const templateStep = document.getElementById("template-step");
 const sizeStep = document.getElementById("size-step");
 const plannerStep = document.getElementById("planner-form");
 const plannerResult = document.getElementById("planner-result");
-const responseOutput = plannerResult.querySelector("textarea");
+const resultBox = plannerResult.querySelector("textarea");
 const templateQuestionSteps = document.querySelectorAll(".template-questions");
 const steps = [methodStep, templateStep, sizeStep, plannerStep, ...templateQuestionSteps];
 const modeInput = document.getElementById("project-mode");
@@ -20,7 +20,7 @@ function showStep(selectedStep) {
     }
 
     plannerResult.hidden = true;
-    responseOutput.value = "";
+    resultBox.value = "";
 }
 
 document.getElementById("choose-template").addEventListener("click", function () {

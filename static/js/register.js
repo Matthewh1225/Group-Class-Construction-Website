@@ -1,4 +1,4 @@
-import {submitAccountForm} from "./authaccount.js";
+import {submitAccountForm} from "./account.js";
 
 const registerForm = document.getElementById("register-form");
 const message = document.getElementById("register-message");

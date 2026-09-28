@@ -12,12 +12,12 @@
     <p>Answer these questions to refine your materials list. Enter "Not sure" if you don't know.</p>
     {% endif %}
     {% if popup_message %}<p role="alert">{{ popup_message }}</p>{% endif %}
-    <form method="post" action="{{ url_for('planner.planner') }}" id="clarification-form">
+    <form method="post" action="{{ url_for('planner.planner') }}" id="questions-form">
         <input type="hidden" name="plannerAction" value="audit">
         <input type="hidden" name="draftToken" value="{{ draft_token }}">
         {% for question in draft.plan.questions %}
         <label for="answer-{{ loop.index }}">{{ question }}</label>
-        <textarea id="answer-{{ loop.index }}" name="answers" class="planner-input clarification-answer"
+        <textarea id="answer-{{ loop.index }}" name="answers" class="planner-input question-answer"
                   required maxlength="2000">{{ answers[loop.index0] if loop.index0 < answers|length else '' }}</textarea>
         {% endfor %}
         <div class="plan-actions">

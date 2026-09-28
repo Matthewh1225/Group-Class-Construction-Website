@@ -5,7 +5,7 @@ from flask import Blueprint, current_app, make_response, render_template, reques
 from itsdangerous import BadData, URLSafeTimedSerializer
 
 from ProjectTemplates.projectTemplates import PROJECT_TEMPLATES
-from utils.aiTools import audit_project, plan_project
+from utils.aiTools import review_plan, plan_project
 from utils.ratelimits import limiter
 
 planner_bp = Blueprint("planner", __name__)
@@ -37,7 +37,7 @@ def show_planner(ai_response, popup_message, project_mode, project_size,
     )
 
 
-def create_plan_description(plan):
+def format_plan(plan):
     lines = []
     for material in plan["materials"]:
         amount = f"{material['quantity']:g} {material['unit']}"
@@ -114,7 +114,7 @@ def planner():
             if (len(answers) != len(questions)
                     or any(not answer.strip() for answer in answers)):
                 return show_questions(project_draft, project_token, "Answer each question, or enter 'Not sure'.")
-            result = audit_project(project_draft, answers)
+            result = review_plan(project_draft, answers)
         else:
             if project_mode == "template":
                 selected_template = PROJECT_TEMPLATES.get(project_template)
@@ -153,9 +153,9 @@ def planner():
                 project_token = draft_signer().dumps(project_draft)
                 if project_draft["plan"]["questions"]:
                     return show_questions(project_draft, project_token)
-                result = audit_project(project_draft, [])
+                result = review_plan(project_draft, [])
 
-        ai_response = create_plan_description(result["plan"])
+        ai_response = format_plan(result["plan"])
 
     except BadData:
         popup_message = "This draft expired or is invalid.start again."
