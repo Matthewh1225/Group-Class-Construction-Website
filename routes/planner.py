@@ -37,7 +37,7 @@ def show_planner(ai_response, popup_message, project_mode, project_size,
     )
 
 
-def format_plan(plan):
+def create_plan_description(plan):
     lines = []
     for material in plan["materials"]:
         amount = f"{material['quantity']:g} {material['unit']}"
@@ -94,8 +94,7 @@ def planner():
     form_data = form
 
     if request.method == "GET":
-        return show_planner(None, None, project_mode, project_size,
-                            project_template, form_data)
+        return show_planner(None, None, project_mode, project_size,project_template, form_data)
 
     project_draft = None
     project_token = form.get("draftToken", "")
@@ -138,7 +137,7 @@ def planner():
                 project_mode=project_mode,
                 project_size=project_size,
                 project_template=project_template,
-            )
+            )#
             if project_mode == "custom" and project_size in {"large", "mega"}:
                 plan_type = "pro"
             elif project_mode == "custom":
@@ -156,10 +155,10 @@ def planner():
                     return show_questions(project_draft, project_token)
                 result = audit_project(project_draft, [])
 
-        ai_response = format_plan(result["plan"])
+        ai_response = create_plan_description(result["plan"])
 
     except BadData:
-        popup_message = "This draft expired or is invalid. Please start again."
+        popup_message = "This draft expired or is invalid.start again."
     except ValueError as error:
         popup_message = str(error)
     except Exception as error:
@@ -168,7 +167,7 @@ def planner():
         if status_code == 429:
             popup_message = "AI limit reached."
         else:
-            popup_message = "AI unavailable. Please try again later."
+            popup_message = "AI died."
     else:
         metadata = result.copy()
         del metadata["text"]
