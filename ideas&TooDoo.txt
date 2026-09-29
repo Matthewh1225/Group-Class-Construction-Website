@@ -32,11 +32,11 @@ Each item is order for importance.
 
 8 Password recovery system via email
 
-9.email verification/send auto emails for promos/discout codes, or reminderd of in progress projetcs 
+9. implement checkout and related features such as accepting a list from the user dashboard when they add to cart or added to cart stright from ai response.
 
-10. implement checkout and related features such as accepting a list from the user dashboard when they add to cart or added to cart stright from ai response.
+10.add payment options and billing saved in user profile/dashbaord 
 
-11.add payment options and billing saved in user profile/dashbaord 
+11.email verification/send auto emails for promos/discout codes, or reminderd of in progress projetcs 
 
 12.Metric/imperial selection: Users can choose 
 
@@ -46,11 +46,10 @@ Each item is order for importance.
 
 15. on click create an account via google/apple/ect
 
-16. we need icon/ some display for category and sub categories of items such as lumber/fasteners/rebar..... use ai to generte logos or find on google images 
+16.auto-logout after x time.
 
 17.reviews page / past project display
 
-18.show/hide password icon on login/registering
+18. we need icon/ some display for category and sub categories of items such as lumber/fasteners/rebar..... use ai to generte logos or find on google images 
 
-19.auto-logout after x time.
-
+19. We can work with "crews" to rent out thier labor/hire, same for large constrution machinery and tools/ sell or rent them per project or on a monthly charge
