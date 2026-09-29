@@ -1,10 +1,11 @@
 export async function submitAccountForm(form, message, data) {
     try {
-        const result = await (await fetch(form.action, {
+        const response = await fetch(form.action, {
             method: "POST",
             headers: {"Content-Type": "application/json"},
             body: JSON.stringify(data),
-        })).json();
+        });
+        const result = await response.json();
 
         if (result.redirect_url) {
             window.location.href = result.redirect_url;

@@ -1,9 +1,46 @@
-1. After the material list is generated, run a second AI looking only for missing/overlooked. 
+Each item is order for importance.
 
-3. Budgets,could have presets for ai budgets such as Economy, Standard, and Premium without changing the basic project. use more Premium material
+1. give each ai agent its own "job"/ somehow incorperate all models.
+        a. (med/strong)agent 1 will be inteprets user descriptions and returns strutured data and anwsers to addition questions
+        b. (weak/med)agent 2 get user all inputs/strutured respose from 1st agent and return a metierls list in proper form
+        c. (strongest)agent 3 receives the project requirements and Model 2s plan. then review/audit and return polished list 
+        d. (med)agent 4  will be dedicated knower of all db collums/categories and build proper sql to get items
+        e. (med)agent 5 will be dedicated fallback in the case of exeptions or errors or timouts
 
-4. Project templates
+2.Apply CSRF protection to account forms and rate limits to login/registration
 
-5. Large-project mode, like a ospital, have AI estimate using real building specs, return material categories/rough quantities/cost
+3. have a Back up for improtant info in db 
 
+4. we need to create a comprehinsive but not unresonable materials list for db
 
+5.Admin product management: Admins can add, edit, and remove items from sale.
+
+6. implement search & filtering functs for product page shopping/searching,inlcude filters for manufacture/supllier/ category/ect...
+
+7. complete user dashboard/Account manager to view past/inprogess projects,user to edit info/delelte account. users attach progress pictures and notes to saved projects.
+
+8 Password recovery system via email
+
+9.email verification/send auto emails for promos/discout codes, or reminderd of in progress projetcs 
+
+10. implement checkout and related features such as accepting a list from the user dashboard when they add to cart or added to cart stright from ai response.
+
+11.add payment options and billing saved in user profile/dashbaord 
+
+12.Metric/imperial selection: Users can choose 
+
+13.Materials checklist — Track which items have been purchased and which are still needed ifor saved projects if they cant afford a all in one buy
+
+14.  implment a paid "pro" tier via monthly  subscription, the pro model will use the above agent chain a-d, amoung future pro benifts we choose
+
+15. on click create an account via google/apple/ect
+
+16. we need icon/ some display for category and sub categories of items such as lumber/fasteners/rebar..... use ai to generte logos or find on google images 
+
+17.reviews page / past project display
+
+18.show/hide password icon on login/registering
+
+19.auto-logout after x time.
+
+20. 

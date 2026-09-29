@@ -12,7 +12,12 @@ auth_bp = Blueprint("auth", __name__)
 def login():
     if request.method == "GET":
         return render_template("login.html")
+    
     data = request.get_json(silent=True)
+    
+    if not isinstance(data, dict):
+        return {"error": "Invalid form data."}, 400
+
     username = data.get("username", "")
     password = data.get("password", "")
     if not isinstance(username, str) or not isinstance(password, str):

@@ -1,4 +1,4 @@
-from flask import Blueprint, abort, current_app, flash, redirect, render_template, request, session, url_for
+from flask import Blueprint, abort, flash, redirect, render_template, request, session, url_for
 from mysql.connector import Error, IntegrityError
 
 from utils.database import database_cursor
@@ -15,7 +15,8 @@ def refresh_dashboard_user():
     with database_cursor() as cursor:
         cursor.execute(
             "SELECT username, permission_level FROM users WHERE id = %s",
-            (session["user_id"],), )
+            (session["user_id"],),
+        )
         user = cursor.fetchone()
 
     if user is None:
@@ -51,21 +52,22 @@ def dashboard():
 
     users = []
     if permission_level == "admin":
-            with database_cursor() as cursor:
-                cursor.execute(
-                    """
-                    SELECT id, username, email, permission_level, created_at
-                    FROM users
-                    ORDER BY id
-                    """
-                )
-                users = cursor.fetchall()
+        with database_cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT id, username, email, permission_level, created_at
+                FROM users
+                ORDER BY id
+                """
+            )
+            users = cursor.fetchall()
 
     return render_template(
         "dashboard.html",
         username=session.get("username"),
         permission_level=permission_level,
-        users=users,)
+        users=users,
+    )
 
 
 @dashboard_bp.post("/dashboard/users/<int:user_id>/delete")

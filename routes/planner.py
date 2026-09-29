@@ -11,7 +11,7 @@ from utils.ratelimits import limiter
 planner_bp = Blueprint("planner", __name__)
 DRAFT_MAX_AGE = 1800  # 30 minutes to submit
 
-#save and encrypt the project draft from 1st ai for 2nd
+#save the project draft from 1st ai for 2nd/ if edited or chnaged it fails
 def draft_signer():
     return URLSafeTimedSerializer(current_app.secret_key, salt="planner-draft")
 
@@ -73,12 +73,12 @@ def planner_limit_reached(_limit):
             return make_response(show_questions(project_draft, token, message), 429)
     return make_response(
         show_planner(
-            None,
-            message,
-            request.form.get("projectMode"),
-            request.form.get("projectSize"),
-            request.form.get("projectTemplate"),
-            request.form,
+            ai_response=None,
+            popup_message=message,
+            project_mode=request.form.get("projectMode"),
+            project_size=request.form.get("projectSize"),
+            project_template=request.form.get("projectTemplate"),
+            form_data=request.form,
         ),
         429,
     )
@@ -94,7 +94,14 @@ def planner():
     form_data = form
 
     if request.method == "GET":
-        return show_planner(None, None, project_mode, project_size,project_template, form_data)
+        return show_planner(
+            ai_response=None,
+            popup_message=None,
+            project_mode=project_mode,
+            project_size=project_size,
+            project_template=project_template,
+            form_data=form_data,
+        )
 
     project_draft = None
     project_token = form.get("draftToken", "")
@@ -138,10 +145,8 @@ def planner():
                 project_size=project_size,
                 project_template=project_template,
             )#
-            if project_mode == "custom" and project_size in {"large", "mega"}:
-                plan_type = "pro"
-            elif project_mode == "custom":
-                plan_type = "basic"
+            if project_mode == "custom":
+                plan_type = "pro" if project_size in {"large", "mega"} else "basic"
             else:
                 plan_type = form.get("planType", "basic")
             current_app.logger.info("AI request: plan_type=%s", plan_type)
@@ -185,5 +190,11 @@ def planner():
     if project_draft is not None and popup_message:
         return show_questions(project_draft, project_token, popup_message)
 
-    return show_planner(ai_response, popup_message, project_mode, project_size,
-                        project_template, form_data)
+    return show_planner(
+        ai_response=ai_response,
+        popup_message=popup_message,
+        project_mode=project_mode,
+        project_size=project_size,
+        project_template=project_template,
+        form_data=form_data,
+    )
