@@ -1,11 +1,22 @@
 Each item is order for importance.
 
-1. give each ai agent its own "job"/ somehow incorperate all models.
-        a. (med/strong)agent 1 will be inteprets user descriptions and returns strutured data and anwsers to addition questions
-        b. (weak/med)agent 2 get user all inputs/strutured respose from 1st agent and return a metierls list in proper form
-        c. (strongest)agent 3 receives the project requirements and Model 2s plan. then review/audit and return polished list 
-        d. (med)agent 4  will be dedicated knower of all db collums/categories and build proper sql to get items
-        e. (med)agent 5 will be dedicated fallback in the case of exeptions or errors or timouts
+1. give each ai agent its own job and have modes based on resoning strength but keeping same model structure for 3 basci tiers(fast,balanced, advacned and pro deep think) tier(pro is paid )
+        a. agent 1 will be inteprets user descriptions and returns strutured data and anwsers to addition questions
+        b. agent 2 get user all inputs/strutured respose from 1st agent and return a metierls list in proper form
+        c. agent 3 receives the project requirements and Model 2s plan. then review/audit and return polished list 
+        d. agent 4  will be dedicated knower of all db collums/categories and build proper sql to get items
+        e. agent 5 will be dedicated fallback in the case of exeptions or errors or timouts
+
+                     FAST	           BALANCED 	         ADVANCED	        "PRO DEEP"(paid)
+ Interpret-	  Gemini 3.5 Lite        Gemini 3.8 Low	      Gemini 3.8 Medium	        Gemini 3.8 High
+ Materials list-  Gemma 4	         GPT-OSS-120B	      GPT-OSS-120B	        Gemini 3.8 High
+ Second planner-      -                       —	                   —	                GLM-5.3
+ Audit-	          GLM-4.7 FlasH           Nemotron Ultra      Nemotron Ultra	        Nemotron Ultra
+ Final               -	                      —	              Gemini 3.8 medium	        Gemini 3.8 high
+ SQL-	          GLM-4.7 Flash	        GLM-4.7 Flash	      GLM-4.7 Flash         	GLM-5.3 Flash
+
+ --nemotron over Gemini 3.8 for  critic/auditor review
+
 
 2.Apply CSRF protection to account forms and rate limits to login/registration
 
@@ -31,7 +42,7 @@ Each item is order for importance.
 
 13.Materials checklist — Track which items have been purchased and which are still needed ifor saved projects if they cant afford a all in one buy
 
-14.  implment a paid "pro" tier via monthly  subscription, the pro model will use the above agent chain a-d, amoung future pro benifts we choose
+14.  implment paid "pro" tier via monthly  subscription, the pro model will use the complex agent chain
 
 15. on click create an account via google/apple/ect
 
@@ -43,4 +54,3 @@ Each item is order for importance.
 
 19.auto-logout after x time.
 
-20. 

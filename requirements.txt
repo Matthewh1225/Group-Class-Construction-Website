@@ -6,3 +6,5 @@ google-genai
 groq
 Flask-Limiter[redis]
 bcrypt==5.0.0
+openrouter
+cloudflare

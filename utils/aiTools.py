@@ -145,29 +145,61 @@ DRAFT_STRUCTURE = {
         "summary": PROJECT_STRUCTURE["properties"]["summary"],
         "materials": PROJECT_STRUCTURE["properties"]["materials"],
         "assumptions": PROJECT_STRUCTURE["properties"]["assumptions"],
-        "questions": {"type": "array", "items": {"type": "string"}, "maxItems": 5},
-    },
+        "questions": {"type": "array", "items": {"type": "string"}, "maxItems": 5},},
     "required": ["project_type", "summary", "materials", "assumptions", "questions"],
     "additionalProperties": False,
 }
 
-gemini_strong_key = os.getenv("GEMINI_API_KEY")
-gemini_weak_key = os.getenv("GEMINI_API_KEY2")
-groq_key = os.getenv("GROQ_API_KEY")
+gemini_key_1 = os.getenv("GEMINI_API_KEY")
+gemini_key_2 = os.getenv("GEMINI_API_KEY2")
+gemini_key_3 = os.getenv("GEMINI_API_KEY3")
+gemini_key_4 = os.getenv("GEMINI_API_KEY4")
 
-strong_gemini = genai.Client(api_key=gemini_strong_key) if gemini_strong_key else None
-weak_gemini = genai.Client(api_key=gemini_weak_key) if gemini_weak_key else None
-groq_client = Groq(api_key=groq_key) if groq_key else None
+gemini_model_strong = os.getenv("gemini-3.8-flash", "gemini-3.8-flash")
+gemini_model_weak = os.getenv("gemini-3.5-flash-lite", "gemini-3.5-flash-lite")
+gemini_model_3 = gemini_model_weak
+gemini_model_4 = gemini_model_weak
+
+gemini_client_strong = genai.Client(api_key=gemini_key_1) 
+gemini_client_weak = genai.Client(api_key=gemini_key_2)
+gemini_client_3 = genai.Client(api_key=gemini_key_3)
+gemini_client_4 = genai.Client(api_key=gemini_key_4) 
+
+groq_key = os.getenv("GROQ_API_KEY")
+groq_model = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
+groq_client = Groq(api_key=groq_key)
+
+openrouter_key = os.getenv("OPENROUTER_API_KEY")
+nemotron = os.getenv("OPENROUTER_nemotron-3")
+
+cloudflare_key = os.getenv("CLOUDFLARE_API_KEY")
+glm_4_Flash = os.getenv("CLOUDFLARE_glm-4.7-flash")
+gemma_4 = os.getenv("CLOUDFLARE_gemma-4")
 
 AI_MODELS = {
-    "gemini_weak": {
-        "provider": "gemini", "client": weak_gemini, "model": "gemini-3.5-flash-lite",
-    },
     "gemini_strong": {
-        "provider": "gemini", "client": strong_gemini, "model": "gemini-3.8-flash",
+        "provider": "gemini", "client": gemini_client_strong, "model": gemini_model_strong,
+    },
+    "gemini_weak": {
+        "provider": "gemini", "client": gemini_client_weak, "model": gemini_model_weak,
+    },
+    "gemini_3": {
+        "provider": "gemini", "client": gemini_client_3, "model": gemini_model_3,
+    },
+    "gemini_4": {
+        "provider": "gemini", "client": gemini_client_4, "model": gemini_model_4,
     },
     "groq": {
-        "provider": "groq", "client": groq_client, "model": "openai/gpt-oss-120b",
+        "provider": "groq", "client": groq_client, "model": groq_model,
+    },
+       "openrouter": {
+        "provider": "openrouter", "api_key": openrouter_key, "model": nemotron,
+    },
+    "cloudflare": {
+        "provider": "cloudflare", "api_key": cloudflare_key, "model": glm_4_Flash,
+    },
+    "cloudflare_2": {
+        "provider": "cloudflare", "api_key": cloudflare_key, "model": gemma_4,
     },
 }
 
