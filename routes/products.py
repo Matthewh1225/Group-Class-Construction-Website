@@ -6,3 +6,4 @@ products_bp = Blueprint("products", __name__)
 def products():
     return render_template("products.html")
 
+#need functions to fetch products info and pass it to be renderd in

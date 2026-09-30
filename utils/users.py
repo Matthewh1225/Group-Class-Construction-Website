@@ -5,12 +5,13 @@ from utils.passwords import hash_password
 def create_user(data, permission_level="user"):
     username = data.get("username", "")
     email = data.get("email", "")
+    PhoneNumber = data.get("PhoneNumber", "")
     password = data.get("password", "")
     confirm_password = data.get("confirm_password", "")
-    fields = (username, email, password, confirm_password)
-
+    fields = (username, email,PhoneNumber, password, confirm_password)
     if not all(isinstance(field, str) for field in fields):
         raise ValueError("Enter valid text fields.")
+
     username = username.strip()
     email = email.strip()
 
@@ -27,3 +28,4 @@ def create_user(data, permission_level="user"):
                VALUES (%s, %s, %s, %s)""",
             (username, email, password_hash, permission_level),
         )
+        #add fucntion that auto snds a welcome email or text to the user upon sucessful accout creation

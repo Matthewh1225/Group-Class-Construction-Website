@@ -2,7 +2,7 @@ from flask import Blueprint, current_app, redirect, render_template, request, se
 from mysql.connector import Error, IntegrityError
 
 from utils.database import database_cursor
-from utils.passwords import verify_password
+from utils.passwords import verify_password_hash
 from utils.users import create_user
 
 auth_bp = Blueprint("auth", __name__)
@@ -37,7 +37,7 @@ def login():
         current_app.logger.exception("Login database query failed")
         return {"error": "Login unavailable."}, 503
 
-    if user is None or not verify_password(password, user["password_hash"]):
+    if user is None or not verify_password_hash(password, user["password_hash"]):
         return {"error": "Invalid username or password."}, 401
 
     session.clear()
