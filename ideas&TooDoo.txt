@@ -7,16 +7,14 @@ Each item is order for importance.
         d. agent 4  will be dedicated knower of all db collums/categories and build proper sql to get items
         e. agent 5 will be dedicated fallback in the case of exeptions or errors or timouts
 
-                     FAST	           BALANCED 	         ADVANCED	        "PRO DEEP"(paid)
- Interpret-	  Gemini 3.5 Lite        Gemini 3.8 Low	      Gemini 3.8 Medium	        Gemini 3.8 High
- Materials list-  Gemma 4	         GPT-OSS-120B	      GPT-OSS-120B	        Gemini 3.8 High
- Second planner-      -                       —	                   —	                GLM-5.3
- Audit-	          GLM-4.7 FlasH           Nemotron Ultra      Nemotron Ultra	        Nemotron Ultra
- Final               -	                      —	              Gemini 3.8 medium	        Gemini 3.8 high
- SQL-	          GLM-4.7 Flash	        GLM-4.7 Flash	      GLM-4.7 Flash         	GLM-5.3 Flash
-
- --nemotron over Gemini 3.8 for  critic/auditor review
-
+TIER WORKFLOWS
+Stage           Fast                 Balanced             Advanced             Pro Deep (paid)
+Interpret       Gemini 3.5 Lite      Gemini 3.8 Low       Gemini 3.8 Medium    Gemini 3.8 High
+Materials       Gemma 4              GPT-OSS-120B         GPT-OSS-120B         Gemini 3.8 High
+Second planner  None                 None                 None                 GPT-OSS-120B
+Audit           GLM-4.7 Flash        Nemotron Ultra       Nemotron Ultra       Nemotron Ultra
+Final           None                 None                 Gemini 3.8 Medium    Gemini 3.8 High
+Catalog search  GLM-4.7 Flash        GLM-4.7 Flash        GLM-4.7 Flash        GLM-4.7 Flash
 
 2.Apply CSRF protection to account forms and rate limits to login/registration
 

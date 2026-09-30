@@ -2,8 +2,10 @@ import json
 import os
 from time import monotonic
 
+from cloudflare import Cloudflare
 from google import genai
 from groq import Groq
+from openrouter import OpenRouter
 
 
 SYSTEM_INSTRUCTIONS = """
@@ -155,148 +157,121 @@ gemini_key_2 = os.getenv("GEMINI_API_KEY2")
 gemini_key_3 = os.getenv("GEMINI_API_KEY3")
 gemini_key_4 = os.getenv("GEMINI_API_KEY4")
 
-gemini_model_strong = os.getenv("gemini-3.8-flash", "gemini-3.8-flash")
-gemini_model_weak = os.getenv("gemini-3.5-flash-lite", "gemini-3.5-flash-lite")
-gemini_model_3 = gemini_model_weak
-gemini_model_4 = gemini_model_weak
+gemini_model_strong = os.getenv("gemini_model_strong")
+gemini_model_weak = os.getenv("gemini_model_fast")
 
-gemini_client_strong = genai.Client(api_key=gemini_key_1) 
-gemini_client_weak = genai.Client(api_key=gemini_key_2)
-gemini_client_3 = genai.Client(api_key=gemini_key_3)
-gemini_client_4 = genai.Client(api_key=gemini_key_4) 
+gemini_client_1 = genai.Client(api_key=gemini_key_1) if gemini_key_1 else None
+gemini_client_2 = genai.Client(api_key=gemini_key_2) if gemini_key_2 else None
+gemini_client_3 = genai.Client(api_key=gemini_key_3) if gemini_key_3 else None
+gemini_client_4 = genai.Client(api_key=gemini_key_4) if gemini_key_4 else None
 
 groq_key = os.getenv("GROQ_API_KEY")
-groq_model = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
-groq_client = Groq(api_key=groq_key)
+groq_gpt_oss = os.getenv("GROQ_gpt-oss")
+groq_client = Groq(api_key=groq_key) if groq_key else None
 
 openrouter_key = os.getenv("OPENROUTER_API_KEY")
 nemotron = os.getenv("OPENROUTER_nemotron-3")
+openrouter_client = OpenRouter(api_key=openrouter_key) if openrouter_key else None
 
 cloudflare_key = os.getenv("CLOUDFLARE_API_KEY")
+cloudflare_account_id = os.getenv("CLOUDFLARE_ACCOUNT_ID")
 glm_4_Flash = os.getenv("CLOUDFLARE_glm-4.7-flash")
 gemma_4 = os.getenv("CLOUDFLARE_gemma-4")
+cloudflare_client = Cloudflare(api_token=cloudflare_key) if cloudflare_key else None
 
 AI_MODELS = {
     "gemini_strong": {
-        "provider": "gemini", "client": gemini_client_strong, "model": gemini_model_strong,
+        "provider": "gemini", "client": gemini_client_1, "model": gemini_model_strong,#strongest 
+    },
+    "gemini_strong_2": {
+        "provider": "gemini", "client": gemini_client_3, "model": gemini_model_strong,
+    },
+    "gemini_strong_3": {
+        "provider": "gemini", "client": gemini_client_4, "model": gemini_model_strong,
     },
     "gemini_weak": {
-        "provider": "gemini", "client": gemini_client_weak, "model": gemini_model_weak,
-    },
-    "gemini_3": {
-        "provider": "gemini", "client": gemini_client_3, "model": gemini_model_3,
-    },
-    "gemini_4": {
-        "provider": "gemini", "client": gemini_client_4, "model": gemini_model_4,
-    },
+            "provider": "gemini", "client": gemini_client_2, "model": gemini_model_weak,#fast
+        },
     "groq": {
-        "provider": "groq", "client": groq_client, "model": groq_model,
+        "provider": "groq", "client": groq_client, "model": groq_gpt_oss,#medium strength resoning model
     },
        "openrouter": {
-        "provider": "openrouter", "api_key": openrouter_key, "model": nemotron,
+        "provider": "openrouter", "client": openrouter_client, "model": nemotron,#strong resoning, audit step
     },
     "cloudflare": {
-        "provider": "cloudflare", "api_key": cloudflare_key, "model": glm_4_Flash,
+        "provider": "cloudflare", "client": cloudflare_client, "model": glm_4_Flash,#good for code/SQL
     },
     "cloudflare_2": {
-        "provider": "cloudflare", "api_key": cloudflare_key, "model": gemma_4,
+        "provider": "cloudflare", "client": cloudflare_client, "model": gemma_4,#fast small model
+    },
+}
+AGENT_TIERS = {
+    "fast": {
+        "interpret": {"model": "gemini_weak"},
+        "materials": {"model": "cloudflare_2"},
+        "second_planner": None,
+        "audit": {"model": "cloudflare"},
+        "final": None,
+        "sql": {"model": "cloudflare"},
+        "paid": False,
+    },
+
+    "balanced": {
+        "interpret": {"model": "gemini_strong", "reasoning": "low"},
+        "materials": {"model": "groq"},
+        "second_planner": None,
+        "audit": {"model": "openrouter"},
+        "final": None,
+        "sql": {"model": "cloudflare"},
+        "paid": False,
+    },
+
+    "advanced": {
+        "interpret": {"model": "gemini_strong", "reasoning": "medium"},
+        "materials": {"model": "groq"},
+        "second_planner": None,
+        "audit": {"model": "openrouter"},
+        "final": {"model": "gemini_strong", "reasoning": "medium"},
+        "sql": {"model": "cloudflare"},
+        "paid": False,
+    },
+
+    "pro": {
+        "interpret": {"model": "gemini_strong", "reasoning": "high"},
+        "materials": {"model": "gemini_strong", "reasoning": "high"},
+        "second_planner": {"model": "groq"},
+        "audit": {"model": "openrouter"},
+        "final": {"model": "gemini_strong", "reasoning": "high"},
+        "sql": {"model": "cloudflare"},
+        "paid": True,
     },
 }
 
+PLAN_TYPE_TIERS = {"basic": "fast", "pro": "pro"}
+
 AI_TIMEOUT = 120
 
-def get_ai_response(
-    model_name, prompt, thinking_level="low",
-    system_instruction=DRAFT_INSTRUCTIONS, response_schema=None,
-):
-    model_config = AI_MODELS[model_name]
-    if model_config["provider"] == "gemini":
-        thinking_level = "medium"
-    started_at = monotonic()
+def get_ai_response():
+    pass
 
-    if model_config["provider"] == "groq":
-        response_format = {"type": "text"}
-        if response_schema is not None:
-            response_format = {
-                "type": "json_schema",
-                "json_schema": {
-                    "name": "materials_plan",
-                    "strict": True,
-                    "schema": response_schema,
-                },
-            }
-        response = model_config["client"].chat.completions.create(
-            model=model_config["model"],
-            messages=[
-                {"role": "system", "content": system_instruction},
-                {"role": "user", "content": prompt},
-            ],
-            temperature=0.5,
-            max_completion_tokens=8192,
-            reasoning_effort=thinking_level,
-            stream=False,
-            response_format=response_format,
-            timeout=AI_TIMEOUT,
-        )
-        choice = response.choices[0]
-
-        usage = response.usage
-
-        result = {
-            "text": choice.message.content or "",
-            "status": "completed",
-            "thinking_tokens": None,
-            "input_tokens": getattr(usage, "prompt_tokens", None),
-            "output_tokens": getattr(usage, "completion_tokens", None),
-            "total_tokens": getattr(usage, "total_tokens", None),
-        }
-
-    else:
-        output_options = {}
-        if response_schema is not None:
-            output_options["response_format"] = {
-                "type": "text",
-                "mime_type": "application/json",
-                "schema": response_schema,
-            }
-        response = model_config["client"].interactions.create(
-            model=model_config["model"],
-            system_instruction=system_instruction,
-            generation_config={"thinking_level": thinking_level},
-            input=prompt,
-            stream=False,
-            timeout=AI_TIMEOUT,
-            **output_options,
-        )
-        usage = getattr(response, "usage", None)
-        result = {
-            "text": response.output_text or "",
-            "status": response.status,
-            "thinking_tokens": getattr(usage, "total_thought_tokens", None),
-            "input_tokens": getattr(usage, "total_input_tokens", None),
-            "output_tokens": getattr(usage, "total_output_tokens", None),
-            "total_tokens": getattr(usage, "total_tokens", None),
-        }
-
-    result.update({
-        "provider": model_config["provider"],
-        "id": response.id,
-        "model": response.model,
-        "thinking_level": thinking_level,
-        "elapsed_seconds": round(monotonic() - started_at, 2),
-    })
-    return result
 
 
 def plan_project(project_data, plan_type="basic"):
+    tier = AGENT_TIERS[PLAN_TYPE_TIERS.get(plan_type, "fast")]
+    materials_stage = tier["materials"]
     prompt = json.dumps(project_data, indent=2)
     if plan_type == "pro":
         draft = get_ai_response(
-            "gemini_weak", prompt,
+            materials_stage["model"], prompt,
+            thinking_level=materials_stage.get("reasoning", "low"),
             system_instruction=DRAFT_INSTRUCTIONS, response_schema=DRAFT_STRUCTURE,
         )
     else:
-        draft = get_ai_response("gemini_weak", prompt, response_schema=PROJECT_STRUCTURE)
+        draft = get_ai_response(
+            materials_stage["model"], prompt,
+            thinking_level=materials_stage.get("reasoning", "low"),
+            response_schema=PROJECT_STRUCTURE,
+        )
     metadata = draft.copy()
     del metadata["text"]
     draft["steps"] = [metadata]
@@ -309,6 +284,7 @@ def plan_project(project_data, plan_type="basic"):
 
 
 def review_plan(draft, answers):
+    audit_stage = AGENT_TIERS["pro"]["audit"]
     questions = draft["plan"]["questions"]
 
     answered_questions = []
@@ -321,7 +297,8 @@ def review_plan(draft, answers):
         "clarification": answered_questions,
     }
     result = get_ai_response(
-        "groq", json.dumps(review_data, indent=2), "medium",
+        audit_stage["model"], json.dumps(review_data, indent=2),
+        audit_stage.get("reasoning", "medium"),
         system_instruction=REVIEW_INSTRUCTIONS, response_schema=PROJECT_STRUCTURE,
     )
     plan = json.loads(result["text"])
@@ -332,3 +309,12 @@ def review_plan(draft, answers):
     result["plan_type"] = "pro"
     result["elapsed_seconds"] = round(draft["elapsed_seconds"] + result["elapsed_seconds"], 2)
     return result
+
+def build_plan(project_data, requirements, answers, tier_name):
+    tier = AGENT_TIERS[tier_name]
+
+    inputs = {
+        "project": project_data,
+        "requirements": requirements,
+        "answers": answers,
+    }
