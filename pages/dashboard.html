@@ -16,7 +16,7 @@ Dashboard - BuildBetter
     <div class="dashboard-heading">
         <div>
             <h1>{{ "Admin Dashboard" if permission_level == "admin" else "Dashboard" }}</h1>
-            <p>Welcome, {{ username }}.</p>
+            <p>Welcome, {{ username }} this is your dashboard.</p>
         </div>
     </div>
 
@@ -25,7 +25,7 @@ Dashboard - BuildBetter
             <p class="dashboard-message {{ category }}" role="alert">{{ message }}</p>
         {% endfor %}
     {% endwith %}
-
+#ADmin views
     {% if permission_level == "admin" %}
         <section class="dashboard-panel">
             <h2>Add User</h2>
@@ -47,7 +47,6 @@ Dashboard - BuildBetter
                     <option value="user">User</option>
                     <option value="admin">Admin</option>
                 </select>
-
                 <button type="submit">Add User</button>
             </form>
         </section>
@@ -76,6 +75,7 @@ Dashboard - BuildBetter
                             <td>{{ user.created_at }}</td>
                             <td>
                                 {% if user.id != session.get('user_id') %}
+                                  <!-- calls delete function and passes id -->
                                 <form class="delete-user-form" method="post"
                                       action="{{ url_for('dashboard.delete_user', user_id=user.id) }}"
                                       data-username="{{ user.username }}">

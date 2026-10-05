@@ -29,3 +29,9 @@ def create_user(data, permission_level="user"):
             (username, email, password_hash, permission_level),
         )
         #add fucntion that auto snds a welcome email or text to the user upon sucessful accout creation
+
+
+def delete_user(user_id):
+    with database_cursor() as cursor:
+        cursor.execute("DELETE FROM users WHERE id = %s", (user_id,))
+        return cursor.rowcount > 0

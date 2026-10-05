@@ -2,7 +2,7 @@ from flask import Blueprint, abort, flash, redirect, render_template, request, s
 from mysql.connector import Error, IntegrityError
 
 from utils.database import database_cursor
-from utils.users import create_user
+from utils.users import create_user, delete_user as delete_user_record
 
 dashboard_bp = Blueprint("dashboard", __name__)
 
@@ -78,11 +78,7 @@ def delete_user(user_id):
         flash("You cannot delete yourself dubmass.", "error")
         return redirect(url_for("dashboard.dashboard"))
 
-    
-    with database_cursor() as cursor:
-        cursor.execute("DELETE FROM users WHERE id = %s", (user_id,))
-        deleted = cursor.rowcount
-    if deleted:
+    if delete_user_record(user_id):
         flash("User Gone Forever.", "success")
     else:
         flash("User not found.", "error")
