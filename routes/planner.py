@@ -11,7 +11,7 @@ from utils.ratelimits import limiter
 planner_bp = Blueprint("planner", __name__)
 DRAFT_MAX_AGE = 1800  # 30 minutes to submit
 
-#save the project draft from 1st ai for 2nd/ if edited or chnaged it fails
+#save and protect the project draft from 1st ai for 2nd/ if edited or chnaged it fails
 def draft_signer():
     return URLSafeTimedSerializer(current_app.secret_key, salt="planner-draft")
 
@@ -23,8 +23,7 @@ def show_questions(draft, token, popup_message=None):
     )
 
 
-def show_planner(ai_response, popup_message, project_mode, project_size,
-                 project_template, form_data):
+def show_planner(ai_response, popup_message, project_mode, project_size, project_template, form_data):
     return render_template(
         "planner.html",
         ai_response=ai_response,
@@ -118,6 +117,7 @@ def planner():
             project_template = project_data["project_template"]
             answers = form.getlist("answers")
             questions = project_draft["plan"]["questions"]
+            #ensure all questions are answerd 
             if (len(answers) != len(questions)
                     or any(not answer.strip() for answer in answers)):
                 return show_questions(project_draft, project_token, "Answer each question, or enter 'Not sure'.")
@@ -130,7 +130,7 @@ def planner():
                     project_template = None
                     raise ValueError("Choose a valid project template.")
                 project_size = selected_template["size"]
-                project_data = selected_template["handler"](form)
+                project_data = selected_template["builder"](form)
             elif project_mode == "custom":
                 user_input = form.get("userInput", "").strip()
                 if not user_input:
@@ -144,7 +144,7 @@ def planner():
                 project_mode=project_mode,
                 project_size=project_size,
                 project_template=project_template,
-            )#
+            )#use pro for large and mega size projects
             if project_mode == "custom":
                 plan_type = "pro" if project_size in {"large", "mega"} else "basic"
             else:
@@ -168,7 +168,7 @@ def planner():
         popup_message = str(error)
     except Exception as error:
         status_code = getattr(error, "status_code", None) or getattr(error, "code", None)
-        current_app.logger.exception("AI planning failed")
+        current_app.logger.exception("AI planner struggling")
         if status_code == 429:
             popup_message = "AI limit reached."
         else:

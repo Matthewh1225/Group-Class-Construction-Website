@@ -6,7 +6,7 @@ from utils.users import create_user
 
 dashboard_bp = Blueprint("dashboard", __name__)
 
-
+# runs before any dashbord request to ensure permissons 
 @dashboard_bp.before_request
 def refresh_dashboard_user():
     if "user_id" not in session:
@@ -19,9 +19,6 @@ def refresh_dashboard_user():
         )
         user = cursor.fetchone()
 
-    if user is None:
-        session.clear()
-    else:
         session["username"] = user.get("username")
         session["permission_level"] = user.get("permission_level")
 
@@ -37,14 +34,14 @@ def dashboard():
         if permission_level != "admin":
             abort(403)
 
-        new_permission = request.form.get("permission_level", "user")
+        permission_lvl = request.form.get("permission_level", "user")
         try:
-            create_user(request.form, new_permission)
+            create_user(request.form, permission_lvl)
             flash("User created.", "success")
         except ValueError as error:
             flash(str(error), "error")
         except IntegrityError:
-            flash("That username or email is already in use.", "error")
+            flash("That username or email is already in use :(", "error")
         except Error:
             flash("The user could not be created.", "error")
 
@@ -62,16 +59,12 @@ def dashboard():
             )
             users = cursor.fetchall()
 
-    return render_template(
-        "dashboard.html",
-        username=session.get("username"),
-        permission_level=permission_level,
-        users=users,
-    )
+    return render_template( "dashboard.html", username=session.get("username"),  permission_level=permission_level,  users=users,)
 
 
 @dashboard_bp.post("/dashboard/users/<int:user_id>/delete")
 def delete_user(user_id):
+    #only admins & no self deletes
     if "user_id" not in session or session.get("permission_level") != "admin":
         abort(403)
     if user_id == session.get("user_id"):

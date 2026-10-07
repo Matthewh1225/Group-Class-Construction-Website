@@ -8,8 +8,8 @@ def hash_password(password):
     return bcrypt.hashpw(password_bytes, bcrypt.gensalt()).decode("utf-8")
 
 
-def verify_password(password, stored_hash):
+def verify_password(password, stored_pass):
     try:
-        return bcrypt.checkpw(password.encode("utf-8"), stored_hash.encode("utf-8"))
+        return bcrypt.checkpw(password.encode("utf-8"), stored_pass.encode("utf-8"))
     except ValueError:
         return False

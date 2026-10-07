@@ -54,7 +54,7 @@ def register():
 
     data = request.get_json(silent=True)
     if not isinstance(data, dict):
-        return {"error": "Invalid form data."}, 400
+        return {"error": "Invalid "}, 400
 
     try:
         create_user(data)
@@ -66,7 +66,7 @@ def register():
         current_app.logger.exception("Registration failed")
         return {"error": "Registration unavailable."}, 503
 
-    return {"redirect_url": url_for("auth.login")}, 201
+    return {"redirect_url": url_for("auth.login")}, 201 
 
 
 @auth_bp.route("/logout", methods=["POST"])

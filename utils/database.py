@@ -3,7 +3,7 @@ from contextlib import contextmanager
 
 import mysql.connector
 
-
+##allows use of this function with cursor statments
 @contextmanager
 def database_cursor():
     connection = mysql.connector.connect(
