@@ -1827,3 +1827,318 @@
     "project_template": ""
 }
 
+{
+    "status": "completed",
+    "thinking_tokens": 897,
+    "input_tokens": 535,
+    "output_tokens": 617,
+    "total_tokens": 2049,
+    "provider": "gemini",
+    "id": "v1_Chc1aHk5YW9TS0ZyWG96N0lQMU83WmlRZxIXNWh5OWFvU0tGclhvejdJUDFPN1ppUWc",
+    "model": "gemini-3.5-flash-lite",
+    "thinking_level": "medium",
+    "elapsed_seconds": 6.57,
+    "steps": [
+        {
+            "status": "completed",
+            "thinking_tokens": 897,
+            "input_tokens": 535,
+            "output_tokens": 617,
+            "total_tokens": 2049,
+            "provider": "gemini",
+            "id": "v1_Chc1aHk5YW9TS0ZyWG96N0lQMU83WmlRZxIXNWh5OWFvU0tGclhvejdJUDFPN1ppUWc",
+            "model": "gemini-3.5-flash-lite",
+            "thinking_level": "medium",
+            "elapsed_seconds": 6.57
+        }
+    ],
+    "plan_type": "basic",
+    "plan": {
+        "project_type": "custom",
+        "summary": "Materials list for a small custom doghouse including framing, sheathing, fasteners, and basic roofing.",
+        "materials": [
+            {
+                "name": "Wall & Floor Framing",
+                "category": "Lumber",
+                "subcategory": "Dimensional Lumber",
+                "product_type": "SPF",
+                "specification": "2x4 x 8ft",
+                "quantity": 6,
+                "unit": "boards",
+                "notes": "Estimated quantity based on a small 3x2 ft footprint."
+            },
+            {
+                "name": "Wall & Floor Sheathing",
+                "category": "Sheet Goods",
+                "subcategory": "Plywood",
+                "product_type": "CDX Plywood",
+                "specification": "1/2\" x 4' x 8'",
+                "quantity": 3,
+                "unit": "sheets",
+                "notes": "Estimated quantity for walls and floor."
+            },
+            {
+                "name": "Roof Sheathing",
+                "category": "Sheet Goods",
+                "subcategory": "Plywood",
+                "product_type": "CDX Plywood",
+                "specification": "1/2\" x 4' x 8'",
+                "quantity": 1,
+                "unit": "sheets",
+                "notes": "Estimated quantity for a gable roof."
+            },
+            {
+                "name": "Assembly Fasteners",
+                "category": "Fasteners",
+                "subcategory": "Screws",
+                "product_type": "Wood Screws",
+                "specification": "#9 x 3\" exterior grade",
+                "quantity": 5,
+                "unit": "lbs",
+                "notes": "Estimated quantity for full assembly."
+            },
+            {
+                "name": "Roof Covering",
+                "category": "Roofing",
+                "subcategory": "Shingles",
+                "product_type": "Asphalt Shingles",
+                "specification": "Standard 3-tab",
+                "quantity": 1,
+                "unit": "bundle",
+                "notes": "Estimated quantity for small roof area."
+            }
+        ],
+        "assumptions": [
+            "Doghouse dimensions are assumed to be approximately 3ft long by 2ft wide by 2.5ft high.",
+            "A simple gable roof design is assumed."
+        ],
+        "questions": [
+            "What are the exact preferred dimensions for the doghouse?",
+            "Will insulation or interior lining be required?",
+            "What type of exterior finish (paint, stain, or siding) is desired?"
+        ],
+        "corrections": []
+    },
+    "project_mode": "custom",
+    "project_size": "small",
+    "project_template": ""
+}
+
+{
+    "status": "completed",
+    "thinking_tokens": 1022,
+    "input_tokens": 535,
+    "output_tokens": 625,
+    "total_tokens": 2182,
+    "provider": "gemini",
+    "id": "v1_ChdhU1M5YXJHNkllZVA2ZGtQNUtLLWdBaxIXYVNTOWFyRzZJZWVQNmRrUDVLSy1nQWs",
+    "model": "gemini-3.5-flash-lite",
+    "thinking_level": "medium",
+    "elapsed_seconds": 25.13,
+    "steps": [
+        {
+            "status": "completed",
+            "thinking_tokens": 1022,
+            "input_tokens": 535,
+            "output_tokens": 625,
+            "total_tokens": 2182,
+            "provider": "gemini",
+            "id": "v1_ChdhU1M5YXJHNkllZVA2ZGtQNUtLLWdBaxIXYVNTOWFyRzZJZWVQNmRrUDVLSy1nQWs",
+            "model": "gemini-3.5-flash-lite",
+            "thinking_level": "medium",
+            "elapsed_seconds": 25.13
+        }
+    ],
+    "plan_type": "basic",
+    "plan": {
+        "project_type": "doghouse",
+        "summary": "Initial materials list for a small custom doghouse including framing lumber, plywood sheathing, roofing, fasteners, and exterior finish.",
+        "materials": [
+            {
+                "name": "Wall and Roof Framing",
+                "category": "Lumber",
+                "subcategory": "Dimensional Lumber",
+                "product_type": "2x4 SPF",
+                "specification": "2in x 4in x 8ft",
+                "quantity": 8,
+                "unit": "boards",
+                "notes": "Estimated quantity based on a standard small doghouse frame."
+            },
+            {
+                "name": "Sheathing and Flooring",
+                "category": "Sheet Goods",
+                "subcategory": "Plywood",
+                "product_type": "CDX Plywood",
+                "specification": "1/2in x 4ft x 8ft",
+                "quantity": 3,
+                "unit": "sheets",
+                "notes": "Estimated quantity for floor, walls, and roof panels."
+            },
+            {
+                "name": "Roof Shingles",
+                "category": "Roofing",
+                "subcategory": "Shingles",
+                "product_type": "Asphalt Shingles",
+                "specification": "Standard 3-tab",
+                "quantity": 1,
+                "unit": "bundle",
+                "notes": "Estimated quantity for a small gable roof."
+            },
+            {
+                "name": "Framing Fasteners",
+                "category": "Fasteners",
+                "subcategory": "Screws",
+                "product_type": "Exterior Wood Screws",
+                "specification": "#10 x 3in",
+                "quantity": 5,
+                "unit": "lbs",
+                "notes": "Estimated quantity for structural framing and assembly."
+            },
+            {
+                "name": "Exterior Paint",
+                "category": "Finishes",
+                "subcategory": "Paint",
+                "product_type": "Exterior Latex Paint",
+                "specification": "1 Gallon, Exterior",
+                "quantity": 1,
+                "unit": "gal",
+                "notes": "Estimated quantity for painting exterior surfaces."
+            }
+        ],
+        "assumptions": [
+            "Assuming a standard small doghouse size of approximately 3ft x 2ft x 2.5ft.",
+            "Assuming a simple gable roof design."
+        ],
+        "questions": [
+            "What are the exact desired dimensions of the doghouse?",
+            "What type of exterior finish (paint, stain, siding) do you prefer?",
+            "Do you want insulation or interior wall lining?"
+        ],
+        "corrections": []
+    },
+    "project_mode": "custom",
+    "project_size": "small",
+    "project_template": ""
+}
+
+{
+    "status": "completed",
+    "thinking_tokens": null,
+    "input_tokens": 1401,
+    "output_tokens": 2389,
+    "total_tokens": 3790,
+    "provider": "groq",
+    "id": "chatcmpl-3f9c3e34-fa1d-4217-ba97-0cf1e121b85b",
+    "model": "openai/gpt-oss-120b",
+    "thinking_level": "medium",
+    "elapsed_seconds": 22.2,
+    "plan": {
+        "project_type": "custom",
+        "summary": "Revised high-level material quantities for a 20\u2011story, 20,000\u202fsq\u202fft per floor steel\u2011frame hospital with brick veneer exterior.",
+        "materials": [
+            {
+                "name": "Foundation Concrete",
+                "category": "Structural",
+                "subcategory": "Concrete",
+                "product_type": "Ready-mix concrete",
+                "specification": "4000 PSI structural grade, 6\u2011inch thick slab, includes 5% waste",
+                "quantity": 2625,
+                "unit": "cubic yards",
+                "notes": "Adjusted from original based on clarified 20,000\u202fsq\u202fft footprint (half of previous area)."
+            },
+            {
+                "name": "Structural Steel Framing",
+                "category": "Structural",
+                "subcategory": "Steel",
+                "product_type": "Wide flange beams and columns",
+                "specification": "ASTM A992, fireproofed, includes 5% waste",
+                "quantity": 1200,
+                "unit": "tons",
+                "notes": "Rough order of magnitude estimate for a 20\u2011story steel frame."
+            },
+            {
+                "name": "Exterior Brick Veneer",
+                "category": "Envelope",
+                "subcategory": "Masonry",
+                "product_type": "Standard modular brick",
+                "specification": "8\"x2.25\"x3.75\", mortar joint 3/8\", coverage approx 7 bricks per sq ft, includes 5% waste",
+                "quantity": 997894,
+                "unit": "bricks",
+                "notes": "Calculated from building perimeter based on 20,000\u202fsq\u202fft floorplate and 240\u202fft total height."
+            },
+            {
+                "name": "Mortar Mix",
+                "category": "Envelope",
+                "subcategory": "Masonry",
+                "product_type": "Portland cement mortar",
+                "specification": "80\u202flb bag, yields ~0.5\u202fcu\u202fft, includes 5% waste",
+                "quantity": 22275,
+                "unit": "bags",
+                "notes": "Estimated from brick volume (25% of wall volume) and waste factor."
+            },
+            {
+                "name": "Brick Ties",
+                "category": "Envelope",
+                "subcategory": "Masonry",
+                "product_type": "Metal brick ties",
+                "specification": "Standard 2\u2011inch tie, spaced 16\u202fin on center",
+                "quantity": 754,
+                "unit": "pieces",
+                "notes": "Based on wall perimeter and tie spacing, includes 5% waste."
+            }
+        ],
+        "assumptions": [
+            "Floorplate area assumed 20,000\u202fsq\u202fft per floor (total 400,000\u202fsq\u202fft).",
+            "Building footprint treated as square for simplicity.",
+            "Floor\u2011to\u2011floor height assumed 12\u202fft, giving total building height ~240\u202fft.",
+            "Foundation slab thickness assumed 6\u202fin.",
+            "Brick dimensions 8\"x2.25\"x3.75\" with 7 bricks per sq\u202fft coverage.",
+            "Mortar volume assumed 25% of brick wall volume.",
+            "5% waste factor applied to all materials."
+        ],
+        "questions": [
+            "Confirm floor\u2011to\u2011floor height (assumed 12\u202fft).",
+            "Confirm brick wall thickness (standard 3.75\u202fin assumed).",
+            "Is any insulation required behind the brick veneer?",
+            "Are specific steel connection fasteners needed beyond standard practice?",
+            "Should footings or additional foundation elements be accounted for beyond the slab?"
+        ],
+        "corrections": [
+            "Replaced curtain\u2011wall entry with brick veneer and associated mortar and ties.",
+            "Adjusted foundation concrete quantity to reflect clarified 20,000\u202fsq\u202fft footprint (halved).",
+            "Added mortar mix and brick ties as required consumables.",
+            "Removed glass/aluminum curtain\u2011wall material that is not required per clarification."
+        ]
+    },
+    "steps": [
+        {
+            "status": "completed",
+            "thinking_tokens": 685,
+            "input_tokens": 539,
+            "output_tokens": 512,
+            "total_tokens": 1736,
+            "provider": "gemini",
+            "id": "v1_ChdyaVM5YXBHWEl1U2d6N0lQZ3FYRjBRcxIXcmlTOWFwR1hJdVNnejdJUGdxWEYwUXM",
+            "model": "gemini-3.5-flash-lite",
+            "thinking_level": "medium",
+            "elapsed_seconds": 16.64
+        },
+        {
+            "status": "completed",
+            "thinking_tokens": null,
+            "input_tokens": 1401,
+            "output_tokens": 2389,
+            "total_tokens": 3790,
+            "provider": "groq",
+            "id": "chatcmpl-3f9c3e34-fa1d-4217-ba97-0cf1e121b85b",
+            "model": "openai/gpt-oss-120b",
+            "thinking_level": "medium",
+            "elapsed_seconds": 5.56
+        }
+    ],
+    "plan_type": "pro",
+    "project_mode": "custom",
+    "project_size": "mega",
+    "project_template": ""
+}
+

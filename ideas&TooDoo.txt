@@ -51,3 +51,4 @@ Catalog search  GLM-4.7 Flash        GLM-4.7 Flash        GLM-4.7 Flash        G
 18. we need icon/ some display for category and sub categories of items such as lumber/fasteners/rebar..... use ai to generte logos or find on google images 
 
 19. We can work with "crews" to rent out thier labor/hire, same for large constrution machinery and tools/ sell or rent them per project or on a monthly charge
+20. add the feature that when a user hovers the curor over the image of a lare machinery or even a prodyct we should have the info diplayed
