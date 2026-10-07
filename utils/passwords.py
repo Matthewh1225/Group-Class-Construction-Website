@@ -22,11 +22,7 @@ def hash_password(password):
     return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
 
 
-<<<<<<< HEAD
-def verify_password(password, stored_pass):
-=======
-def verify_password_hash(password, stored_hash):
->>>>>>> 87186c98e2d72fdd9d92167d2ebf9a525398ddf9
+def verify_password_hash(password, stored_pass):
     try:
         return bcrypt.checkpw(password.encode("utf-8"), stored_pass.encode("utf-8"))
     except ValueError:
