@@ -4,14 +4,14 @@ from pathlib import Path
 from flask import Blueprint, current_app, make_response, render_template, request
 from itsdangerous import BadData, URLSafeTimedSerializer
 
-from ProjectTemplates.projectTemplates import PROJECT_TEMPLATES
-from utils.aiTools import review_plan, plan_project
+from planning.ai import plan_project, review_plan
+from planning.project_forms import PROJECT_TEMPLATES, build_custom_project
 from utils.ratelimits import limiter
 
 planner_bp = Blueprint("planner", __name__)
 DRAFT_MAX_AGE = 1800  # 30 minutes to submit
 
-#save and protect the project draft from 1st ai for 2nd/ if edited or chnaged it fails
+# Sign the draft so users cannot edit it before the review step.
 def draft_signer():
     return URLSafeTimedSerializer(current_app.secret_key, salt="planner-draft")
 
@@ -23,7 +23,8 @@ def show_questions(draft, token, popup_message=None):
     )
 
 
-def show_planner(ai_response, popup_message, project_mode, project_size, project_template, form_data):
+def show_planner(ai_response, popup_message, project_mode, project_size,
+                 project_template, form_data):
     return render_template(
         "planner.html",
         ai_response=ai_response,
@@ -34,6 +35,46 @@ def show_planner(ai_response, popup_message, project_mode, project_size, project
         project_templates=PROJECT_TEMPLATES,
         form_data=form_data,
     )
+
+
+def build_project(form):
+    """Turn the submitted form into one project dictionary."""
+    project_mode = form.get("projectMode")
+    project_size = form.get("projectSize")
+    project_template = form.get("projectTemplate")
+
+    if project_mode == "template":
+        template = PROJECT_TEMPLATES.get(project_template)
+        if template is None:
+            raise ValueError("Choose a valid project template.")
+        project_size = template["size"]
+        project_data = template["builder"](form)
+    elif project_mode == "custom":
+        project_data = build_custom_project(form)
+    else:
+        raise ValueError("Choose a template or custom project.")
+
+    project_data.update({
+        "project_mode": project_mode,
+        "project_size": project_size,
+        "project_template": project_template,
+    })
+    return project_data
+
+
+def choose_plan_type(form, project_data):
+    if project_data["project_mode"] == "custom":
+        if project_data["project_size"] in {"large", "mega"}:
+            return "pro"
+        return "basic"
+    return form.get("planType", "basic")
+
+
+def validate_answers(questions, answers):
+    if len(answers) != len(questions):
+        raise ValueError("Answer each question, or enter 'Not sure'.")
+    if any(not answer.strip() for answer in answers):
+        raise ValueError("Answer each question, or enter 'Not sure'.")
 
 
 def format_plan(plan):
@@ -117,38 +158,14 @@ def planner():
             project_template = project_data["project_template"]
             answers = form.getlist("answers")
             questions = project_draft["plan"]["questions"]
-            #ensure all questions are answerd 
-            if (len(answers) != len(questions)
-                    or any(not answer.strip() for answer in answers)):
-                return show_questions(project_draft, project_token, "Answer each question, or enter 'Not sure'.")
+            validate_answers(questions, answers)
             result = review_plan(project_draft, answers)
         else:
-            if project_mode == "template":
-                selected_template = PROJECT_TEMPLATES.get(project_template)
-                if selected_template is None:
-                    project_mode = None
-                    project_template = None
-                    raise ValueError("Choose a valid project template.")
-                project_size = selected_template["size"]
-                project_data = selected_template["builder"](form)
-            elif project_mode == "custom":
-                user_input = form.get("userInput", "").strip()
-                if not user_input:
-                    raise ValueError("Describe your project first.")
-                project_data = {"project_type": "custom", "description": user_input}
-            else:
-                project_mode = None
-                raise ValueError("Choose a template or custom project.")
-
-            project_data.update(
-                project_mode=project_mode,
-                project_size=project_size,
-                project_template=project_template,
-            )#use pro for large and mega size projects
-            if project_mode == "custom":
-                plan_type = "pro" if project_size in {"large", "mega"} else "basic"
-            else:
-                plan_type = form.get("planType", "basic")
+            project_data = build_project(form)
+            project_mode = project_data["project_mode"]
+            project_size = project_data["project_size"]
+            project_template = project_data["project_template"]
+            plan_type = choose_plan_type(form, project_data)
             current_app.logger.info("AI request: plan_type=%s", plan_type)
             result = plan_project(project_data, plan_type)
 
@@ -163,7 +180,7 @@ def planner():
         ai_response = format_plan(result["plan"])
 
     except BadData:
-        popup_message = "This draft expired or is invalid.start again."
+        popup_message = "This draft expired or is invalid. Start again."
     except ValueError as error:
         popup_message = str(error)
     except Exception as error:
@@ -172,7 +189,7 @@ def planner():
         if status_code == 429:
             popup_message = "AI limit reached."
         else:
-            popup_message = "AI died."
+            popup_message = "The AI planner could not finish this request."
     else:
         metadata = result.copy()
         del metadata["text"]
