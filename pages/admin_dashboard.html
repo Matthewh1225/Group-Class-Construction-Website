@@ -1,0 +1,190 @@
+{% extends "dashboard/layout.html" %}
+
+{% block title %}
+    User Management - BuildBetter
+{% endblock %}
+
+{% block dashboard_content %}
+    {# Admin views use the complete user collection supplied by the existing route. #}
+    {% set admin_count = users|selectattr('permission_level', 'equalto', 'admin')|list|length %}
+    <div class="admin-workspace" id="admin-workspace" data-current-user-id="{{ session.get('user_id') }}">
+        <div class="dashboard-page-heading">
+            <div>
+                <p class="dashboard-eyebrow" id="admin-eyebrow">ADMINISTRATION / USER MANAGEMENT</p>
+                <h1 id="admin-page-title">User Management</h1>
+                <p id="admin-page-description">Manage user accounts, view roles, and control account access.</p>
+            </div>
+            <button class="dashboard-button dashboard-button-primary" type="button" data-open-add-user><span aria-hidden="true">+</span> Add User</button>
+        </div>
+        <div id="admin-feedback">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% for category, message in messages %}
+                    <p class="dashboard-message {{ category }} admin-feedback" data-flash-category="{{ category }}" role="{{ 'alert' if category == 'error' else 'status' }}">{{ message }}</p>
+                {% endfor %}
+            {% endwith %}
+        </div>
+        <section class="dashboard-stat-grid admin-stat-grid" aria-label="User statistics">
+            {% set user_statistics = [
+                ('Total Users', users|length, 'icon-user'),
+                ('Administrators', admin_count, 'icon-grid'),
+                ('Regular Users', users|length - admin_count, 'icon-user')
+            ] %}
+            {% for label, value, icon in user_statistics %}
+                <div class="dashboard-card dashboard-stat">
+                    <span class="dashboard-stat-icon">
+                        <svg class="dashboard-icon" aria-hidden="true">
+                            <use href="#{{ icon }}"/>
+                        </svg>
+                    </span>
+                    <span class="dashboard-stat-label">{{ label }}</span>
+                    <strong>{{ value }}</strong>
+                </div>
+            {% endfor %}
+        </section>
+        <section id="admin-overview" hidden aria-labelledby="admin-overview-title">
+            <div class="dashboard-card admin-overview-card">
+                <div class="admin-overview-icon">
+                    <svg class="dashboard-icon" aria-hidden="true">
+                        <use href="#icon-user"/>
+                    </svg>
+                </div>
+                <h2 id="admin-overview-title">Your account workspace</h2>
+                <p>Browse registered accounts, create users, and review their access roles.</p>
+                <a class="dashboard-button dashboard-button-primary" href="#users">Manage Users <span aria-hidden="true">&rarr;</span></a>
+            </div>
+        </section>
+        <section id="user-management" class="dashboard-card admin-users-card" aria-labelledby="admin-users-title">
+            <div class="admin-table-heading">
+                <div>
+                    <h2 id="admin-users-title">Registered users</h2>
+                    <p>All accounts across BuildBetter.</p>
+                </div>
+                <span class="admin-total-label">{{ users|length }} accounts</span>
+            </div>
+            <div class="admin-toolbar">
+                <div class="admin-search">
+                    <label class="admin-sr-only" for="admin-search">Search users</label>
+                    <input
+                        type="search"
+                        id="admin-search"
+                        placeholder="Search users by name or email..."
+                        autocomplete="off"
+                        aria-controls="user-list"
+                    >
+                    <button type="button" id="admin-clear-search" aria-label="Clear search" disabled>&times;</button>
+                </div>
+                <div class="admin-toolbar-field">
+                    <label for="admin-role-filter">Role</label>
+                    <select id="admin-role-filter" aria-controls="user-list">
+                        <option value="all">All Users</option>
+                        <option value="admin">Administrators</option>
+                        <option value="user">Regular Users</option>
+                    </select>
+                </div>
+                <div class="admin-toolbar-field">
+                    <label for="admin-sort">Sort by</label>
+                    <div class="admin-sort-controls">
+                        <select id="admin-sort" aria-controls="user-list">
+                            <option value="username">Username</option>
+                            <option value="email">Email</option>
+                            <option value="role">Role</option>
+                            <option value="joined">Join date</option>
+                        </select>
+                        <button type="button" id="admin-sort-direction" aria-label="Sort descending" title="Sort descending">&uarr;</button>
+                    </div>
+                </div>
+            </div>
+            <table class="dashboard-data-table admin-user-table" id="admin-user-table">
+                <caption class="admin-sr-only">Registered BuildBetter user accounts</caption>
+                <thead>
+                    <tr>
+                        <th scope="col" aria-sort="ascending" data-sort-column="username">
+                            <button type="button" data-sort="username">User <span data-sort-indicator="username" aria-hidden="true">&uarr;</span></button>
+                        </th>
+                        <th scope="col" aria-sort="none" data-sort-column="role">
+                            <button type="button" data-sort="role">Role <span data-sort-indicator="role" aria-hidden="true">&updownarrow;</span></button>
+                        </th>
+                        <th scope="col" aria-sort="none" data-sort-column="joined">
+                            <button type="button" data-sort="joined">Joined <span data-sort-indicator="joined" aria-hidden="true">&updownarrow;</span></button>
+                        </th>
+                        <th scope="col">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="user-list">
+                    {% for user in users %}
+                        <tr class="admin-user-row" data-user-id="{{ user.id }}" data-username="{{ user.username }}" data-email="{{ user.email }}" data-role="{{ user.permission_level }}" data-joined="{{ user.created_at or '' }}">
+                            <td class="admin-user-cell">
+                                <div class="admin-user-identity">
+                                    <span class="admin-avatar" aria-hidden="true">{{ (user.username or '?')[:1]|upper }}</span>
+                                    <div>
+                                        <div class="admin-user-name">
+                                            {{ user.username }}
+                                            {% if user.id == session.get('user_id') %}
+                                                <span class="admin-you">You</span>
+                                            {% endif %}
+                                        </div>
+                                        <span class="admin-user-email">{{ user.email }}</span>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="admin-role-cell"><span class="admin-role-badge {{ 'admin-role-admin' if user.permission_level == 'admin' else 'admin-role-user' }}">{{ 'Admin' if user.permission_level == 'admin' else 'User' }}</span></td>
+                            <td class="admin-joined-cell">
+                                <time data-user-date>{% if user.created_at %}{{ user.created_at }}{% else %}&mdash;{% endif %}</time>
+                            </td>
+                            <td class="admin-actions-cell">
+                                <div class="admin-row-actions">
+                                    <button class="admin-row-button" type="button" data-view-user aria-label="View details for {{ user.username }}">
+                                        <svg class="dashboard-icon" aria-hidden="true">
+                                            <use href="#icon-eye"/>
+                                        </svg>
+                                        Details
+                                    </button>
+                                    {% if user.id != session.get('user_id') %}
+                                        <form class="admin-delete-form" method="post" action="{{ url_for('dashboard.delete_user', user_id=user.id) }}">
+                                            <button class="admin-row-button admin-row-danger" type="submit" aria-label="Delete {{ user.username }}">
+                                                <svg class="dashboard-icon" aria-hidden="true">
+                                                    <use href="#icon-trash"/>
+                                                </svg>
+                                                Delete
+                                            </button>
+                                        </form>
+                                    {% else %}
+                                        <span class="admin-self-note">Your account</span>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    <tr id="admin-empty-row" {% if users %}hidden{% endif %}>
+                        <td colspan="4">
+                            <div class="admin-table-empty">
+                                <h3 id="admin-empty-title">No users found</h3>
+                                <p id="admin-empty-description">Create an account using Add User.</p>
+                                <button type="button" class="dashboard-button dashboard-button-secondary" id="admin-reset-filters" hidden>Clear filters</button>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+            <div class="admin-pagination" id="admin-pagination" hidden>
+                <p id="admin-result-count" role="status" aria-live="polite"></p>
+                <div class="admin-page-controls">
+                    <label for="admin-page-size">Rows</label>
+                    <select id="admin-page-size">
+                        <option value="10">10</option>
+                        <option value="25">25</option>
+                        <option value="50">50</option>
+                    </select>
+                    <button type="button" id="admin-prev-page" aria-label="Previous page">Previous</button>
+                    <span id="admin-page-label"></span>
+                    <button type="button" id="admin-next-page" aria-label="Next page">Next</button>
+                </div>
+            </div>
+        </section>
+        {% include 'dashboard/admin_popups.html' %}
+    </div>
+{% endblock %}
+
+{% block dashboard_scripts %}
+    <script src="{{ url_for('static', filename='js/admin-dashboard.js') }}" defer></script>
+{% endblock %}

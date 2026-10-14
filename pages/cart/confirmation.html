@@ -1,0 +1,74 @@
+{% extends "cart/layout.html" %}
+{% from "cart/cart_components.html" import icon, money, product_image, product_name %}
+
+{% block title %}
+    Order Confirmation - BuildBetter
+{% endblock %}
+
+{% block shopping_content %}
+    {# Only a future server-verified order may enter this branch, never URL parameters. #}
+    {% if verified_order %}
+        <header class="shopping-heading">
+            <div>
+                <p class="shopping-eyebrow">YOUR PURCHASE</p>
+                <h1>Order confirmed</h1>
+                <p>Order {{ verified_order.number }}</p>
+            </div>
+        </header>
+        <section class="shopping-panel shopping-confirmation-details">
+            <dl class="shopping-totals">
+                <div>
+                    <dt>Order date</dt>
+                    <dd>{{ verified_order.date }}</dd>
+                </div>
+                <div>
+                    <dt>Status</dt>
+                    <dd>{{ verified_order.status }}</dd>
+                </div>
+                <div>
+                    <dt>Final total</dt>
+                    <dd>{{ money(verified_order.total_cents) }}</dd>
+                </div>
+            </dl>
+            <h2>Purchased materials</h2>
+            <ul class="shopping-summary-products">
+                {% for item in verified_order['items'] %}
+                    <li>
+                        {{ product_image(item) }}
+                        <div>
+                            {{ product_name(item) }}
+                            <small>Qty {{ item.quantity }}</small>
+                        </div>
+                        <strong>{{ money(item.total_cents) }}</strong>
+                    </li>
+                {% endfor %}
+            </ul>
+            <h2>Shipping address</h2>
+            <address>
+                {{ verified_order.shipping_address.name }}
+                <br>
+                {{ verified_order.shipping_address.street }}
+                {% if verified_order.shipping_address.apartment %}
+                    <br>
+                    {{ verified_order.shipping_address.apartment }}
+                {% endif %}
+                <br>
+                {{ verified_order.shipping_address.city }}, {{ verified_order.shipping_address.state }} {{ verified_order.shipping_address.zip_code }}
+                <br>
+                {{ verified_order.shipping_address.country }}
+            </address>
+        </section>
+    {% else %}
+        <section class="shopping-panel shopping-empty shopping-confirmation" aria-labelledby="confirmation-title">
+            <span class="shopping-empty-icon">{{ icon('box') }}</span>
+            <p class="shopping-eyebrow">ORDER DETAILS</p>
+            <h1 id="confirmation-title">Order confirmation is not available yet.</h1>
+            <p>This page will display your order details once checkout and payment processing are connected.</p>
+        </section>
+    {% endif %}
+    <nav class="shopping-confirmation-links" aria-label="Next steps">
+        <a class="shopping-button shopping-secondary" href="{{ url_for('dashboard.orders') }}">Order History</a>
+        <a class="shopping-button shopping-primary" href="{{ url_for('products.products') }}">Continue Shopping {{ icon('arrow') }}</a>
+        <a class="shopping-link" href="{{ url_for('dashboard.dashboard') }}">User Dashboard</a>
+    </nav>
+{% endblock %}

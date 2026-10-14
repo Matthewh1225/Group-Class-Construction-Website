@@ -1,3 +1,4 @@
+# type=float converts form text to numbers, or None if it cannot
 def build_birdhouse(form):
     return {
         "project_type": "birdhouse",
@@ -7,6 +8,7 @@ def build_birdhouse(form):
             "height_inches": form.get("heightInches", type=float),
         },
         "entrance_hole_diameter_inches": form.get("entranceHoleInches", type=float),
+        # turn the yes/no choice into True or False
         "perch": form.get("perch") == "yes",
         "color": form.get("color", "").strip(),
         "description": form.get("userInput", "").strip(),
@@ -75,6 +77,7 @@ def build_custom_project(form):
     return {"project_type": "custom", "description": description}
 
 
+# each entry links a template to its page and form-reading function
 PROJECT_TEMPLATES = {
     "birdhouse": {
         "title": "Birdhouse",

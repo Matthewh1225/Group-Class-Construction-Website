@@ -1,11 +1,17 @@
 <div class="plan-actions">
-    <button type="submit" name="planType" value="basic">
-        <strong>Basic</strong>
-        <span>Generate a materials list</span>
+    <input type="hidden" name="plannerToken" value="{{ planner_token }}">
+    <input type="hidden" name="submissionKey" value="{{ submission_key }}">
+    <button type="submit" name="planType" value="fast">
+        <strong>Fast</strong>
+        <span>Estimate materials with a separate review</span>
     </button>
-    <button type="submit" name="planType" value="pro">
-        <strong>Pro</strong>
-        <span>Clarify details and audit your materials</span>
+    <button type="submit" name="planType" value="standard" {% if not workflow_tiers.standard.enabled %}disabled title="Awaiting live provider verification"{% endif %}>
+        <strong>Standard</strong>
+        <span>Stronger planning and independent review</span>
+    </button>
+    <button type="submit" name="planType" value="pro" {% if not workflow_tiers.pro.enabled %}disabled title="Awaiting successful Pro provider verification"{% endif %}>
+        <strong>Pro Deep Quantum Ultra Max</strong>
+        <span>Two estimates with reconciliation</span>
     </button>
 </div>
 <p class="plan-status" role="status" aria-live="polite" hidden></p>

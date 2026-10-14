@@ -1,39 +1,26 @@
-import json
-from pathlib import Path
+import secrets
 
-from flask import Blueprint, current_app, make_response, render_template, request
-from itsdangerous import BadData, URLSafeTimedSerializer
+from flask import Blueprint, abort, flash, redirect, render_template, request, session, url_for
 
-from planning.ai import plan_project, review_plan
+from planning.ai_config import WORKFLOW_TIERS
+from planning.jobs import answer_job, cancel_job, get_job, list_jobs, retry_job, submit_job
 from planning.project_forms import PROJECT_TEMPLATES, build_custom_project
-from utils.ratelimits import limiter
+from planning.presentation import plan_presentation
+from utils.rate_limits import limiter
 
 planner_bp = Blueprint("planner", __name__)
-DRAFT_MAX_AGE = 1800  # 30 minutes to submit
-
-# Sign the draft so users cannot edit it before the review step.
-def draft_signer():
-    return URLSafeTimedSerializer(current_app.secret_key, salt="planner-draft")
 
 
-def show_questions(draft, token, popup_message=None):
+def show_planner(popup_message=None, form_data=None):
+    form_data = form_data or {}
+    if "planner_token" not in session:
+        session["planner_token"] = secrets.token_urlsafe(32)
     return render_template(
-        "planner_questions.html", draft=draft, draft_token=token,
-        answers=request.form.getlist("answers"), popup_message=popup_message,
-    )
-
-
-def show_planner(ai_response, popup_message, project_mode, project_size,
-                 project_template, form_data):
-    return render_template(
-        "planner.html",
-        ai_response=ai_response,
-        popup_message=popup_message,
-        project_mode=project_mode,
-        project_size=project_size,
-        project_template=project_template,
-        project_templates=PROJECT_TEMPLATES,
-        form_data=form_data,
+        "planner.html", ai_response=None, popup_message=popup_message,
+        project_mode=form_data.get("projectMode"), project_size=form_data.get("projectSize"),
+        project_template=form_data.get("projectTemplate"), form_data=form_data,
+        project_templates=PROJECT_TEMPLATES, planner_token=session["planner_token"],
+        submission_key=secrets.token_urlsafe(24), workflow_tiers=WORKFLOW_TIERS,
     )
 
 
@@ -42,7 +29,6 @@ def build_project(form):
     project_mode = form.get("projectMode")
     project_size = form.get("projectSize")
     project_template = form.get("projectTemplate")
-
     if project_mode == "template":
         template = PROJECT_TEMPLATES.get(project_template)
         if template is None:
@@ -53,165 +39,123 @@ def build_project(form):
         project_data = build_custom_project(form)
     else:
         raise ValueError("Choose a template or custom project.")
-
-    project_data.update({
-        "project_mode": project_mode,
-        "project_size": project_size,
-        "project_template": project_template,
-    })
+    if project_size not in {"small", "medium", "large", "mega"}:
+        raise ValueError("Choose a valid project size.")
+    project_data.update({"project_mode": project_mode, "project_size": project_size,
+                         "project_template": project_template})
     return project_data
 
 
-def choose_plan_type(form, project_data):
-    if project_data["project_mode"] == "custom":
-        if project_data["project_size"] in {"large", "mega"}:
-            return "pro"
-        return "basic"
-    return form.get("planType", "basic")
+def require_planner_user():
+    if "user_id" not in session:
+        abort(401, description="Sign in to save and process planning jobs.")
+    return session["user_id"]
 
 
-def validate_answers(questions, answers):
-    if len(answers) != len(questions):
-        raise ValueError("Answer each question, or enter 'Not sure'.")
-    if any(not answer.strip() for answer in answers):
-        raise ValueError("Answer each question, or enter 'Not sure'.")
+def check_planner_token():
+    expected = session.get("planner_token", "")
+    supplied = request.form.get("plannerToken", "")
+    if not expected or not secrets.compare_digest(expected, supplied):
+        abort(400, description="Reload the planner before submitting the form.")
 
 
-def format_plan(plan):
-    lines = []
-    for material in plan["materials"]:
-        amount = f"{material['quantity']:g} {material['unit']}"
-
-        description = material["name"]
-        if material["product_type"]:
-            description += f" ({material['product_type']})"
-        if material["specification"]:
-            description += f" - {material['specification']}"
-        if material["notes"]:
-            description += f" - {material['notes']}"
-        lines.append(f"{amount} - {description}")
-
-    if not lines:
-        lines.append("No materials found for this request.")
-
-    if plan.get("corrections"):
-        lines.append("\nCorrections:")
-        lines.extend(plan["corrections"])
-
-    return "\n".join(lines)
+def owned_job(job_id):
+    job = get_job(job_id, require_planner_user())
+    if job is None:
+        abort(404)
+    return job
 
 
-def planner_limit_reached(_limit):
-    message = "Too many requests. Please wait."
-    token = request.form.get("draftToken", "")
-    if token:
-        try:
-            project_draft = draft_signer().loads(token, max_age=DRAFT_MAX_AGE)
-        except BadData:
-            pass
-        else:
-            return make_response(show_questions(project_draft, token, message), 429)
-    return make_response(
-        show_planner(
-            ai_response=None,
-            popup_message=message,
-            project_mode=request.form.get("projectMode"),
-            project_size=request.form.get("projectSize"),
-            project_template=request.form.get("projectTemplate"),
-            form_data=request.form,
-        ),
-        429,
-    )
+def submit_project_form():
+    if "user_id" not in session:
+        return redirect(url_for("auth.login"))
+    check_planner_token()
+    try:
+        project = build_project(request.form)
+        tier = request.form.get("planType", "fast")
+        # Old Basic submissions use the new Fast workflow, including its audit.
+        if tier == "basic":
+            tier = "fast"
+        job = submit_job(session["user_id"], request.form.get("submissionKey", ""), project, tier)
+    except ValueError as error:
+        return show_planner(str(error), request.form), 400
+    return redirect(url_for("planner.planning_job", job_id=job["id"]), code=303)
 
 
 @planner_bp.route("/planner", methods=["GET", "POST"])
-@limiter.limit("4 per minute; 30 per hour", methods=["POST"], on_breach=planner_limit_reached)
+@limiter.limit("4 per minute; 30 per hour", methods=["POST"])
 def planner():
-    form = request.form
-    project_mode = form.get("projectMode")
-    project_size = form.get("projectSize")
-    project_template = form.get("projectTemplate")
-    form_data = form
+    if request.method == "POST":
+        return submit_project_form()
+    return show_planner(form_data=request.args)
 
-    if request.method == "GET":
-        return show_planner(
-            ai_response=None,
-            popup_message=None,
-            project_mode=project_mode,
-            project_size=project_size,
-            project_template=project_template,
-            form_data=form_data,
-        )
 
-    project_draft = None
-    project_token = form.get("draftToken", "")
-    popup_message = None
-    ai_response = None
+@planner_bp.post("/planner/jobs")
+@limiter.limit("4 per minute; 30 per hour", methods=["POST"])
+def submit_planning_job():
+    return submit_project_form()
 
+
+@planner_bp.get("/planner/jobs/<job_id>")
+def planning_job(job_id):
+    job = owned_job(job_id)
+    if "planner_token" not in session:
+        session["planner_token"] = secrets.token_urlsafe(32)
+    return render_template("planner_job.html", job=job,
+                           plan=plan_presentation(job),
+                           tier_label=WORKFLOW_TIERS[job["tier"]]["label"],
+                           planner_token=session["planner_token"])
+
+
+@planner_bp.get("/planner/jobs/<job_id>/status")
+def planning_job_status(job_id):
+    job = owned_job(job_id)
+    return {"id": job["id"], "status": job["status"], "phase": job["phase"],
+            "error": job["error"], "specification_version": job["specification_version"],
+            "plan_version": job["plan_version"]}, 200, {"Cache-Control": "no-store"}
+
+
+@planner_bp.get("/planner/jobs/<job_id>/result")
+def planning_job_result(job_id):
+    job = owned_job(job_id)
+    return {"id": job["id"], "status": job["status"], "result": job["result"]}, 200, {"Cache-Control": "no-store"}
+
+
+@planner_bp.post("/planner/jobs/<job_id>/answers")
+@limiter.limit("4 per minute; 30 per hour", methods=["POST"])
+def planning_job_answers(job_id):
+    owned_job(job_id)
+    check_planner_token()
     try:
-        if form.get("plannerAction") == "audit":
-            project_draft = draft_signer().loads(project_token, max_age=DRAFT_MAX_AGE)
-            form_data = project_draft["form"]
-            project_data = project_draft["project"]
-            project_mode = project_data["project_mode"]
-            project_size = project_data["project_size"]
-            project_template = project_data["project_template"]
-            answers = form.getlist("answers")
-            questions = project_draft["plan"]["questions"]
-            validate_answers(questions, answers)
-            result = review_plan(project_draft, answers)
-        else:
-            project_data = build_project(form)
-            project_mode = project_data["project_mode"]
-            project_size = project_data["project_size"]
-            project_template = project_data["project_template"]
-            plan_type = choose_plan_type(form, project_data)
-            current_app.logger.info("AI request: plan_type=%s", plan_type)
-            result = plan_project(project_data, plan_type)
-
-            if plan_type == "pro":
-                project_draft = result
-                project_draft["form"] = dict(form)
-                project_token = draft_signer().dumps(project_draft)
-                if project_draft["plan"]["questions"]:
-                    return show_questions(project_draft, project_token)
-                result = review_plan(project_draft, [])
-
-        ai_response = format_plan(result["plan"])
-
-    except BadData:
-        popup_message = "This draft expired or is invalid. Start again."
+        version = request.form.get("specificationVersion", type=int)
+        answer_job(job_id, session["user_id"], request.form.getlist("answers"), version)
     except ValueError as error:
-        popup_message = str(error)
-    except Exception as error:
-        status_code = getattr(error, "status_code", None) or getattr(error, "code", None)
-        current_app.logger.exception("AI planner struggling")
-        if status_code == 429:
-            popup_message = "AI limit reached."
-        else:
-            popup_message = "The AI planner could not finish this request."
-    else:
-        metadata = result.copy()
-        del metadata["text"]
-        metadata.update({
-            "project_mode": project_mode,
-            "project_size": project_size,
-            "project_template": project_template,
-        })
+        flash(str(error), "error")
+    return redirect(url_for("planner.planning_job", job_id=job_id), code=303)
 
-        metadata_file = Path(current_app.root_path) / "ai_metadata.txt"
-        with open(metadata_file, "a", encoding="utf-8") as file:
-            json.dump(metadata, file, indent=4, default=str)
-            file.write("\n\n")
 
-    if project_draft is not None and popup_message:
-        return show_questions(project_draft, project_token, popup_message)
+@planner_bp.post("/planner/jobs/<job_id>/cancel")
+def planning_job_cancel(job_id):
+    owned_job(job_id)
+    check_planner_token()
+    cancel_job(job_id, session["user_id"])
+    return redirect(url_for("planner.planning_job", job_id=job_id), code=303)
 
-    return show_planner(
-        ai_response=ai_response,
-        popup_message=popup_message,
-        project_mode=project_mode,
-        project_size=project_size,
-        project_template=project_template,
-        form_data=form_data,
-    )
+
+@planner_bp.post("/planner/jobs/<job_id>/retry")
+@limiter.limit("4 per minute; 30 per hour", methods=["POST"])
+def planning_job_retry(job_id):
+    owned_job(job_id)
+    check_planner_token()
+    try:
+        retry_job(job_id, session["user_id"])
+    except ValueError as error:
+        flash(str(error), "error")
+    return redirect(url_for("planner.planning_job", job_id=job_id), code=303)
+
+
+@planner_bp.get("/planner/history")
+def planning_history():
+    if "user_id" not in session:
+        return redirect(url_for("auth.login"))
+    return render_template("dashboard/planning_history.html", jobs=list_jobs(session["user_id"]))

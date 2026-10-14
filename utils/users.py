@@ -23,6 +23,7 @@ def create_user(data, permission_level="user"):
         raise ValueError("Choose user or admin permission.")
     password_hash = hash_password(password)
     with database_cursor() as cursor:
+        # pass values separately so user input stays out of the SQL code
         cursor.execute(
             """INSERT INTO users (username, email, password_hash, permission_level)
                VALUES (%s, %s, %s, %s)""",
@@ -34,4 +35,5 @@ def create_user(data, permission_level="user"):
 def delete_user(user_id):
     with database_cursor() as cursor:
         cursor.execute("DELETE FROM users WHERE id = %s", (user_id,))
+        # rowcount tells us if a user was actually deleted
         return cursor.rowcount > 0

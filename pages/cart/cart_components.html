@@ -1,0 +1,124 @@
+{% macro icon(name) -%}
+    <svg class="shopping-icon" aria-hidden="true">
+        <use href="#shop-{{ name }}"/>
+    </svg>
+{%- endmacro %}
+
+{% macro money(cents) -%}
+    {# Convert integer cents to dollars only for display. #}
+    {% if cents is not none %}
+        ${{ '{:,.2f}'.format(cents / 100) }}
+    {% else %}
+        <span class="shopping-muted">Unavailable</span>
+    {% endif %}
+{%- endmacro %}
+
+{% macro product_image(item) -%}
+    <span class="shopping-product-image">
+        {{ icon('box') }}
+        {% if item.image_url|default(None) %}
+            <img src="{{ item.image_url }}" alt="{{ item.name }}" loading="lazy" data-product-image>
+        {% endif %}
+    </span>
+{%- endmacro %}
+
+{% macro product_name(item) -%}
+    {% if item.detail_url|default(None) %}
+        <a class="shopping-product-name" href="{{ item.detail_url }}">{{ item.name }}</a>
+    {% else %}
+        <span class="shopping-product-name">{{ item.name }}</span>
+    {% endif %}
+{%- endmacro %}
+
+{% macro order_summary(items, checkout=False) %}
+    {# The future cart source supplies unit_price_cents (integer or None) and quantity. #}
+    {# namespace keeps the running total available after the loop. #}
+    {% set pricing = namespace(cents=0, complete=True) %}
+    {% for item in items %}
+        {% if item.unit_price_cents|default(None) is none %}
+            {% set pricing.complete = False %}
+        {% else %}
+            {% set pricing.cents = pricing.cents + item.unit_price_cents * item.quantity %}
+        {% endif %}
+    {% endfor %}
+    {% set subtotal = none %}
+    {% if pricing.complete %}
+        {% set subtotal = pricing.cents %}
+    {% endif %}
+    <aside class="shopping-panel shopping-summary" aria-labelledby="order-summary-title">
+        <p class="shopping-eyebrow">YOUR MATERIALS</p>
+        <h2 id="order-summary-title">Order summary</h2>
+        {% if checkout %}
+            <ul class="shopping-summary-products">
+                {% for item in items %}
+                    {% set line_total = none %}
+                    {% if item.unit_price_cents|default(none) is not none %}
+                        {% set line_total = item.unit_price_cents * item.quantity %}
+                    {% endif %}
+                    <li>
+                        {{ product_image(item) }}
+                        <div>
+                            {{ product_name(item) }}
+                            <small>Qty {{ item.quantity }}</small>
+                        </div>
+                        <strong>{{ money(line_total) }}</strong>
+                    </li>
+                {% else %}
+                    <li class="shopping-summary-empty">
+                        <p>Your cart is empty.</p>
+                        <a class="shopping-link" href="{{ url_for('products.products') }}">Browse Products {{ icon('arrow') }}</a>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+        {% if items %}
+            <dl class="shopping-totals">
+                <div>
+                    <dt>Subtotal</dt>
+                    <dd>{{ money(subtotal) }}</dd>
+                </div>
+                <div>
+                    <dt>Shipping</dt>
+                    <dd class="shopping-muted">Calculated at checkout</dd>
+                </div>
+                <div>
+                    <dt>Estimated tax</dt>
+                    <dd class="shopping-muted">Calculated at checkout</dd>
+                </div>
+                <div class="shopping-total">
+                    <dt>Estimated total</dt>
+                    <dd>{{ money(subtotal) }}</dd>
+                </div>
+            </dl>
+            {% if pricing.complete %}
+                <p class="shopping-caption">Excludes shipping and tax. Your final payable total is not available yet.</p>
+            {% else %}
+                <p class="shopping-caption">One or more product prices are unavailable. A complete estimate cannot be shown.</p>
+            {% endif %}
+        {% endif %}
+        {% if checkout %}
+            <button class="shopping-button shopping-primary" type="button" disabled aria-describedby="place-order-note">Place Order {{ icon('lock') }}</button>
+            <p class="shopping-caption" id="place-order-note">Checkout is not yet available. Orders and payments are not connected.</p>
+        {% elif items %}
+            <a class="shopping-button shopping-primary" href="{{ url_for('checkout') }}">Proceed to Checkout {{ icon('arrow') }}</a>
+            <a class="shopping-button shopping-secondary" href="{{ url_for('products.products') }}">Continue Shopping</a>
+        {% endif %}
+    </aside>
+{% endmacro %}
+
+{% macro field(name, label, autocomplete, type='text', required=True, value='', wide=False, maxlength=120) %}
+    <div class="shopping-field{% if wide %} shopping-field-wide{% endif %}">
+        <label for="{{ name }}">{{ label }}{% if not required %} <span>(optional)</span>{% endif %}</label>
+        <input
+            id="{{ name }}"
+            name="{{ name }}"
+            type="{{ type }}"
+            autocomplete="{{ autocomplete }}"
+            maxlength="{{ maxlength }}"
+            value="{{ value }}"
+            {% if required %}required{% endif %}
+            aria-describedby="{{ name }}-error"
+        >
+        <span class="shopping-field-error" id="{{ name }}-error"></span>
+    </div>
+{% endmacro %}

@@ -1,0 +1,29 @@
+{% extends "dashboard/layout.html" %}
+{% from "dashboard/project_card.html" import project_card %}
+
+{% block title %}
+    My Projects - BuildBetter
+{% endblock %}
+
+{% block dashboard_content %}
+    <div class="dashboard-page-heading">
+        <div>
+            <p class="dashboard-eyebrow">WORKSPACE / PROJECTS</p>
+            <h1>My Projects</h1>
+        </div>
+        <a class="dashboard-button dashboard-button-primary" href="{{ url_for('planner.planner') }}">Start a new plan <span aria-hidden="true">→</span></a>
+    </div>
+    <div class="dashboard-project-grid">
+        {% for project in projects %}
+            {{ project_card(project) }}
+        {% endfor %}
+    </div>
+    <dialog class="dashboard-dialog" id="delete-project-dialog" aria-labelledby="delete-project-title">
+        <h2 id="delete-project-title">Delete project?</h2>
+        <p><span id="delete-project-name">This project</span> would be permanently deleted.</p>
+        <div class="dashboard-dialog-actions">
+            <button type="button" class="dashboard-button dashboard-button-secondary" data-close-dialog>Cancel</button>
+            <button type="button" class="dashboard-button dashboard-button-danger" disabled>Delete</button>
+        </div>
+    </dialog>
+{% endblock %}

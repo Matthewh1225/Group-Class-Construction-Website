@@ -1,4 +1,4 @@
-import {submitAccountForm} from "./account.js";
+import {submitAccountForm} from "./account-forms.js";
 
 const registerForm = document.getElementById("register-form");
 const message = document.getElementById("register-message");
@@ -7,6 +7,7 @@ registerForm.addEventListener("submit", function (event) {
     event.preventDefault();
     message.textContent = "";
 
+    // collect the inputs using their name attributes
     const data = Object.fromEntries(new FormData(registerForm));
     if (data.password !== data.confirm_password) {
         message.textContent = "Passwords do not match.";

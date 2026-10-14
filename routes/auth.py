@@ -13,6 +13,7 @@ def login():
     if request.method == "GET":
         return render_template("login.html")
     
+    # the account forms send JSON; silent=True handles bad JSON as None
     data = request.get_json(silent=True)
     
     if not isinstance(data, dict):
@@ -40,10 +41,12 @@ def login():
     if user is None or not verify_password_hash(password, user["password_hash"]):
         return {"error": "Invalid username or password."}, 401
 
+    # clear any old login before saving the new user
     session.clear()
     session["user_id"] = user["id"]
     session["username"] = user["username"]
     session["permission_level"] = user["permission_level"]
+    # the JS form uses this URL to move to the dashboard
     return {"redirect_url": url_for("dashboard.dashboard")}
 
 
@@ -54,7 +57,7 @@ def register():
 
     data = request.get_json(silent=True)
     if not isinstance(data, dict):
-        return {"error": "Invalid "}, 400
+        return {"error": "Invalid form data."}, 400
 
     try:
         create_user(data)

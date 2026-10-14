@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block body_attributes %}
+    class="shopping-body"
+{% endblock %}
+
+{% block underConstruction %}
+{% endblock %}
+
+{% block styles %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='checkout.css') }}">
+{% endblock %}
+
+{% block content %}
+    <svg class="shopping-symbols" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <symbol id="shop-bag" viewBox="0 0 24 24">
+            <path d="M5 7h14l1 14H4L5 7Z"/>
+            <path d="M9 8V6a3 3 0 0 1 6 0v2"/>
+        </symbol>
+        <symbol id="shop-arrow" viewBox="0 0 24 24">
+            <path d="M4 12h16m-6-6 6 6-6 6"/>
+        </symbol>
+        <symbol id="shop-back" viewBox="0 0 24 24">
+            <path d="M20 12H4m6-6-6 6 6 6"/>
+        </symbol>
+        <symbol id="shop-lock" viewBox="0 0 24 24">
+            <rect x="5" y="10" width="14" height="11" rx="2"/>
+            <path d="M8 10V7a4 4 0 0 1 8 0v3m-4 4v3"/>
+        </symbol>
+        <symbol id="shop-box" viewBox="0 0 24 24">
+            <path d="m12 3 9 5v9l-9 5-9-5V8l9-5ZM3 8l9 5 9-5m-9 5v9M7.5 5.5l9 5"/>
+        </symbol>
+        <symbol id="shop-trash" viewBox="0 0 24 24">
+            <path d="M3 6h18m-16 0 1 15h12l1-15M9 6V3h6v3m-5 4v7m4-7v7"/>
+        </symbol>
+        <symbol id="shop-card" viewBox="0 0 24 24">
+            <rect x="2" y="5" width="20" height="14" rx="2"/>
+            <path d="M2 10h20M6 15h4"/>
+        </symbol>
+    </svg>
+    <div class="shopping-page">
+        <nav class="shopping-progress" aria-label="Purchase steps">
+            <a href="{{ url_for('cart') }}" {% if request.endpoint == 'cart' %}aria-current="step"{% endif %}><span>1</span>Cart</a>
+            <span class="shopping-progress-line" aria-hidden="true"></span>
+            {% if cart_items|default([]) %}
+                <a href="{{ url_for('checkout') }}" {% if request.endpoint == 'checkout' %}aria-current="step"{% endif %}><span>2</span>Checkout</a>
+            {% else %}
+                <span class="shopping-progress-pending" {% if request.endpoint == 'checkout' %}aria-current="step"{% endif %}><span>2</span>Checkout</span>
+            {% endif %}
+            <span class="shopping-progress-line" aria-hidden="true"></span>
+            <span class="shopping-progress-pending" {% if request.endpoint == 'order_confirmation' %}aria-current="step"{% endif %}><span>3</span>Confirmation</span>
+        </nav>
+        {% block shopping_content %}
+        {% endblock %}
+    </div>
+    <script src="{{ url_for('static', filename='js/checkout.js') }}" defer></script>
+{% endblock %}

@@ -24,6 +24,11 @@
     font-size: 16px;
 }
 
+.account-form button:disabled {
+    opacity: 0.6;
+    cursor: wait;
+}
+
 .account-form input {
     background-color: #0d0f12;
     color: #eeeeee;
@@ -42,11 +47,11 @@
     color: #858b94;
 }
 
-.register-link a {
+.register-link {
     color: #b86f10;
     text-decoration: none;
 }
 
-.register-link a:hover {
+.register-link:hover {
     text-decoration: underline;
 }

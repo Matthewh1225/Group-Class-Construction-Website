@@ -1,39 +1,57 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}BuildBetter{% endblock %}</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='base.css') }}">
-    {% block styles %}
-    {% endblock %}
-</head>
-
-
-<body>
-    {% block underConstruction %}
-    <img
-        src="{{ url_for('static', filename='images/underConstruction.png') }}"
-        alt="BuildBetter"
-    >
-    {% endblock %}
-        <nav class="navbar">
-            <a href="{{ url_for('home') }}" class="navbar-brand"><img src="{{ url_for('static', filename='images/logo.png') }}" alt="BuildBetter home"></a>
-            <a href="{{ url_for('products.products') }}">Products</a>
-            <a href="{{ url_for('planner.planner') }}">AI Planner</a>
-            <a href="{{ url_for('dashboard.dashboard') }}">Dashboard</a>
-            {% if session.get("user_id") %}
-            <form class="nav-session" method="post" action="{{ url_for('auth.logout') }}">
-                <button type="submit">Logout</button>
-            </form>
-            {% else %}
-            <a class="nav-session" href="{{ url_for('auth.login') }}">Login</a>
-            {% endif %}
-        </nav>
-    <main>
-        {% block content %}
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>{% block title %}BuildBetter{% endblock %}</title>
+        <link rel="stylesheet" href="{{ url_for('static', filename='base.css') }}">
+        {% block styles %}
         {% endblock %}
-    </main>
-
-</body>
+    </head>
+    <body{% block body_attributes %}{% endblock %}>
+        {# pages can override this block to remove the construction image #}
+        {% block underConstruction %}
+            <img class="under-construction-image" src="{{ url_for('static', filename='images/under_construction.png') }}" alt="BuildBetter">
+        {% endblock %}
+        {% block navbar %}
+            <nav class="navbar" aria-label="Main navigation">
+                <a href="{{ url_for('home') }}" class="navbar-brand" {% if request.endpoint == 'home' %}aria-current="page"{% endif %}>
+                    <img src="{{ url_for('static', filename='images/logo.png') }}" alt="BuildBetter home">
+                </a>
+                <button class="navbar-toggle" type="button" aria-expanded="false" aria-controls="navbar-menu" hidden>
+                    <span class="navbar-toggle-icon" aria-hidden="true"><span></span><span></span><span></span></span>
+                    <span class="navbar-toggle-label">Menu</span>
+                </button>
+                {# aria-current marks the active link for styling and screen readers #}
+                <div class="navbar-menu" id="navbar-menu">
+                    <a href="{{ url_for('products.products') }}" {% if request.blueprint == 'products' %}aria-current="page"{% endif %}>Products</a>
+                    <a href="{{ url_for('reviews') }}" {% if request.endpoint == 'reviews' %}aria-current="page"{% endif %}>Reviews</a>
+                    <a href="{{ url_for('manufacturers') }}" {% if request.endpoint == 'manufacturers' %}aria-current="page"{% endif %}>Manufacturers</a>
+                    <a href="{{ url_for('planner.planner') }}" {% if request.blueprint == 'planner' %}aria-current="page"{% endif %}>AI Planner</a>
+                    <a href="{{ url_for('dashboard.dashboard') }}" {% if request.blueprint == 'dashboard' %}aria-current="page"{% endif %}>Dashboard</a>
+                    <a class="nav-cart" href="{{ url_for('cart') }}" aria-label="Shopping cart" {% if request.endpoint == 'cart' %}aria-current="page"{% endif %}>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
+                            <path d="M5 7h14l1 14H4L5 7Z"/>
+                            <path d="M9 8V6a3 3 0 0 1 6 0v2"/>
+                        </svg>
+                        <span>Cart</span>
+                    </a>
+                    {% if session.get("user_id") %}
+                        <form class="nav-session" method="post" action="{{ url_for('auth.logout') }}">
+                            <button type="submit">Logout</button>
+                        </form>
+                    {% else %}
+                        <a class="nav-session" href="{{ url_for('auth.login') }}" {% if request.endpoint == 'auth.login' %}aria-current="page"{% endif %}>Login</a>
+                    {% endif %}
+                </div>
+            </nav>
+        {% endblock %}
+        <main>
+            {% block content %}
+            {% endblock %}
+        </main>
+        {% block navbar_scripts %}
+            <script src="{{ url_for('static', filename='js/navbar.js') }}" defer></script>
+        {% endblock %}
+    </body>
 </html>

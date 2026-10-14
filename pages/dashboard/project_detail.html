@@ -1,0 +1,48 @@
+{% extends "dashboard/layout.html" %}
+
+{% block title %}
+    Project Details - BuildBetter
+{% endblock %}
+
+{% block dashboard_content %}
+    <nav class="dashboard-breadcrumb" aria-label="Breadcrumb">
+        <a href="{{ url_for('dashboard.dashboard') }}">Overview</a>
+        <span>/</span>
+        <a href="{{ url_for('dashboard.projects') }}">My Projects</a>
+        <span>/</span>
+        <span>Project Details</span>
+    </nav>
+    <div class="dashboard-page-heading">
+        <div>
+            <p class="dashboard-eyebrow">SAVED PROJECT</p>
+            <h1>{{ project.name if project else 'Project details' }}</h1>
+            {% if project and project.description %}
+                <p>{{ project.description }}</p>
+            {% endif %}
+        </div>
+    </div>
+    {% if project %}
+        <section class="dashboard-card dashboard-detail-card">
+            <h2>Project details</h2>
+            <dl class="dashboard-detail-list">
+                <div>
+                    <dt>Status</dt>
+                    <dd>{{ project.status or '—' }}</dd>
+                </div>
+                <div>
+                    <dt>Created</dt>
+                    <dd>{{ project.created_at or '—' }}</dd>
+                </div>
+                <div>
+                    <dt>Last modified</dt>
+                    <dd>{{ project.updated_at or '—' }}</dd>
+                </div>
+                <div>
+                    <dt>Estimated materials cost</dt>
+                    <dd>{{ project.estimated_materials_cost or '—' }}</dd>
+                </div>
+            </dl>
+            <a class="dashboard-button dashboard-button-secondary" href="{{ url_for('dashboard.material_list_detail', project_id=project.id) }}">View material list</a>
+        </section>
+    {% endif %}
+{% endblock %}

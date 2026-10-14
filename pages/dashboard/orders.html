@@ -1,0 +1,40 @@
+{% extends "dashboard/layout.html" %}
+
+{% block title %}
+    Order History - BuildBetter
+{% endblock %}
+
+{% block dashboard_content %}
+    <div class="dashboard-page-heading">
+        <div>
+            <p class="dashboard-eyebrow">WORKSPACE / ORDERS</p>
+            <h1>Order History</h1>
+        </div>
+    </div>
+    {% if orders %}
+        <div class="dashboard-card dashboard-table-wrap">
+            <table class="dashboard-data-table">
+                <thead>
+                    <tr>
+                        <th scope="col">Order Number</th>
+                        <th scope="col">Date Placed</th>
+                        <th scope="col">Total</th>
+                        <th scope="col">Status</th>
+                        <th scope="col">Details</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for order in orders %}
+                        <tr>
+                            <td>{{ order.number }}</td>
+                            <td>{{ order.placed_at or '—' }}</td>
+                            <td>{{ order.total or '—' }}</td>
+                            <td><span class="dashboard-tag">{{ order.status or '—' }}</span></td>
+                            <td><a href="{{ url_for('dashboard.order_detail', order_id=order.id) }}">View Details</a></td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
+{% endblock %}

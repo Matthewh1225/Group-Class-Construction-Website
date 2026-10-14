@@ -9,11 +9,10 @@ from openrouter import OpenRouter
 
 from .ai_config import (
     AI_TIMEOUT,
-    DRAFT_INSTRUCTIONS,
-    DRAFT_STRUCTURE,
-    PLAN_SETTINGS,
-    PROJECT_STRUCTURE,
-    REVIEW_INSTRUCTIONS,
+    PLANNER_PROMPT,
+    MODEL_CAPABILITIES,
+    STRONG_MODEL_OVERRIDE,
+    WORKFLOW_MODEL_KEYS,
 )
 
 
@@ -30,35 +29,35 @@ gemini_client_3 = make_gemini_client("GEMINI_API_KEY3")
 gemini_client_4 = make_gemini_client("GEMINI_API_KEY4")
 
 groq_key = os.getenv("GROQ_API_KEY")
-groq_client = Groq(api_key=groq_key)
+groq_client = Groq(api_key=groq_key) if groq_key else None
 
 openrouter_key = os.getenv("OPENROUTER_API_KEY")
-openrouter_client = OpenRouter(api_key=openrouter_key)
+openrouter_client = OpenRouter(api_key=openrouter_key) if openrouter_key else None
 
 cloudflare_key = os.getenv("CLOUDFLARE_API_KEY")
-cloudflare_client = Cloudflare(api_token=cloudflare_key)
+cloudflare_client = Cloudflare(api_token=cloudflare_key) if cloudflare_key else None
 
 
 AI_MODELS = {
     "gemini_strong": {
         "provider": "gemini",
         "client": gemini_client_1,
-        "model": os.getenv("GEMINI_MODEL"),
+        "model": STRONG_MODEL_OVERRIDE or os.getenv("gemini_model_strong"),
     },
     "gemini_strong_2": {
         "provider": "gemini",
         "client": gemini_client_3,
-        "model": os.getenv("GEMINI_MODEL"),
+        "model": STRONG_MODEL_OVERRIDE or os.getenv("gemini_model_strong"),
     },
     "gemini_strong_3": {
         "provider": "gemini",
         "client": gemini_client_4,
-        "model": os.getenv("GEMINI_MODEL"),
+        "model": STRONG_MODEL_OVERRIDE or os.getenv("gemini_model_strong"),
     },
     "gemini_weak": {
         "provider": "gemini",
         "client": gemini_client_2,
-        "model": os.getenv("GEMINI_MODEL2"),
+        "model": os.getenv("gemini_model_fast"),
     },
     "groq": {
         "provider": "groq",
@@ -97,6 +96,7 @@ def make_messages(system_instruction, prompt):
     ]
 
 
+# a schema tells the AI which JSON fields and types to return
 def make_response_format(response_schema):
     if response_schema is None:
         return None
@@ -110,17 +110,18 @@ def make_response_format(response_schema):
     }
 
 
-def call_gemini(model, prompt, thinking_level, system_instruction, response_schema):
+def call_gemini(model, prompt, thinking_level, system_instruction, response_schema,
+                output_tokens=8192):
     config = {
         "system_instruction": system_instruction,
         "thinking_config": {"thinking_level": thinking_level},
+        "max_output_tokens": output_tokens,
+        "http_options": {"timeout": AI_TIMEOUT * 1000, "retry_options": {"attempts": 1}},
+        "automatic_function_calling": {"disable": True},
     }
     if response_schema is not None:
-        config["response_format"] = {
-            "type": "text",
-            "mime_type": "application/json",
-            "schema": response_schema,
-        }
+        config["response_mime_type"] = "application/json"
+        config["response_json_schema"] = response_schema
 
     response = model["client"].models.generate_content(
         model=model["model"],
@@ -128,6 +129,11 @@ def call_gemini(model, prompt, thinking_level, system_instruction, response_sche
         config=config,
     )
     usage = get_value(response, "usage_metadata")
+    candidates = get_value(response, "candidates", []) or []
+    finish_reason = None
+    if isinstance(candidates, list) and candidates:
+        finish_reason = str(get_value(candidates[0], "finish_reason", ""))
+    # use the same result keys even though each provider responds differently
     return response, {
         "text": get_value(response, "text", "") or "",
         "status": "completed",
@@ -135,16 +141,23 @@ def call_gemini(model, prompt, thinking_level, system_instruction, response_sche
         "input_tokens": get_value(usage, "prompt_token_count"),
         "output_tokens": get_value(usage, "candidates_token_count"),
         "total_tokens": get_value(usage, "total_token_count"),
+        "finish_reason": finish_reason,
+        "resolved_model_version": get_value(response, "model_version"),
     }
 
 
-def call_groq(model, prompt, thinking_level, system_instruction, response_schema):
-    response_format = make_response_format(response_schema) or {"type": "text"}
-    response = model["client"].chat.completions.create(
+def call_groq(model, prompt, thinking_level, system_instruction, response_schema,
+              output_tokens=8192):
+    if response_schema is not None:
+        # Groq can reject a full estimate during constrained generation with HTTP 400.
+        # JSON object mode still gives parseable JSON; Pydantic and Python check it below.
+        prompt += "\nReturn one JSON object matching this schema:\n" + json.dumps(response_schema)
+    response_format = {"type": "json_object"} if response_schema is not None else {"type": "text"}
+    response = model["client"].with_options(max_retries=0).chat.completions.create(
         model=model["model"],
         messages=make_messages(system_instruction, prompt),
         temperature=0.5,
-        max_completion_tokens=8192,
+        max_completion_tokens=output_tokens,
         reasoning_effort=thinking_level,
         response_format=response_format,
         timeout=AI_TIMEOUT,
@@ -153,34 +166,46 @@ def call_groq(model, prompt, thinking_level, system_instruction, response_schema
     return response, {
         "text": response.choices[0].message.content or "",
         "status": "completed",
-        "thinking_tokens": None,
+        "thinking_tokens": get_value(get_value(usage, "completion_tokens_details"), "reasoning_tokens"),
         "input_tokens": get_value(usage, "prompt_tokens"),
         "output_tokens": get_value(usage, "completion_tokens"),
         "total_tokens": get_value(usage, "total_tokens"),
+        "finish_reason": get_value(response.choices[0], "finish_reason"),
     }
 
 
-def call_openrouter(model, prompt, thinking_level, system_instruction, response_schema):
+def call_openrouter(model, prompt, thinking_level, system_instruction, response_schema,
+                    output_tokens=8192):
+    capability = MODEL_CAPABILITIES.get(model["model"], {})
+    if capability.get("structured_output") == "prompt_json_validated" and response_schema:
+        # This model does not advertise constrained JSON. Validate its JSON locally.
+        prompt += "\nReturn only one JSON object matching this schema:\n" + json.dumps(response_schema)
     options = {
         "model": model["model"],
         "messages": make_messages(system_instruction, prompt),
-        "reasoning_effort": thinking_level,
+        "reasoning": {"effort": thinking_level, "exclude": True},
+        "provider": {"require_parameters": True},
+        "max_tokens": output_tokens,
         "stream": False,
+        "timeout_ms": AI_TIMEOUT * 1000,
+        "retries": None,
     }
     response_format = make_response_format(response_schema)
-    if response_format is not None:
+    if response_format is not None and capability.get("structured_output") != "prompt_json_validated":
         options["response_format"] = response_format
 
+    # **options passes each dictionary entry as a named argument
     response = model["client"].chat.send(**options)
     usage = get_value(response, "usage")
     message = get_value(get_value(response, "choices", [])[0], "message")
     return response, {
         "text": get_value(message, "content", "") or "",
         "status": "completed",
-        "thinking_tokens": get_value(usage, "reasoning_tokens"),
+        "thinking_tokens": get_value(get_value(usage, "completion_tokens_details"), "reasoning_tokens"),
         "input_tokens": get_value(usage, "prompt_tokens"),
         "output_tokens": get_value(usage, "completion_tokens"),
         "total_tokens": get_value(usage, "total_tokens"),
+        "finish_reason": get_value(get_value(response, "choices", [])[0], "finish_reason"),
     }
 
 
@@ -219,8 +244,9 @@ def get_ai_response(
     model_name,
     prompt,
     thinking_level="low",
-    system_instruction=DRAFT_INSTRUCTIONS,
+    system_instruction=PLANNER_PROMPT,
     response_schema=None,
+    output_tokens=8192,
 ):
     if model_name not in AI_MODELS:
         raise ValueError(f"Unknown AI model: {model_name}")
@@ -232,19 +258,20 @@ def get_ai_response(
         raise ValueError(f"The model name for {model_name} is not configured.")
 
     provider = model["provider"]
+    # monotonic measures elapsed time even if the system clock changes
     started_at = monotonic()
 
     if provider == "gemini":
         response, result = call_gemini(
-            model, prompt, thinking_level, system_instruction, response_schema
+            model, prompt, thinking_level, system_instruction, response_schema, output_tokens
         )
     elif provider == "groq":
         response, result = call_groq(
-            model, prompt, thinking_level, system_instruction, response_schema
+            model, prompt, thinking_level, system_instruction, response_schema, output_tokens
         )
     elif provider == "openrouter":
         response, result = call_openrouter(
-            model, prompt, thinking_level, system_instruction, response_schema
+            model, prompt, thinking_level, system_instruction, response_schema, output_tokens
         )
     elif provider == "cloudflare":
         response, result = call_cloudflare(
@@ -261,7 +288,40 @@ def get_ai_response(
     return result
 
 
+def workflow_model(model_name, reasoning):
+    model_key = WORKFLOW_MODEL_KEYS[model_name]
+    model = AI_MODELS[model_key]
+    if model["client"] is None or not model["model"]:
+        raise ValueError(f"{model_name} is not configured.")
+    capability = MODEL_CAPABILITIES.get(model["model"])
+    if capability is None or reasoning not in capability["levels"]:
+        raise ValueError(f"{model_name} has no verified {reasoning} reasoning configuration.")
+    return model, capability
+
+
+def workflow_response(model_name, prompt, reasoning, instructions, schema, output_tokens):
+    model, capability = workflow_model(model_name, reasoning)
+    model_key = WORKFLOW_MODEL_KEYS[model_name]
+    if output_tokens > capability["output_limit"]:
+        raise ValueError("The requested output size exceeds this model's documented limit.")
+    result = get_ai_response(
+        model_key, prompt, thinking_level=reasoning,
+        system_instruction=instructions, response_schema=schema,
+        output_tokens=output_tokens,
+    )
+    result["requested_reasoning"] = reasoning
+    result["transmitted_reasoning"] = {capability["setting"]: reasoning}
+    result["requested_model"] = model["model"]
+    result["structured_output_mode"] = capability["structured_output"]
+    # An accepted setting is evidence of the request, not of internal computation.
+    finish = result.get("finish_reason")
+    if finish not in {"stop", "STOP", "FinishReason.STOP"}:
+        result["status"] = "incomplete"
+    return result
+
+
 def response_metadata(response):
+    # copy first so removing fields does not change the original response
     metadata = response.copy()
     metadata.pop("text", None)
     metadata.pop("plan", None)
@@ -269,57 +329,3 @@ def response_metadata(response):
     metadata.pop("project", None)
     return metadata
 
-
-def plan_project(project_data, plan_type="basic"):
-    settings = PLAN_SETTINGS.get(plan_type)
-    if settings is None:
-        raise ValueError("Choose either a basic or pro plan.")
-
-    is_pro_plan = settings["requires_review"]
-    response_schema = DRAFT_STRUCTURE if is_pro_plan else PROJECT_STRUCTURE
-    draft = get_ai_response(
-        settings["draft_model"],
-        json.dumps(project_data, indent=2),
-        thinking_level=settings["draft_reasoning"],
-        system_instruction=DRAFT_INSTRUCTIONS,
-        response_schema=response_schema,
-    )
-
-    draft["steps"] = [response_metadata(draft)]
-    draft["plan_type"] = plan_type
-    draft["plan"] = json.loads(draft["text"])
-
-    if is_pro_plan:
-        draft["text"] = json.dumps(draft["plan"], indent=2)
-        draft["project"] = project_data
-    return draft
-
-
-def review_plan(draft, answers):
-    settings = PLAN_SETTINGS["pro"]
-    questions = draft["plan"]["questions"]
-
-    clarifications = []
-    for question, answer in zip(questions, answers):
-        clarifications.append({"question": question, "answer": answer.strip()})
-
-    review_data = {
-        "project": draft["project"],
-        "draft": draft["plan"],
-        "clarifications": clarifications,
-    }
-    result = get_ai_response(
-        settings["review_model"],
-        json.dumps(review_data, indent=2),
-        thinking_level=settings["review_reasoning"],
-        system_instruction=REVIEW_INSTRUCTIONS,
-        response_schema=PROJECT_STRUCTURE,
-    )
-
-    result["plan"] = json.loads(result["text"])
-    result["steps"] = draft["steps"] + [response_metadata(result)]
-    result["plan_type"] = "pro"
-    result["elapsed_seconds"] = round(
-        draft["elapsed_seconds"] + result["elapsed_seconds"], 2
-    )
-    return result

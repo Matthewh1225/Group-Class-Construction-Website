@@ -1,0 +1,70 @@
+{% extends "dashboard/layout.html" %}
+
+{% block title %}
+    Order Details - BuildBetter
+{% endblock %}
+
+{% block dashboard_content %}
+    <nav class="dashboard-breadcrumb" aria-label="Breadcrumb">
+        <a href="{{ url_for('dashboard.dashboard') }}">Overview</a>
+        <span>/</span>
+        <a href="{{ url_for('dashboard.orders') }}">Order History</a>
+        <span>/</span>
+        <span>Order Details</span>
+    </nav>
+    <div class="dashboard-page-heading">
+        <div>
+            <p class="dashboard-eyebrow">ORDER DETAILS</p>
+            <h1>{{ 'Order ' ~ order.number if order else 'Order details' }}</h1>
+            <p>Products, shipping information, and totals for this order.</p>
+        </div>
+    </div>
+    {% if order %}
+        <section class="dashboard-card dashboard-detail-card">
+            <dl class="dashboard-detail-list">
+                <div>
+                    <dt>Date placed</dt>
+                    <dd>{{ order.placed_at or '—' }}</dd>
+                </div>
+                <div>
+                    <dt>Status</dt>
+                    <dd>{{ order.status or '—' }}</dd>
+                </div>
+                <div>
+                    <dt>Order total</dt>
+                    <dd>{{ order.total or '—' }}</dd>
+                </div>
+                <div>
+                    <dt>Shipping</dt>
+                    <dd>{{ order.shipping or '—' }}</dd>
+                </div>
+            </dl>
+            <div class="dashboard-table-wrap">
+                <table class="dashboard-data-table">
+                    <thead>
+                        <tr>
+                            <th scope="col">Product</th>
+                            <th scope="col">Quantity</th>
+                            <th scope="col">Unit Price</th>
+                            <th scope="col">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in items %}
+                            <tr>
+                                <td>{{ item.name }}</td>
+                                <td>{{ item.quantity }}</td>
+                                <td>{{ item.unit_price or '—' }}</td>
+                                <td>{{ item.total or '—' }}</td>
+                            </tr>
+                        {% else %}
+                            <tr>
+                                <td colspan="4">No order items available.</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    {% endif %}
+{% endblock %}

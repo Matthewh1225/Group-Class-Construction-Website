@@ -4,6 +4,7 @@ import bcrypt
 def validate_password(password):
     if not isinstance(password, str) or len(password) < 3:
         raise ValueError("Password must be at least 3 characters.")
+    # bcrypt counts bytes, so some characters take up more than one
     if len(password.encode("utf-8")) > 72:
         raise ValueError("Password must be at most 72 UTF-8 bytes.")
     if not any(char.isdigit() for char in password):
@@ -19,11 +20,15 @@ def validate_password(password):
 
 def hash_password(password):
     validate_password(password)
+    # the random salt means matching passwords can have different hashes
     return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
 
 
 def verify_password_hash(password, stored_pass):
+    if not isinstance(password, str) or not isinstance(stored_pass, str):
+        return False
     try:
+        # bcrypt checks the saved hash without decrypting it
         return bcrypt.checkpw(password.encode("utf-8"), stored_pass.encode("utf-8"))
     except ValueError:
         return False

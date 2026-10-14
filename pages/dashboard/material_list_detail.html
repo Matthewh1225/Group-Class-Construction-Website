@@ -1,0 +1,72 @@
+{% extends "dashboard/layout.html" %}
+
+{% block title %}
+    Project Materials - BuildBetter
+{% endblock %}
+
+{% block dashboard_content %}
+    <nav class="dashboard-breadcrumb" aria-label="Breadcrumb">
+        <a href="{{ url_for('dashboard.dashboard') }}">Overview</a>
+        <span>/</span>
+        <a href="{{ url_for('dashboard.material_lists') }}">Material Lists</a>
+        <span>/</span>
+        <span>Project Materials</span>
+    </nav>
+    <div class="dashboard-page-heading">
+        <div>
+            <p class="dashboard-eyebrow">PROJECT MATERIALS</p>
+            <h1>{{ project.name if project else 'Material list' }}</h1>
+            <p>Materials saved with this project.</p>
+        </div>
+        {% if project %}
+            <a class="dashboard-button dashboard-button-secondary" href="{{ url_for('dashboard.project_detail', project_id=project.id) }}">View project</a>
+        {% endif %}
+    </div>
+    {% if material_list %}
+        <section class="dashboard-card dashboard-detail-card">
+            <div class="dashboard-section-heading">
+                <h2>Materials</h2>
+                <div class="dashboard-total">
+                    Estimated total
+                    <strong>{{ estimated_total if estimated_total is not none else '—' }}</strong>
+                </div>
+            </div>
+            <div class="dashboard-table-wrap">
+                <table class="dashboard-data-table">
+                    <thead>
+                        <tr>
+                            <th scope="col">Material</th>
+                            <th scope="col">Quantity</th>
+                            <th scope="col">Unit</th>
+                            <th scope="col">Unit Cost</th>
+                            <th scope="col">Total Cost</th>
+                            <th scope="col">Matched Product</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in materials %}
+                            <tr>
+                                <td>{{ item.name }}</td>
+                                <td>{{ item.quantity if item.quantity is not none else '—' }}</td>
+                                <td>{{ item.unit or '—' }}</td>
+                                <td>{{ item.unit_cost if item.unit_cost is not none else '—' }}</td>
+                                <td>{{ item.total_cost if item.total_cost is not none else '—' }}</td>
+                                <td>
+                                    {% if item.product_url %}
+                                        <a href="{{ item.product_url }}">{{ item.product_name or 'View product' }}</a>
+                                    {% else %}
+                                        {{ item.product_name or '—' }}
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% else %}
+                            <tr>
+                                <td colspan="6">No materials saved in this list.</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    {% endif %}
+{% endblock %}

@@ -2,25 +2,21 @@ const plannerForms = document.querySelectorAll(".planner-container form, .planne
 
 plannerForms.forEach(function (form) {
     form.addEventListener("submit", function (event) {
-        const mode = form.querySelector('[name="projectMode"]')?.value;
-        const size = form.querySelector('[name="projectSize"]')?.value;
+        // ?. gives undefined if this form does not have the input
         const reviewInput = form.querySelector('[name="plannerAction"]');
-        const reviewMode = mode === "custom" && ["large", "mega"].includes(size);
-        const chosePro = event.submitter?.value === "pro";
         const status = form.querySelector(".plan-status");
 
         if (reviewInput) {
             status.textContent = "reviewing and updating your materials list...";
-        } else if (reviewMode || chosePro) {
-            status.textContent = "reviewing your project and checking for missing details...";
         } else {
-            status.textContent = "Generating your materials list...";
+            status.textContent = "Saving your project and starting planning...";
         }
 
         status.hidden = false;
     });
 });
 
+// pageshow also runs when the browser restores a page with the back button
 window.addEventListener("pageshow", function () {
     plannerForms.forEach(function (form) {
         form.querySelector(".plan-status").hidden = true;

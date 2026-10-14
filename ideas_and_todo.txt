@@ -1,0 +1,78 @@
+
+2. Add CSRF protection to account forms and rate limits to login and registration
+
+4. Admin product management: add, edit, and remove items for sale
+
+5. Product page search and filters (manufacturer, supplier, category, etc.)
+
+6. Back up important database data
+
+7. Checkout flow, including adding items from the dashboard list or straight from the AI response
+
+8. Payment options and saved billing info in the user profile
+
+9. Paid monthly Pro subscription that uses the full agent chain
+
+10. Password recovery by email
+
+11. Email verification and automatic emails (promos, discount codes, in-progress project reminders)
+
+12. Auto-logout after a period of inactivity
+
+13. Materials checklist to track purchased and still-needed items in saved projects
+
+14. Metric/imperial unit selection for users
+
+15. Reviews page and past project showcase
+
+16. Icons for item categories and subcategories (lumber, fasteners, rebar, etc.)
+
+17. Hover popups showing info on product and machinery images
+
+18. One-click account creation with Google, Apple, etc.
+
+19. Partner with crews to rent out labor, and rent or sell machinery and tools per project or monthly
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,93 +1,4 @@
-.navbar {
-    min-height: 100px;
-    width: 100%;
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    position: sticky;
-    top: 0;
-    z-index: 1000;
-    gap: 20px;
-    background-color: #0b0d10;
-}
-
-.navbar a {
-    text-decoration: none;
-    color: #ddc32e;
-    padding: 14px 16px;
-    border-radius: 8px;
-}
-
-.navbar a:not(.navbar-brand):hover,
-.navbar .nav-session button:hover {
-    background-color: #ddc32e;
-    color: black;
-}
-.navbar .navbar-brand {
-    color: #f2f2f2;
-    font-size: 18px;
-    margin: 0 24px 0 0;
-}
-.navbar-brand:hover {
-    transform: scale(1.1);
-}
-
-.navbar .nav-session {
-    color: #b86f10;
-    margin-left: auto;
-    font-size: 24px;
-}
-
-.navbar .nav-session button {
-    padding: 14px 16px;
-    color: #b86f10;
-    background: none;
-    border: none;
-    border-radius: 8px;
-    font: inherit;
-    cursor: pointer;
-}
-
-.navbar-brand img {
-    height: 80px;
-    margin-right: 2%;
-    border-radius: 50%;
-    object-fit: cover;
-}
-img[src$="underConstruction.png"] {
-    position: absolute;
-    transform: translate(-50%, -50%);
-    top: 50%;
-    left: 50%;
-    max-width: 60%;
-    height: auto;
-}
-
-@media (max-width: 700px) {
-    .navbar {
-        flex-wrap: wrap;
-        gap: 8px;
-        padding: 12px;
-    }
-
-    .navbar a,
-    .navbar .nav-session button {
-        padding: 8px 10px;
-        font-size: 14px;
-    }
-
-    .navbar .navbar-brand {
-        margin-right: 0;
-    }
-
-    .navbar .nav-session {
-        font-size: 14px;
-    }
-
-    .navbar-brand img {
-        height: 48px;
-    }
-}
+/* Shared page defaults */
 * {
     box-sizing: border-box;
 }
@@ -106,7 +17,7 @@ body {
 }
 
 main {
-    min-height: calc(100vh - 100px);
+    min-height: calc(100vh - 72px);
 }
 
 input,
@@ -124,3 +35,200 @@ textarea:focus {
     outline-offset: 1px;
 }
 
+/* Storefront navigation */
+.navbar {
+    min-height: 72px;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    gap: 24px;
+    /* clamp keeps the side spacing between 16px and 56px */
+    padding: 12px clamp(16px, 4vw, 56px);
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 15px;
+    font-weight: 500;
+    line-height: 1.4;
+    background: #11151b;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+/* use the glass effect only if the browser supports blur */
+@supports ((backdrop-filter: blur(16px)) or (-webkit-backdrop-filter: blur(16px))) {
+    .navbar {
+        background: linear-gradient(120deg, rgba(30, 34, 41, 0.82), rgba(11, 13, 16, 0.78));
+        -webkit-backdrop-filter: blur(16px) saturate(140%);
+        backdrop-filter: blur(16px) saturate(140%);
+    }
+
+}
+
+.navbar-menu {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    gap: 8px;
+    min-width: 0;
+}
+
+.navbar .nav-cart {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.navbar a,
+.navbar button {
+    text-decoration: none;
+    color: #d8dde5;
+    padding: 10px 16px;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    font: inherit;
+    white-space: nowrap;
+    transition: color 160ms ease, background-color 160ms ease, border-color 160ms ease, transform 160ms ease;
+}
+
+.navbar button {
+    background: none;
+    cursor: pointer;
+}
+
+.navbar-menu a:hover,
+.navbar .nav-session button:hover,
+.navbar-toggle:hover {
+    color: #fff;
+    background-color: rgba(255, 255, 255, 0.08);
+}
+
+.navbar-menu a[aria-current="page"] {
+    color: #ddc32e;
+    background-color: rgba(221, 195, 46, 0.1);
+    border-color: rgba(221, 195, 46, 0.25);
+}
+
+/* show an outline when someone uses the keyboard to navigate */
+.navbar a:focus-visible,
+.navbar button:focus-visible {
+    outline: 2px solid #ddc32e;
+    outline-offset: 4px;
+}
+
+.navbar .navbar-brand {
+    display: inline-flex;
+    flex-shrink: 0;
+    padding: 0;
+    border: 0;
+}
+
+.navbar-brand:hover {
+    transform: scale(1.03);
+}
+
+.navbar-brand img {
+    display: block;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.navbar .nav-session {
+    margin: 0 0 0 auto;
+}
+
+.navbar a.nav-session,
+.navbar .nav-session button {
+    color: #ddc32e;
+    border-color: rgba(221, 195, 46, 0.3);
+    background-color: rgba(221, 195, 46, 0.08);
+}
+
+.navbar a.nav-session:hover,
+.navbar .nav-session button:hover {
+    color: #0b0d10;
+    background-color: #ddc32e;
+    border-color: #ddc32e;
+}
+
+.navbar-toggle {
+    display: none;
+    align-items: center;
+    gap: 10px;
+    margin-left: auto;
+}
+
+.navbar-toggle-icon {
+    display: grid;
+    gap: 4px;
+}
+
+.navbar-toggle-icon span {
+    width: 18px;
+    height: 2px;
+    border-radius: 2px;
+    background: currentColor;
+}
+
+.under-construction-image {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    top: 50%;
+    left: 50%;
+    max-width: 60%;
+    height: auto;
+}
+
+@media (max-width: 960px) {
+    .navbar {
+        flex-wrap: wrap;
+        gap: 0;
+        padding: 12px 16px;
+    }
+
+    .navbar-menu {
+        flex: 0 0 100%;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 6px;
+        margin-top: 12px;
+        padding-top: 12px;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        text-align: left;
+    }
+
+    .navbar-enhanced .navbar-toggle:not([hidden]) {
+        display: inline-flex;
+    }
+
+    /* JS adds these classes to hide or show the mobile links */
+    .navbar-enhanced:not(.menu-open) .navbar-menu {
+        display: none;
+    }
+
+    .navbar .nav-session {
+        margin: 6px 0 0;
+    }
+
+    .navbar .nav-session button {
+        width: 100%;
+        text-align: left;
+    }
+
+}
+
+/* respect the device setting for less animation */
+@media (prefers-reduced-motion: reduce) {
+    .navbar a,
+    .navbar button {
+        transition: none;
+    }
+
+    .navbar-brand:hover {
+        transform: none;
+    }
+
+}

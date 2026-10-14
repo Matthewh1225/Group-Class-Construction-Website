@@ -1,139 +1,97 @@
 {% extends "base.html" %}
 
 {% block title %}
-AI Planner - BuildBetter
+    AI Planner - BuildBetter
 {% endblock %}
 
 {% block underConstruction %}
 {% endblock %}
 
 {% block styles %}
-<link rel="stylesheet" href="{{ url_for('static', filename='planner.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='planner.css') }}">
 {% endblock %}
 
 {% block content %}
-<!-- Choose a project type -->
-<section
-    id="method-step"
-    class="planner-step"
-    {% if project_mode %}hidden{% endif %}
->
-    <div class="planner-buttons">
-        <button id="choose-template" type="button">
-            Choose a Template
-        </button>
-        <button id="choose-custom" type="button">
-            Custom Project
-        </button>
-    </div>
-</section>
-
-
-<!-- Templates -->
-<section id="template-step" class="planner-step" hidden>
-    <h1>Choose a Template</h1>
-
-    <div class="planner-buttons">
-        {% for template_id, template in project_templates.items() %}
-        <button
-            id="template-{{ template_id }}"
-            type="button"
-            class="template-option"
-            data-template="{{ template_id }}"
-            data-size="{{ template.size }}">
-            {{ template.title }}
-        </button>
-        {% endfor %}
-    </div>
-    <button class="back-button" type="button">Back</button>
-</section>
-
-<div id="template-forms" {% if ai_response %}hidden{% endif %}>
-    {% for template_id, template in project_templates.items() %}
-        {% include template.form %}
-    {% endfor %}
-</div>
-
-<!-- Project size -->
-<section id="size-step" class="planner-step" hidden>
-    <h1>Choose Your Project Size</h1>
-
-    <div class="planner-buttons">
-        <button id="size-small" type="button" class="project-option" data-size="small">
-            Small Project
-        </button>
-        <button id="size-medium" type="button" class="project-option" data-size="medium">
-            Medium Project
-        </button>
-        <button id="size-large" type="button" class="project-option" data-size="large">
-            Large Project
-        </button>
-        <button id="size-mega" type="button" class="project-option" data-size="mega">
-            Mega Project
-        </button>
-    </div>
-
-    <button class="back-button" type="button">Back</button>
-</section>
-<!-- Project description -->
-<div
-    id="planner-form"
-    class="planner-container"
-    {% if ai_response or not project_mode or project_mode == 'template' %}hidden{% endif %}
->
-    <h1>Describe Your Project</h1>
-
-    <form method="post" action="{{ url_for('planner.planner') }}">
-        <input
-            id="project-mode"
-            name="projectMode"
-            type="hidden"
-            value="{{ project_mode or '' }}">
-        <input
-            id="project-size"
-            name="projectSize"
-            type="hidden"
-            value="{{ project_size or '' }}">
-        <input
-            id="project-template"
-            name="projectTemplate"
-            type="hidden"
-            value="{{ project_template or '' }}">
-
-        <textarea
-            id="user-input"
-            name="userInput"
-            class="planner-input"
-            placeholder="Describe your project..."
-            required
-        >{{ form_data.get('userInput', '') }}</textarea>
-
-        <div class="plan-actions">
-            <button type="submit">
-                <strong>Generate Plan</strong>
-                <span>Build your materials list</span>
+    <!-- Choose a project type -->
+    <section id="method-step" class="planner-step" {% if project_mode %}hidden{% endif %} >
+        <div class="planner-buttons">
+            <button id="choose-template" type="button">
+                Choose a Template
+            </button>
+            <button id="choose-custom" type="button">
+                Custom Project
             </button>
         </div>
-        <p class="plan-status" role="status" aria-live="polite" hidden></p>
-    </form>
-</div>
-<div id="planner-result" class="planner-container" {% if not ai_response %}hidden{% endif %}>
-    <textarea
-        class="planner-response"
-        placeholder="AI response will appear here..."
-        readonly
-    >{{ ai_response or "" }}</textarea>
-</div>
-{% if popup_message %}
-<script>
-    window.addEventListener("DOMContentLoaded", function () {
-        alert({{ popup_message | tojson }});
-    });
-</script>
-{% endif %}
-
-<script
-    src="{{ url_for('static', filename='js/planner.js') }}"
-    type="module"
-></script>
+    </section>
+    <!-- Templates -->
+    <section id="template-step" class="planner-step" hidden>
+        <h1>Choose a Template</h1>
+        <div class="planner-buttons">
+            {% for template_id, template in project_templates.items() %}
+                <button id="template-{{ template_id }}" type="button" class="template-option" data-template="{{ template_id }}" data-size="{{ template.size }}">
+                    {{ template.title }}
+                </button>
+            {% endfor %}
+        </div>
+        <button class="back-button" type="button">Back</button>
+    </section>
+    <div id="template-forms" {% if ai_response %}hidden{% endif %}>
+        {% for template_id, template in project_templates.items() %}
+            {# load the form file saved for each template #}
+            {% include template.form %}
+        {% endfor %}
+    </div>
+    <!-- Project size -->
+    <section id="size-step" class="planner-step" hidden>
+        <h1>Choose Your Project Size</h1>
+        <div class="planner-buttons">
+            <button id="size-small" type="button" class="project-option" data-size="small">
+                Small Project
+            </button>
+            <button id="size-medium" type="button" class="project-option" data-size="medium">
+                Medium Project
+            </button>
+            <button id="size-large" type="button" class="project-option" data-size="large">
+                Large Project
+            </button>
+            <button id="size-mega" type="button" class="project-option" data-size="mega">
+                Mega Project
+            </button>
+        </div>
+        <button class="back-button" type="button">Back</button>
+    </section>
+    <!-- Project description -->
+    <div id="planner-form" class="planner-container" {% if ai_response or not project_mode or project_mode == 'template' %}hidden{% endif %} >
+        <h1>Describe Your Project</h1>
+        <form method="post" action="{{ url_for('planner.submit_planning_job') }}">
+            <input id="project-mode" name="projectMode" type="hidden" value="{{ project_mode or '' }}">
+            <input id="project-size" name="projectSize" type="hidden" value="{{ project_size or '' }}">
+            <input id="project-template" name="projectTemplate" type="hidden" value="{{ project_template or '' }}">
+            <textarea
+                id="user-input"
+                name="userInput"
+                class="planner-input"
+                placeholder="Describe your project..."
+                required
+            >{{ form_data.get('userInput', '') }}</textarea>
+            {% include "project_forms/plan_buttons.html" %}
+        </form>
+    </div>
+    <div id="planner-result" class="planner-container" {% if not ai_response %}hidden{% endif %}>
+        <textarea
+            class="planner-response"
+            placeholder="AI response will appear here..."
+            readonly
+        >{{ ai_response or "" }}</textarea>
+        <button class="back-button" type="button">Start a new project</button>
+    </div>
+    {% if popup_message %}
+        <script>
+            window.addEventListener("DOMContentLoaded", function () {
+                // tojson safely quotes the message for JavaScript
+                alert({{ popup_message | tojson }});
+            });
+        </script>
+    {% endif %}
+    <script src="{{ url_for('static', filename='js/planner.js') }}" type="module"></script>
 {% endblock %}

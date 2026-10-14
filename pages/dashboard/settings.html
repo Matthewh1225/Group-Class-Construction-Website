@@ -1,0 +1,69 @@
+{% extends "dashboard/layout.html" %}
+
+{% block title %}
+    Profile & Settings - BuildBetter
+{% endblock %}
+
+{% block dashboard_content %}
+    <div class="dashboard-page-heading">
+        <div>
+            <p class="dashboard-eyebrow">ACCOUNT</p>
+            <h1>Profile &amp; Settings</h1>
+            <p>Review your account details.</p>
+        </div>
+    </div>
+    <div class="dashboard-settings-grid">
+        <section class="dashboard-card dashboard-form-card">
+            <h2>Account details</h2>
+            <dl class="dashboard-detail-list">
+                <div>
+                    <dt>Username</dt>
+                    <dd>{{ profile.username or '—' }}</dd>
+                </div>
+                <div>
+                    <dt>Email address</dt>
+                    <dd>{{ profile.email or '—' }}</dd>
+                </div>
+                <div>
+                    <dt>Account created</dt>
+                    <dd>{{ profile.created_at or '—' }}</dd>
+                </div>
+            </dl>
+            <form class="dashboard-form" id="profile-form" method="post" action="{{ url_for('dashboard.save_profile') }}">
+                <h3>Edit account</h3>
+                <label for="profile-username">Username</label>
+                <input
+                    id="profile-username"
+                    name="username"
+                    type="text"
+                    value="{{ profile.username or '' }}"
+                    autocomplete="username"
+                    required
+                >
+                <label for="profile-email">Email address</label>
+                <input id="profile-email" name="email" type="email" value="{{ profile.email or '' }}" autocomplete="email" required>
+                <p class="dashboard-form-message" role="status" aria-live="polite"></p>
+                <div class="dashboard-form-actions">
+                    <button class="dashboard-button dashboard-button-primary" type="submit" disabled>Save changes</button>
+                    <button class="dashboard-button dashboard-button-secondary" type="reset">Cancel</button>
+                </div>
+            </form>
+        </section>
+        <section class="dashboard-card dashboard-form-card">
+            <h2>Change password</h2>
+            <form class="dashboard-form" id="password-form" method="post" action="{{ url_for('dashboard.save_password') }}">
+                <label for="current-password">Current password</label>
+                <input id="current-password" name="current_password" type="password" autocomplete="current-password" required>
+                <label for="new-password">New password</label>
+                <input id="new-password" name="new_password" type="password" autocomplete="new-password" required>
+                <label for="confirm-new-password">Confirm new password</label>
+                <input id="confirm-new-password" name="confirm_new_password" type="password" autocomplete="new-password" required>
+                <p class="dashboard-form-message" role="status" aria-live="polite"></p>
+                <div class="dashboard-form-actions">
+                    <button class="dashboard-button dashboard-button-primary" type="submit" disabled>Change password</button>
+                    <button class="dashboard-button dashboard-button-secondary" type="reset">Cancel</button>
+                </div>
+            </form>
+        </section>
+    </div>
+{% endblock %}

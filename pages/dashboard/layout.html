@@ -1,0 +1,204 @@
+{% extends "base.html" %}
+
+{% block body_attributes %}
+    class="dashboard-body"
+{% endblock %}
+
+{% block navbar %}
+{% endblock %}
+
+{% block navbar_scripts %}
+{% endblock %}
+
+{% block underConstruction %}
+{% endblock %}
+
+{% block styles %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
+{% endblock %}
+
+{% block content %}
+    {% set is_admin = admin_workspace|default(false) %}
+    <svg class="dashboard-symbols" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <symbol id="icon-grid" viewBox="0 0 24 24">
+            <rect x="3" y="3" width="7" height="7" rx="1"/>
+            <rect x="14" y="3" width="7" height="7" rx="1"/>
+            <rect x="3" y="14" width="7" height="7" rx="1"/>
+            <rect x="14" y="14" width="7" height="7" rx="1"/>
+        </symbol>
+        <symbol id="icon-folder" viewBox="0 0 24 24">
+            <path d="M3 7a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v10H3z"/>
+        </symbol>
+        <symbol id="icon-list" viewBox="0 0 24 24">
+            <path d="M9 6h12M9 12h12M9 18h12M3 6h1M3 12h1M3 18h1"/>
+        </symbol>
+        <symbol id="icon-bag" viewBox="0 0 24 24">
+            <path d="M4 8h16l-1 13H5L4 8ZM9 9V6a3 3 0 0 1 6 0v3"/>
+        </symbol>
+        <symbol id="icon-user" viewBox="0 0 24 24">
+            <circle cx="12" cy="8" r="4"/>
+            <path d="M4 21a8 8 0 0 1 16 0"/>
+        </symbol>
+        <symbol id="icon-arrow" viewBox="0 0 24 24">
+            <path d="M5 12h14m-6-6 6 6-6 6"/>
+        </symbol>
+        <symbol id="icon-spark" viewBox="0 0 24 24">
+            <path d="m12 2 2.2 7.8L22 12l-7.8 2.2L12 22l-2.2-7.8L2 12l7.8-2.2L12 2Z"/>
+        </symbol>
+        <symbol id="icon-eye" viewBox="0 0 24 24">
+            <path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7Z"/>
+            <circle cx="12" cy="12" r="3"/>
+        </symbol>
+        <symbol id="icon-trash" viewBox="0 0 24 24">
+            <path d="M3 6h18M9 6V3h6v3M6 6l1 15h10l1-15M10 10v7M14 10v7"/>
+        </symbol>
+        <symbol id="icon-menu" viewBox="0 0 24 24">
+            <path d="M4 6h16M4 12h16M4 18h16"/>
+        </symbol>
+        <symbol id="icon-close" viewBox="0 0 24 24">
+            <path d="m6 6 12 12M18 6 6 18"/>
+        </symbol>
+        <symbol id="icon-settings" viewBox="0 0 24 24">
+            <path d="m9 3-1 3-3 1-2 3 2 2-1 4 3 2 3-1 2 4 3-1 1-3 3-1 2-3-2-2 1-4-3-2-3 1-2-4Z"/>
+            <circle cx="12" cy="12" r="3"/>
+        </symbol>
+    </svg>
+    <div class="dashboard-shell">
+        <aside
+            class="dashboard-sidebar"
+            id="dashboard-sidebar"
+            aria-label="{{ 'Admin' if is_admin else 'Dashboard' }} navigation"
+            tabindex="-1"
+        >
+            <div class="dashboard-sidebar-header">
+                <a class="dashboard-sidebar-brand" href="{{ url_for('home') }}" aria-label="BuildBetter home">
+                    <img class="dashboard-brand-logo" src="{{ url_for('static', filename='images/logo.png') }}" alt="">
+                    <span>BUILD BETTER<small>{{ 'ADMINISTRATION' if is_admin else 'DASHBOARD' }}</small></span>
+                </a>
+                <button class="dashboard-sidebar-close dashboard-utility" type="button" aria-label="Close navigation">
+                    <svg class="dashboard-icon" aria-hidden="true">
+                        <use href="#icon-close"/>
+                    </svg>
+                </button>
+            </div>
+            <p class="dashboard-nav-label">{{ 'ADMINISTRATION' if is_admin else 'WORKSPACE' }}</p>
+            <nav class="dashboard-side-nav" aria-label="Dashboard navigation">
+                {% if is_admin %}
+                    <a href="{{ url_for('dashboard.dashboard') }}#overview" data-admin-nav="overview">
+                        <svg class="dashboard-icon" aria-hidden="true">
+                            <use href="#icon-grid"/>
+                        </svg>
+                        Overview
+                    </a>
+                    <a href="{{ url_for('dashboard.dashboard') }}#users" data-admin-nav="users" aria-current="page">
+                        <svg class="dashboard-icon" aria-hidden="true">
+                            <use href="#icon-user"/>
+                        </svg>
+                        Users
+                    </a>
+                {% else %}
+                    <a href="{{ url_for('dashboard.dashboard') }}" {% if request.endpoint == 'dashboard.dashboard' %}aria-current="page"{% endif %}>
+                        <svg class="dashboard-icon">
+                            <use href="#icon-grid"/>
+                        </svg>
+                        Overview
+                    </a>
+                    <a href="{{ url_for('dashboard.projects') }}" {% if request.endpoint in ['dashboard.projects', 'dashboard.project_detail'] %}aria-current="page"{% endif %}>
+                        <svg class="dashboard-icon">
+                            <use href="#icon-folder"/>
+                        </svg>
+                        My Projects
+                    </a>
+                    <a href="{{ url_for('planner.planning_history') }}" {% if request.endpoint == 'planner.planning_history' %}aria-current="page"{% endif %}>
+                        <svg class="dashboard-icon" aria-hidden="true"><use href="#icon-list"/></svg>
+                        Saved Plans
+                    </a>
+                    <a href="{{ url_for('dashboard.material_lists') }}" {% if request.endpoint in ['dashboard.material_lists', 'dashboard.material_list_detail'] %}aria-current="page"{% endif %}>
+                        <svg class="dashboard-icon">
+                            <use href="#icon-list"/>
+                        </svg>
+                        Material Lists
+                    </a>
+                    <a href="{{ url_for('dashboard.orders') }}" {% if request.endpoint in ['dashboard.orders', 'dashboard.order_detail'] %}aria-current="page"{% endif %}>
+                        <svg class="dashboard-icon">
+                            <use href="#icon-bag"/>
+                        </svg>
+                        Orders
+                    </a>
+                    <a href="{{ url_for('dashboard.settings') }}" {% if request.endpoint == 'dashboard.settings' %}aria-current="page"{% endif %}>
+                        <svg class="dashboard-icon" aria-hidden="true">
+                            <use href="#icon-settings"/>
+                        </svg>
+                        Profile &amp; Settings
+                    </a>
+                {% endif %}
+            </nav>
+            <div class="dashboard-sidebar-bottom">
+                <a href="{{ url_for('home') }}"><span aria-hidden="true">&larr;</span>Back to Store</a>
+            </div>
+        </aside>
+        <div class="dashboard-drawer-backdrop" hidden aria-hidden="true">
+        </div>
+        <div class="dashboard-main">
+            {% set dashboard_sections = {
+                'dashboard.dashboard': 'Overview',
+                'dashboard.projects': 'My Projects',
+                'dashboard.project_detail': 'My Projects',
+                'dashboard.material_lists': 'Material Lists',
+                'dashboard.material_list_detail': 'Material Lists',
+                'dashboard.orders': 'Orders',
+                'dashboard.order_detail': 'Orders',
+                'dashboard.settings': 'Settings',
+                'planner.planning_history': 'Saved Plans'
+            } %}
+            <header class="dashboard-topbar">
+                <div class="dashboard-header-context">
+                    <button class="dashboard-menu-toggle dashboard-utility" id="dashboard-menu-toggle" type="button" aria-label="Open navigation" aria-controls="dashboard-sidebar" aria-expanded="false" hidden>
+                        <svg class="dashboard-icon" aria-hidden="true">
+                            <use href="#icon-menu"/>
+                        </svg>
+                    </button>
+                    <div class="dashboard-header-breadcrumb">
+                        <span class="dashboard-header-area">{{ 'Admin' if is_admin else 'Dashboard' }}</span>
+                        <span class="dashboard-topbar-slash" aria-hidden="true">/</span>
+                        <span id="dashboard-header-section">{{ 'Users' if is_admin else dashboard_sections.get(request.endpoint, 'Overview') }}</span>
+                    </div>
+                </div>
+                <div class="dashboard-header-utilities">
+                    <a class="dashboard-utility" href="{{ cart_url|default(url_for('cart'), true) }}" aria-label="Shopping cart">
+                        <svg class="dashboard-icon" aria-hidden="true">
+                            <use href="#icon-bag"/>
+                        </svg>
+                        {% if cart_count|default(None) is not none %}
+                            <span class="dashboard-cart-count">{{ cart_count }}</span>
+                        {% endif %}
+                    </a>
+                    <details class="dashboard-account">
+                        <summary aria-label="Account menu">
+                            <svg class="dashboard-icon" aria-hidden="true">
+                                <use href="#icon-user"/>
+                            </svg>
+                            <span class="dashboard-account-name">{{ session.get('username', 'Account') }}</span>
+                            <span class="dashboard-account-chevron" aria-hidden="true"></span>
+                        </summary>
+                        <div class="dashboard-account-menu">
+                            <p>{{ session.get('username', 'Account') }}</p>
+                            <a href="{{ url_for('dashboard.settings') }}">Profile &amp; Settings</a>
+                            <form method="post" action="{{ url_for('auth.logout') }}">
+                                <button type="submit">Logout</button>
+                            </form>
+                        </div>
+                    </details>
+                </div>
+            </header>
+            <div class="dashboard-page">
+                {% block dashboard_content %}
+                {% endblock %}
+            </div>
+        </div>
+    </div>
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='js/dashboard-navigation.js') }}" defer></script>
+    {% block dashboard_scripts %}
+    {% endblock %}
+{% endblock %}

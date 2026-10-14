@@ -1,0 +1,116 @@
+<dialog
+    class="dashboard-dialog admin-dialog"
+    id="admin-add-dialog"
+    aria-labelledby="admin-add-title"
+    aria-describedby="admin-add-description"
+>
+    <div class="admin-dialog-heading">
+        <h2 id="admin-add-title">Add New User</h2>
+        <button type="button" class="admin-dialog-close" data-close-admin-dialog aria-label="Close Add User">&times;</button>
+    </div>
+    <p id="admin-add-description">Create a new account and assign its access role.</p>
+    <p class="admin-form-server-error" id="admin-add-server-error" role="alert" hidden></p>
+    <form class="admin-account-form" id="admin-add-form" method="post" action="{{ url_for('dashboard.dashboard') }}" novalidate>
+        <div class="admin-form-field">
+            <label for="admin-username">Username</label>
+            <input id="admin-username" name="username" type="text" autocomplete="off" required aria-describedby="admin-username-error">
+            <span class="admin-field-error" id="admin-username-error" aria-live="polite"></span>
+        </div>
+        <div class="admin-form-field">
+            <label for="admin-email">Email address</label>
+            <input id="admin-email" name="email" type="email" autocomplete="off" required aria-describedby="admin-email-error">
+            <span class="admin-field-error" id="admin-email-error" aria-live="polite"></span>
+        </div>
+        <div class="admin-form-field">
+            <label for="admin-password">Password</label>
+            <div class="admin-password-field">
+                <input
+                    id="admin-password"
+                    name="password"
+                    type="password"
+                    autocomplete="new-password"
+                    minlength="3"
+                    required
+                    aria-describedby="admin-password-help admin-password-error"
+                >
+                <button type="button" data-toggle-password="admin-password" aria-controls="admin-password" aria-label="Show password" aria-pressed="false">Show</button>
+            </div>
+            <small id="admin-password-help">At least 3 characters, one number, and one special character. Maximum 72 UTF-8 bytes.</small>
+            <span class="admin-field-error" id="admin-password-error" aria-live="polite"></span>
+        </div>
+        <div class="admin-form-field">
+            <label for="admin-confirm-password">Confirm Password</label>
+            <div class="admin-password-field">
+                <input
+                    id="admin-confirm-password"
+                    name="confirm_password"
+                    type="password"
+                    autocomplete="new-password"
+                    required
+                    aria-describedby="admin-confirm-password-error"
+                >
+                <button type="button" data-toggle-password="admin-confirm-password" aria-controls="admin-confirm-password" aria-label="Show confirm password" aria-pressed="false">Show</button>
+            </div>
+            <span class="admin-field-error" id="admin-confirm-password-error" aria-live="polite"></span>
+        </div>
+        <div class="admin-form-field">
+            <label for="admin-permission">Role</label>
+            <select id="admin-permission" name="permission_level">
+                <option value="user">User</option>
+                <option value="admin">Admin</option>
+            </select>
+        </div>
+        <div class="admin-dialog-actions">
+            <button class="dashboard-button dashboard-button-secondary" type="button" data-close-admin-dialog>Cancel</button>
+            <button class="dashboard-button dashboard-button-primary" type="submit" id="admin-create-user">Create User</button>
+        </div>
+    </form>
+</dialog>
+<dialog class="dashboard-dialog admin-dialog" id="admin-details-dialog" aria-labelledby="admin-details-title">
+    <div class="admin-dialog-heading">
+        <h2 id="admin-details-title">User Details</h2>
+        <button type="button" class="admin-dialog-close" data-close-admin-dialog aria-label="Close User Details">&times;</button>
+    </div>
+    <dl class="dashboard-detail-list admin-details-list">
+        <div>
+            <dt>Username</dt>
+            <dd id="admin-detail-username"></dd>
+        </div>
+        <div>
+            <dt>Email</dt>
+            <dd id="admin-detail-email"></dd>
+        </div>
+        <div>
+            <dt>Role</dt>
+            <dd id="admin-detail-role"></dd>
+        </div>
+        <div>
+            <dt>Joined</dt>
+            <dd id="admin-detail-joined"></dd>
+        </div>
+        <div>
+            <dt>User ID</dt>
+            <dd id="admin-detail-id"></dd>
+        </div>
+    </dl>
+    <div class="admin-dialog-actions">
+        <button type="button" class="dashboard-button dashboard-button-secondary" data-close-admin-dialog>Close</button>
+    </div>
+</dialog>
+<dialog
+    class="dashboard-dialog admin-dialog admin-delete-dialog"
+    id="admin-delete-dialog"
+    aria-labelledby="admin-delete-title"
+    aria-describedby="admin-delete-description"
+>
+    <div class="admin-dialog-heading">
+        <h2 id="admin-delete-title">Delete User?</h2>
+        <button type="button" class="admin-dialog-close" data-close-admin-dialog aria-label="Close Delete User">&times;</button>
+    </div>
+    <p id="admin-delete-description">Are you sure you want to delete <strong id="admin-delete-username"></strong>?</p>
+    <p>This action may permanently remove the account and cannot be undone.</p>
+    <div class="admin-dialog-actions">
+        <button type="button" class="dashboard-button dashboard-button-secondary" data-close-admin-dialog autofocus>Cancel</button>
+        <button type="button" class="dashboard-button dashboard-button-danger" id="admin-confirm-delete">Delete User</button>
+    </div>
+</dialog>
