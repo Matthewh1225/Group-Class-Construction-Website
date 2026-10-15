@@ -2,16 +2,8 @@ const plannerForms = document.querySelectorAll(".planner-container form, .planne
 
 plannerForms.forEach(function (form) {
     form.addEventListener("submit", function (event) {
-        // ?. gives undefined if this form does not have the input
-        const reviewInput = form.querySelector('[name="plannerAction"]');
         const status = form.querySelector(".plan-status");
-
-        if (reviewInput) {
-            status.textContent = "reviewing and updating your materials list...";
-        } else {
-            status.textContent = "Saving your project and starting planning...";
-        }
-
+        status.textContent = "Saving your project and starting planning...";
         status.hidden = false;
     });
 });

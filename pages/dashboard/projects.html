@@ -18,12 +18,4 @@
             {{ project_card(project) }}
         {% endfor %}
     </div>
-    <dialog class="dashboard-dialog" id="delete-project-dialog" aria-labelledby="delete-project-title">
-        <h2 id="delete-project-title">Delete project?</h2>
-        <p><span id="delete-project-name">This project</span> would be permanently deleted.</p>
-        <div class="dashboard-dialog-actions">
-            <button type="button" class="dashboard-button dashboard-button-secondary" data-close-dialog>Cancel</button>
-            <button type="button" class="dashboard-button dashboard-button-danger" disabled>Delete</button>
-        </div>
-    </dialog>
 {% endblock %}

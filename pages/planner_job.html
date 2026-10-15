@@ -136,8 +136,6 @@
                     {% if plan.request %}<h3>Your original request</h3><p>{{ plan.request }}</p>{% endif %}
                     {% if plan.answers %}<h3>Your clarifications</h3><dl>{% for answer in plan.answers %}<dt>{{ answer.question }}</dt><dd>{{ answer.answer }}</dd>{% endfor %}</dl>{% endif %}
                     {% if plan.details %}<h3>Planner's interpretation</h3><ul>{% for detail in plan.details %}<li>{{ detail }}</li>{% endfor %}</ul>{% endif %}
-                    {% if plan.audit_summary %}<h3>Review summary</h3><p>{{ plan.audit_summary }}</p>{% endif %}
-                    {% if plan.findings %}<h3>Review record</h3><ul>{% for finding in plan.findings %}<li>{{ finding.status|default('Open')|capitalize }}: {{ finding.evidence }} {% if finding.status == 'resolved' %}{{ finding.resolution_evidence|default('') }}{% else %}{{ finding.proposed_change|default('') }}{% endif %}</li>{% endfor %}</ul>{% endif %}
                 </div>
             </details>
             <details id="quantity-details">
@@ -159,7 +157,6 @@
                             {% if item.inputs %}<h4>Calculation inputs</h4><ul>{% for input in item.inputs %}<li>{{ input.name|default('Input')|replace('_', ' ')|capitalize }}: {{ input.value|default('Not supplied') }} {{ input.unit|default('') }}{% if input.assumption %} &mdash; Assumption: {{ input.assumption }}{% endif %}</li>{% endfor %}</ul>{% endif %}
                         </article>
                     {% endfor %}
-                    {% if plan.checks %}<h3>Python calculation checks</h3><ul>{% for check in plan.checks %}<li>{{ check.message }}</li>{% endfor %}</ul>{% endif %}
                     <a href="{{ url_for('planner.planning_job_result', job_id=job.id) }}">View original plan data (JSON)</a>
                 </div>
             </details>

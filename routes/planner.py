@@ -16,7 +16,7 @@ def show_planner(popup_message=None, form_data=None):
     if "planner_token" not in session:
         session["planner_token"] = secrets.token_urlsafe(32)
     return render_template(
-        "planner.html", ai_response=None, popup_message=popup_message,
+        "planner.html", popup_message=popup_message,
         project_mode=form_data.get("projectMode"), project_size=form_data.get("projectSize"),
         project_template=form_data.get("projectTemplate"), form_data=form_data,
         project_templates=PROJECT_TEMPLATES, planner_token=session["planner_token"],
@@ -82,11 +82,8 @@ def submit_project_form():
     return redirect(url_for("planner.planning_job", job_id=job["id"]), code=303)
 
 
-@planner_bp.route("/planner", methods=["GET", "POST"])
-@limiter.limit("4 per minute; 30 per hour", methods=["POST"])
+@planner_bp.get("/planner")
 def planner():
-    if request.method == "POST":
-        return submit_project_form()
     return show_planner(form_data=request.args)
 
 

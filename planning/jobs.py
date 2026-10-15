@@ -110,8 +110,6 @@ def pro_access_allowed(owner):
     # Explicit server-side testing access; never read this from a submitted form.
     if os.getenv("PLANNER_PRO_TEST_ACCESS", "").strip().lower() == "true":
         return True
-    # This server-managed list grants access; a form or session flag cannot grant it.
-    # Payment services are stubs, so there is no fabricated automatic subscription.
     allowed = os.getenv("PLANNER_PRO_USER_IDS", "").split(",")
     for user_id in allowed:
         if str(owner) == user_id.strip():

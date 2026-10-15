@@ -17,7 +17,6 @@ STRONG_MODEL_OVERRIDE = "gemini-3.5-flash-lite"
 WORKFLOW_MODEL_KEYS = {
     "gemini_fast": "gemini_weak", "gemini_strong": "gemini_strong",
     "gpt_oss": "groq", "nemotron": "openrouter",
-    "glm_flash": "cloudflare", "gemma": "cloudflare_2",
 }
 
 WORKFLOW_TIERS = {

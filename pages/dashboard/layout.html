@@ -183,7 +183,7 @@
                         </summary>
                         <div class="dashboard-account-menu">
                             <p>{{ session.get('username', 'Account') }}</p>
-                            <a href="{{ url_for('dashboard.settings') }}">Profile &amp; Settings</a>
+                            <a href="{{ url_for('dashboard.settings') }}">Account</a>
                             <form method="post" action="{{ url_for('auth.logout') }}">
                                 <button type="submit">Logout</button>
                             </form>
@@ -197,7 +197,6 @@
             </div>
         </div>
     </div>
-    <script src="{{ url_for('static', filename='js/dashboard.js') }}" defer></script>
     <script src="{{ url_for('static', filename='js/dashboard-navigation.js') }}" defer></script>
     {% block dashboard_scripts %}
     {% endblock %}

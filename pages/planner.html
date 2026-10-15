@@ -35,7 +35,7 @@
         </div>
         <button class="back-button" type="button">Back</button>
     </section>
-    <div id="template-forms" {% if ai_response %}hidden{% endif %}>
+    <div id="template-forms">
         {% for template_id, template in project_templates.items() %}
             {# load the form file saved for each template #}
             {% include template.form %}
@@ -61,7 +61,7 @@
         <button class="back-button" type="button">Back</button>
     </section>
     <!-- Project description -->
-    <div id="planner-form" class="planner-container" {% if ai_response or not project_mode or project_mode == 'template' %}hidden{% endif %} >
+    <div id="planner-form" class="planner-container" {% if not project_mode or project_mode == 'template' %}hidden{% endif %} >
         <h1>Describe Your Project</h1>
         <form method="post" action="{{ url_for('planner.submit_planning_job') }}">
             <input id="project-mode" name="projectMode" type="hidden" value="{{ project_mode or '' }}">
@@ -76,14 +76,6 @@
             >{{ form_data.get('userInput', '') }}</textarea>
             {% include "project_forms/plan_buttons.html" %}
         </form>
-    </div>
-    <div id="planner-result" class="planner-container" {% if not ai_response %}hidden{% endif %}>
-        <textarea
-            class="planner-response"
-            placeholder="AI response will appear here..."
-            readonly
-        >{{ ai_response or "" }}</textarea>
-        <button class="back-button" type="button">Start a new project</button>
     </div>
     {% if popup_message %}
         <script>

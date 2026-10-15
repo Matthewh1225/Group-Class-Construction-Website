@@ -5,10 +5,7 @@ const methodStep = document.getElementById("method-step");
 const templateStep = document.getElementById("template-step");
 const sizeStep = document.getElementById("size-step");
 const plannerStep = document.getElementById("planner-form");
-const plannerResult = document.getElementById("planner-result");
-const resultBox = plannerResult.querySelector("textarea");
 const templateQuestionSteps = document.querySelectorAll(".template-questions");
-const templateForms = document.getElementById("template-forms");
 // ... adds each template step to the same list
 const steps = [methodStep, templateStep, sizeStep, plannerStep, ...templateQuestionSteps];
 const modeInput = document.getElementById("project-mode");
@@ -16,15 +13,11 @@ const sizeInput = document.getElementById("project-size");
 const templateInput = document.getElementById("project-template");
 const descriptionInput = document.getElementById("user-input");
 
-// show just one step and clear the old result when starting again
+// Show just one step at a time.
 function showStep(selectedStep) {
     for (const step of steps) {
         step.hidden = step !== selectedStep;
     }
-
-    plannerResult.hidden = true;
-    resultBox.value = "";
-    templateForms.hidden = false;
 }
 
 document.getElementById("choose-template").addEventListener("click", function () {

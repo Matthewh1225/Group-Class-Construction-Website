@@ -1,2 +1,0 @@
-USE Construction_db;
-    

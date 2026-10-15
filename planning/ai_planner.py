@@ -2,7 +2,6 @@ import json
 import os
 from time import monotonic
 
-from cloudflare import Cloudflare
 from google import genai
 from groq import Groq
 from openrouter import OpenRouter
@@ -25,8 +24,6 @@ def make_gemini_client(key_name):
 
 gemini_client_1 = make_gemini_client("GEMINI_API_KEY")
 gemini_client_2 = make_gemini_client("GEMINI_API_KEY2")
-gemini_client_3 = make_gemini_client("GEMINI_API_KEY3")
-gemini_client_4 = make_gemini_client("GEMINI_API_KEY4")
 
 groq_key = os.getenv("GROQ_API_KEY")
 groq_client = Groq(api_key=groq_key) if groq_key else None
@@ -34,24 +31,10 @@ groq_client = Groq(api_key=groq_key) if groq_key else None
 openrouter_key = os.getenv("OPENROUTER_API_KEY")
 openrouter_client = OpenRouter(api_key=openrouter_key) if openrouter_key else None
 
-cloudflare_key = os.getenv("CLOUDFLARE_API_KEY")
-cloudflare_client = Cloudflare(api_token=cloudflare_key) if cloudflare_key else None
-
-
 AI_MODELS = {
     "gemini_strong": {
         "provider": "gemini",
         "client": gemini_client_1,
-        "model": STRONG_MODEL_OVERRIDE or os.getenv("gemini_model_strong"),
-    },
-    "gemini_strong_2": {
-        "provider": "gemini",
-        "client": gemini_client_3,
-        "model": STRONG_MODEL_OVERRIDE or os.getenv("gemini_model_strong"),
-    },
-    "gemini_strong_3": {
-        "provider": "gemini",
-        "client": gemini_client_4,
         "model": STRONG_MODEL_OVERRIDE or os.getenv("gemini_model_strong"),
     },
     "gemini_weak": {
@@ -68,16 +51,6 @@ AI_MODELS = {
         "provider": "openrouter",
         "client": openrouter_client,
         "model": os.getenv("OPENROUTER_nemotron-3"),
-    },
-    "cloudflare": {
-        "provider": "cloudflare",
-        "client": cloudflare_client,
-        "model": os.getenv("CLOUDFLARE_glm-4.7-flash"),
-    },
-    "cloudflare_2": {
-        "provider": "cloudflare",
-        "client": cloudflare_client,
-        "model": os.getenv("CLOUDFLARE_gemma-4"),
     },
 }
 
@@ -209,37 +182,6 @@ def call_openrouter(model, prompt, thinking_level, system_instruction, response_
     }
 
 
-def call_cloudflare(model, prompt, thinking_level, system_instruction, response_schema):
-    account_id = os.getenv("CLOUDFLARE_ACCOUNT_ID")
-    if not account_id:
-        raise ValueError("CLOUDFLARE_ACCOUNT_ID is not configured.")
-
-    options = {
-        "model_name": model["model"],
-        "account_id": account_id,
-        "messages": make_messages(system_instruction, prompt),
-    }
-    if response_schema is not None:
-        options["response_format"] = {
-            "type": "json_schema",
-            "json_schema": response_schema,
-        }
-
-    response = model["client"].ai.run(**options)
-    output = get_value(response, "response", "")
-    if isinstance(output, (dict, list)):
-        output = json.dumps(output)
-    usage = get_value(response, "usage")
-    return response, {
-        "text": output or "",
-        "status": "completed",
-        "thinking_tokens": None,
-        "input_tokens": get_value(usage, "prompt_tokens"),
-        "output_tokens": get_value(usage, "completion_tokens"),
-        "total_tokens": get_value(usage, "total_tokens"),
-    }
-
-
 def get_ai_response(
     model_name,
     prompt,
@@ -272,10 +214,6 @@ def get_ai_response(
     elif provider == "openrouter":
         response, result = call_openrouter(
             model, prompt, thinking_level, system_instruction, response_schema, output_tokens
-        )
-    elif provider == "cloudflare":
-        response, result = call_cloudflare(
-            model, prompt, thinking_level, system_instruction, response_schema
         )
     else:
         raise ValueError(f"Unsupported AI provider: {provider}")

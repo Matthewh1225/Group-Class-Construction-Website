@@ -6,6 +6,7 @@ __pycache__/
 venv/
 # Environment variables 
 .env
+.env.test
 .vscode/
 instance/
 data/

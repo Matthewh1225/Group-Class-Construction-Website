@@ -38,8 +38,7 @@
     border-radius: 8px;
 }
 
-.planner-input,
-.planner-response {
+.planner-input {
     width: 100%;
     max-width: 700px;
     height: 250px;
@@ -118,24 +117,6 @@ h1 {
 .plan-status {
     margin: 0;
     color: #f7ad40;
-}
-
-.question-answer {
-    height: 90px;
-}
-
-.planner-draft {
-    width: 100%;
-    max-width: 700px;
-    padding: 16px;
-    background-color: #15181d;
-    border: 1px solid #303640;
-    border-radius: 8px;
-}
-
-.planner-draft pre {
-    white-space: pre-wrap;
-    overflow-wrap: anywhere;
 }
 
 .planner-buttons {

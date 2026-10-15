@@ -701,29 +701,7 @@
     border-top: 1px solid var(--dash-line);
 }
 
-.dashboard-action-group {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 7px;
-}
-
-.dashboard-action-group button {
-    padding: 6px 8px;
-    border: 0;
-    border-radius: 6px;
-    background: transparent;
-    color: var(--dash-muted);
-    font: inherit;
-    font-size: 12px;
-    cursor: pointer;
-}
-
-.dashboard-action-group button:hover:not(:disabled) {
-    background: #303846;
-    color: white;
-}
-
-/* Details, tables, and account forms */
+/* Details and tables */
 .dashboard-breadcrumb {
     display: flex;
     flex-wrap: wrap;
@@ -737,13 +715,11 @@
     color: var(--dash-accent);
 }
 
-.dashboard-detail-card,
-.dashboard-form-card {
+.dashboard-detail-card {
     padding: 26px;
 }
 
-.dashboard-detail-card h2,
-.dashboard-form-card h2 {
+.dashboard-detail-card h2 {
     margin-bottom: 18px;
     font-size: 20px;
 }
@@ -811,66 +787,6 @@
     font-size: 19px;
 }
 
-.dashboard-settings-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    align-items: start;
-    gap: 18px;
-}
-
-.dashboard-form {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.dashboard-form h3 {
-    margin: 5px 0;
-    font-size: 16px;
-}
-
-.dashboard-form label {
-    color: #dce2e8;
-    font-size: 13px;
-    font-weight: 650;
-}
-
-.dashboard-form input {
-    width: 100%;
-    min-height: 43px;
-    margin-bottom: 5px;
-    padding: 10px 12px;
-    border: 1px solid #4b5561;
-    border-radius: 8px;
-    background: #11161d;
-    color: white;
-    font: inherit;
-    font-size: 14px;
-}
-
-.dashboard-form input:invalid:not(:placeholder-shown) {
-    border-color: #b46262;
-}
-
-.dashboard-form-message {
-    min-height: 20px;
-    margin: 3px 0 0;
-    color: var(--dash-muted);
-    font-size: 12px;
-}
-
-.dashboard-form-message[data-error] {
-    color: #f3a3a3;
-}
-
-.dashboard-form-actions,
-.dashboard-dialog-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    margin-top: 7px;
-}
-
 /* Confirmation dialogs */
 .dashboard-dialog {
     width: min(100% - 32px, 440px);
@@ -909,10 +825,6 @@
     .dashboard-sidebar-brand {
         padding-inline: 8px;
         font-size: 11px;
-    }
-
-    .dashboard-settings-grid {
-        grid-template-columns: 1fr;
     }
 
 }

@@ -26,12 +26,6 @@
         </dl>
         <div class="dashboard-card-actions">
             <a class="dashboard-text-link" href="{{ url_for('dashboard.project_detail', project_id=project.id) }}">Open project <span aria-hidden="true">→</span></a>
-            {% if not compact %}
-                <span class="dashboard-action-group">
-                    <button type="button" disabled>Edit</button>
-                    <button type="button" class="dashboard-delete-trigger" data-project-name="{{ project.name }}">Delete</button>
-                </span>
-            {% endif %}
         </div>
     </article>
 {% endmacro %}

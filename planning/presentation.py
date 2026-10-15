@@ -143,22 +143,15 @@ def plan_presentation(job):
     project_type = text(project.get("project_type"))
     title = PROJECT_TEMPLATES.get(project_type, {}).get("title", "Your project") + " plan"
     questions = messages(estimate.get("questions"), specification.get("questions"),
-                         [q.get("question") for q in records(specification.get("unknowns"))],
                          [q.get("question") for q in records(job.get("questions"))])
     assumptions = messages(estimate.get("assumptions"), specification.get("assumptions"))
-    warnings = messages(result.get("warnings"), estimate.get("warnings"), specification.get("contradictions"))
+    warnings = messages(result.get("warnings"), estimate.get("warnings"))
     # These exact generated notices are represented by the manual indicator in the table/details.
     manual_notices = {f"{row['name']}: manual estimate; quantity arithmetic is unverified." for row in rows if row["manual"]}
     warnings = [warning for warning in warnings if warning not in manual_notices]
     for row in rows:
         if not row["quantity"]["known"]:
             warnings = messages(warnings, f"{row['name']}: quantity is unknown.")
-    for finding in records(result.get("findings")):
-        if finding.get("status") != "resolved":
-            warnings = messages(warnings, " ".join(messages(finding.get("evidence"), finding.get("proposed_change"))))
-    for check in records(result.get("python_checks")):
-        if check.get("severity") in {"blocking", "correction"}:
-            warnings = messages(warnings, check.get("message"))
     if result.get("review_process_degraded") and not any("fallback" in warning.lower() for warning in warnings):
         warnings = messages(warnings, "The planned reviewer was unavailable; a fallback review was used.")
     warnings = messages(warnings, questions)
@@ -183,6 +176,4 @@ def plan_presentation(job):
             "warnings": warnings, "assumptions": assumptions, "questions": questions,
             "details": messages(specification.get("details")), "independent": independent,
             "has_manual": any(row["manual"] for row in rows),
-            "request": text(project.get("description")), "answers": records(job.get("answers")),
-            "findings": records(result.get("findings")), "checks": records(result.get("python_checks")),
-            "audit_summary": text(mapping(result.get("audit")).get("summary"))}
+            "request": text(project.get("description")), "answers": records(job.get("answers"))}

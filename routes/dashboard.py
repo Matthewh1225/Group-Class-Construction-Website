@@ -143,36 +143,6 @@ def settings():
     )
 
 
-@dashboard_bp.post("/dashboard/projects")
-@dashboard_login_required
-def create_saved_project():
-    return "Project saving is not implemented yet.", 501
-
-
-@dashboard_bp.post("/dashboard/projects/<int:project_id>/edit")
-@dashboard_login_required
-def edit_saved_project(project_id):
-    return "Project editing is not implemented yet.", 501
-
-
-@dashboard_bp.post("/dashboard/projects/<int:project_id>/delete")
-@dashboard_login_required
-def delete_saved_project(project_id):
-    return "Project deletion is not implemented yet.", 501
-
-
-@dashboard_bp.post("/dashboard/settings/profile")
-@dashboard_login_required
-def save_profile():
-    return "Profile changes are not implemented yet.", 501
-
-
-@dashboard_bp.post("/dashboard/settings/password")
-@dashboard_login_required
-def save_password():
-    return "Password changes are not implemented yet.", 501
-
-
 @dashboard_bp.post("/dashboard/users/<int:user_id>/delete")
 def delete_user(user_id):
     #only admins & no self deletes
