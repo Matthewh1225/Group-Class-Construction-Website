@@ -8,6 +8,81 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='products.css') }}">
 {% endblock %}
 
+{% block underConstruction %}{% endblock %}
+
 {% block content %}
-    <h1>Products</h1>
+<section class="catalog" aria-labelledby="catalog-title">
+    <header class="catalog-header">
+        <p class="catalog-eyebrow">BUILD YOUR NEXT PROJECT</p>
+        <h1 id="catalog-title">Products</h1>
+        <p>Browse materials, supplies, and tools for your build.</p>
+    </header>
+    <form class="catalog-search" action="{{ url_for('products.products') }}" method="get" role="search">
+        <label for="product-search">Search products</label>
+        <div class="catalog-search-controls">
+            <input id="product-search" type="search" name="q" value="{{ search }}" maxlength="200" placeholder="Try lumber, screws, or a SKU" disabled aria-describedby="catalog-status">
+            <button type="button" disabled>Search</button>
+            {% if search %}<a href="{{ url_for('products.products') }}">Clear</a>{% endif %}
+        </div>
+    </form>
+    <p id="catalog-status" class="catalog-count">Online shopping is coming soon.</p>
+    {% if catalog_error %}
+        <div class="catalog-notice" role="alert">
+            <h2>Products are temporarily unavailable</h2>
+            <p>We could not load the catalog. Please try again shortly.</p>
+        </div>
+    {% elif products %}
+        <p class="catalog-count">Showing {{ products|length }} product{{ '' if products|length == 1 else 's' }}{% if search %} for “{{ search }}”{% endif %}</p>
+        <div class="catalog-grid">
+            {% for product in products %}
+                <article class="product-card">
+                    <p class="product-category">{{ product.category_name or 'Materials & tools' }}</p>
+                    <h2>{{ product.product_name }}</h2>
+                    <p class="product-manufacturer">{{ product.manufacturer_name or 'Manufacturer not listed' }}</p>
+                    {% if product.specification %}<p class="product-specification">{{ product.specification }}</p>{% endif %}
+                    <dl class="product-details">
+                        <div><dt>SKU</dt><dd>{{ product.sku }}</dd></div>
+                        <div><dt>Sold by</dt><dd>{{ product.unit }}{% if product.pack_quantity > 1 %} · {{ '%g'|format(product.pack_quantity) }} per pack{% endif %}</dd></div>
+                    </dl>
+                    <footer class="product-footer">
+                        {% if product.unit_price is not none %}
+                            <p class="product-price">{% if product.currency == 'USD' %}${% else %}{{ product.currency }} {% endif %}{{ '%.2f'|format(product.unit_price) }} <span>/ {{ product.unit }}</span></p>
+                        {% else %}
+                            <p class="product-price product-price-unknown">Price unavailable</p>
+                        {% endif %}
+                        {% if product.unit_price is none or not product.is_available %}
+                            <span class="product-status">Currently unavailable</span>
+                        {% elif not product.available_quantity or product.available_quantity <= 0 %}
+                            <span class="product-status">Out of stock</span>
+                        {% else %}
+                            <span class="product-status product-status-available">In stock</span>
+                        {% endif %}
+                        {% if product.unit_price is not none and product.is_available and product.available_quantity and product.available_quantity >= product.purchase_increment and product.currency == 'USD' %}
+                            <div class="product-cart-form">
+                                <label for="quantity-{{ product.product_id }}">Quantity ({{ product.unit }})</label>
+                                <input id="quantity-{{ product.product_id }}" name="quantity" type="number" min="{{ product.purchase_increment }}" step="{{ product.purchase_increment }}" max="{{ product.available_quantity }}" value="{{ product.purchase_increment }}" disabled>
+                                <button type="button" disabled aria-describedby="catalog-status">Add to Cart</button>
+                            </div>
+                        {% else %}
+                            <button class="product-cart-unavailable" disabled>Unavailable</button>
+                        {% endif %}
+                    </footer>
+                </article>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="catalog-notice">
+            <h2>No products found</h2>
+            <p>{% if search %}Try another product name or SKU.{% else %}There are no products to display on this page.{% endif %}</p>
+            <a href="{{ url_for('products.products') }}">Browse all products</a>
+        </div>
+    {% endif %}
+    {% if not catalog_error and (page > 1 or has_next) %}
+        <nav class="catalog-pagination" aria-label="Product pages">
+            {% if page > 1 %}<a href="{{ url_for('products.products', q=search, page=page-1) }}">Previous</a>{% endif %}
+            <span>Page {{ page }}</span>
+            {% if has_next %}<a href="{{ url_for('products.products', q=search, page=page+1) }}">Next</a>{% endif %}
+        </nav>
+    {% endif %}
+</section>
 {% endblock %}

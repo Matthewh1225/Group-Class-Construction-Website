@@ -1,66 +1,44 @@
 {% extends "cart/layout.html" %}
-{% from "cart/cart_components.html" import icon, money, product_image, product_name, order_summary %}
-
-{% block title %}
-    Shopping Cart - BuildBetter
-{% endblock %}
-
+{% from "cart/cart_components.html" import money, product_image, product_name, order_summary %}
+{% block title %}Shopping Cart - BuildBetter{% endblock %}
 {% block shopping_content %}
-    <header class="shopping-heading">
-        <div>
-            <p class="shopping-eyebrow">BUILD YOUR NEXT PROJECT</p>
-            <h1>Your Shopping Cart</h1>
-            <p>Review the materials you've selected before checkout.</p>
-        </div>
-        <a class="shopping-link" href="{{ url_for('products.products') }}">{{ icon('back') }} Continue Shopping</a>
-    </header>
-    {% if cart_items %}
-        <div class="shopping-columns">
-            <section class="shopping-panel" aria-labelledby="cart-items-title">
-                <div class="shopping-panel-heading">
-                    <h2 id="cart-items-title">Selected materials</h2>
-                    <span>{{ cart_items|length }} product{{ 's' if cart_items|length != 1 else '' }}</span>
+<header class="shopping-heading">
+    <div><p class="shopping-eyebrow">YOUR MATERIALS</p><h1>Your Shopping Cart</h1><p>Review the materials for your next project.</p></div>
+    <a class="shopping-link" href="{{ url_for('products.products') }}">Continue shopping</a>
+</header>
+{% if cart_items %}
+<div class="shopping-columns">
+    <section class="shopping-panel" aria-label="Cart items">
+        <p class="shopping-notice" id="cart-controls-note">Cart updates will be available when online shopping opens.</p>
+        {% for item in cart_items %}
+        <article class="shopping-cart-row">
+            {{ product_image(item) }}
+            <div class="shopping-cart-product">
+                {{ product_name(item) }}
+                <p>{{ money(item.unit_price_cents) }} / {{ item.unit }}</p>
+                {% if item.error %}<p class="shopping-notice" role="status">{{ item.error }}</p>{% endif %}
+            </div>
+            <div class="shopping-cart-controls">
+                <label for="cart-quantity-{{ item.product_id }}">Quantity</label>
+                <input id="cart-quantity-{{ item.product_id }}" name="quantity" type="number" min="{{ item.purchase_increment }}" step="{{ item.purchase_increment }}" value="{{ item.quantity }}" disabled aria-describedby="cart-controls-note" class="shopping-cart-quantity">
+                <button class="shopping-button shopping-secondary" type="button" disabled aria-describedby="cart-controls-note">Update</button>
+            </div>
+            <div class="shopping-cart-line-total">
+                <strong>{{ money(item.total_cents) }}</strong>
+                <div>
+                    <button class="shopping-remove" type="button" disabled aria-describedby="cart-controls-note" aria-label="Remove {{ item.name }}">Remove</button>
                 </div>
-                <p class="shopping-notice" id="cart-controls-note">Quantity changes and item removal are not connected yet.</p>
-                {% for item in cart_items %}
-                    {% set line_total = none %}
-                    {% if item.unit_price_cents|default(none) is not none %}
-                        {% set line_total = item.unit_price_cents * item.quantity %}
-                    {% endif %}
-                    <article class="shopping-cart-row">
-                        {{ product_image(item) }}
-                        <div class="shopping-cart-product">
-                            {{ product_name(item) }}
-                            {% if item.brand|default(None) %}
-                                <p class="shopping-muted">{{ item.brand }}</p>
-                            {% endif %}
-                            <p>{{ money(item.unit_price_cents|default(None)) }} <span class="shopping-muted">each</span></p>
-                        </div>
-                        <div class="shopping-quantity-group">
-                            <span id="quantity-label-{{ loop.index }}" class="shopping-caption">Quantity</span>
-                            <div class="shopping-quantity" role="group" aria-labelledby="quantity-label-{{ loop.index }}" aria-describedby="cart-controls-note">
-                                <button type="button" disabled aria-label="Decrease quantity for {{ item.name }}">−</button>
-                                <input type="number" min="1" step="1" value="{{ item.quantity }}" disabled aria-label="Quantity for {{ item.name }}">
-                                <button type="button" disabled aria-label="Increase quantity for {{ item.name }}">+</button>
-                            </div>
-                        </div>
-                        <div class="shopping-cart-line-total">
-                            <strong>{{ money(line_total) }}</strong>
-                            <button class="shopping-remove" type="button" disabled aria-label="Remove {{ item.name }}" aria-describedby="cart-controls-note">{{ icon('trash') }} Remove</button>
-                        </div>
-                    </article>
-                {% endfor %}
-            </section>
-            {{ order_summary(cart_items) }}
-        </div>
-    {% else %}
-        <section class="shopping-panel shopping-empty" aria-labelledby="empty-cart-title">
-            <span class="shopping-empty-icon">{{ icon('bag') }}</span>
-            <p class="shopping-eyebrow">ROOM FOR YOUR NEXT PROJECT</p>
-            <h2 id="empty-cart-title">Your cart is empty.</h2>
-            <p>Browse our construction materials to find everything you need for your next project.</p>
-            <a class="shopping-button shopping-primary" href="{{ url_for('products.products') }}">Browse Products {{ icon('arrow') }}</a>
-            <p class="shopping-caption">Cart storage is not connected yet.</p>
-        </section>
-    {% endif %}
+            </div>
+        </article>
+        {% endfor %}
+    </section>
+    {{ order_summary(cart_items) }}
+</div>
+{% else %}
+<section class="shopping-panel shopping-empty">
+    <h2>Your cart is empty</h2>
+    <p>Browse materials and tools for your next project.</p>
+    <a class="shopping-button shopping-primary" href="{{ url_for('products.products') }}">Browse products</a>
+</section>
+{% endif %}
 {% endblock %}

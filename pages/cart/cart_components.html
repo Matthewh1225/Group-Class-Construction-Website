@@ -30,15 +30,16 @@
     {% endif %}
 {%- endmacro %}
 
-{% macro order_summary(items, checkout=False) %}
-    {# The future cart source supplies unit_price_cents (integer or None) and quantity. #}
+{% macro order_summary(items, checkout=False, totals=none) %}
+    {# Future backend supplies rounded line totals and an authoritative quote in cents. #}
+    {% set totals = totals or {} %}
     {# namespace keeps the running total available after the loop. #}
     {% set pricing = namespace(cents=0, complete=True) %}
     {% for item in items %}
-        {% if item.unit_price_cents|default(None) is none %}
+        {% if item.total_cents|default(None) is none or item.error|default(None) %}
             {% set pricing.complete = False %}
         {% else %}
-            {% set pricing.cents = pricing.cents + item.unit_price_cents * item.quantity %}
+            {% set pricing.cents = pricing.cents + item.total_cents %}
         {% endif %}
     {% endfor %}
     {% set subtotal = none %}
@@ -53,7 +54,7 @@
                 {% for item in items %}
                     {% set line_total = none %}
                     {% if item.unit_price_cents|default(none) is not none %}
-                        {% set line_total = item.unit_price_cents * item.quantity %}
+                        {% set line_total = item.total_cents %}
                     {% endif %}
                     <li>
                         {{ product_image(item) }}
@@ -79,26 +80,26 @@
                 </div>
                 <div>
                     <dt>Shipping</dt>
-                    <dd class="shopping-muted">Calculated at checkout</dd>
+                    <dd>{{ money(totals.get('shipping_cents')) }}</dd>
                 </div>
                 <div>
                     <dt>Estimated tax</dt>
-                    <dd class="shopping-muted">Calculated at checkout</dd>
+                    <dd>{{ money(totals.get('tax_cents')) }}</dd>
                 </div>
                 <div class="shopping-total">
-                    <dt>Estimated total</dt>
-                    <dd>{{ money(subtotal) }}</dd>
+                    <dt>Total</dt>
+                    <dd>{{ money(totals.get('total_cents')) }}</dd>
                 </div>
             </dl>
             {% if pricing.complete %}
-                <p class="shopping-caption">Excludes shipping and tax. Your final payable total is not available yet.</p>
+                <p class="shopping-caption">Shipping, tax, and your final total will be confirmed at checkout.</p>
             {% else %}
-                <p class="shopping-caption">One or more product prices are unavailable. A complete estimate cannot be shown.</p>
+                <p class="shopping-caption">Resolve unavailable products or quantities before checkout.</p>
             {% endif %}
         {% endif %}
         {% if checkout %}
-            <button class="shopping-button shopping-primary" type="button" disabled aria-describedby="place-order-note">Place Order {{ icon('lock') }}</button>
-            <p class="shopping-caption" id="place-order-note">Checkout is not yet available. Orders and payments are not connected.</p>
+            <button class="shopping-button shopping-primary" type="button" disabled aria-describedby="place-order-note">Place Order</button>
+            <p class="shopping-caption" id="place-order-note">Online checkout is coming soon. Orders cannot be submitted yet.</p>
         {% elif items %}
             <a class="shopping-button shopping-primary" href="{{ url_for('checkout') }}">Proceed to Checkout {{ icon('arrow') }}</a>
             <a class="shopping-button shopping-secondary" href="{{ url_for('products.products') }}">Continue Shopping</a>

@@ -866,3 +866,7 @@
     }
 
 }
+/* Presentation-only controls until the shopping services are implemented. */
+.shopping-preview-fields { border: 0; padding: 0; margin: 0; min-width: 0; }
+.shopping-cart-quantity { width: 90px; padding: 8px; }
+.shopping-page button:disabled { cursor: not-allowed; opacity: .55; }

@@ -26,3 +26,8 @@ def get_project_material_cost(project_id, user_id):
 def get_material_matched_product(material_id, user_id):
     """Retrieve a catalog product matched to a saved material."""
     pass
+
+
+def record_material_acquisition(user_id, material_item_id, acquisition_data):
+    """Record an owned purchase or return without double counting orders."""
+    pass

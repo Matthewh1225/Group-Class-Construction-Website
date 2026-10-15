@@ -43,27 +43,12 @@ def manufacturers():
     return render_template("manufacturers.html")
 
 
-@app.get("/cart")
-def cart():
-    # No cart storage exists yet; never treat a pass stub as saved cart data.
-    return render_template("cart/cart.html", cart_items=[])
+# Keep the existing endpoint names used by the shopping templates.
+from routes import shopping
 
-
-@app.route("/checkout", methods=["GET", "POST"])
-def checkout():
-    if request.method == "POST":
-        return {"error": "Checkout and payment processing are not connected yet."}, 501
-
-    return render_template(
-        "cart/checkout.html", cart_items=[],
-        contact_email=session.get("email", ""),
-    )
-
-
-@app.get("/order-confirmation")
-def order_confirmation():
-    # URL parameters cannot verify a payment or establish order ownership.
-    return render_template("cart/confirmation.html", verified_order=None)
+app.add_url_rule("/cart", "cart", shopping.cart)
+app.add_url_rule("/checkout", "checkout", shopping.checkout)
+app.add_url_rule("/order-confirmation", "order_confirmation", shopping.order_confirmation)
 
 
 if __name__ == "__main__":

@@ -47,6 +47,9 @@
             </nav>
         {% endblock %}
         <main>
+            {% for category, message in get_flashed_messages(with_categories=True) %}
+                <p class="site-message" role="status">{{ message }}</p>
+            {% endfor %}
             {% block content %}
             {% endblock %}
         </main>

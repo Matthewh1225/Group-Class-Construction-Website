@@ -1,156 +1,41 @@
 {% extends "cart/layout.html" %}
-{% from "cart/cart_components.html" import icon, field, order_summary %}
-
-{% block title %}
-    Checkout - BuildBetter
-{% endblock %}
-
+{% from "cart/cart_components.html" import field, order_summary %}
+{% block title %}Checkout - BuildBetter{% endblock %}
 {% block shopping_content %}
-    <header class="shopping-heading">
-        <div>
-            <p class="shopping-eyebrow">CONTACT &amp; DELIVERY</p>
-            <h1>Checkout</h1>
-            <p>Enter your shipping information and review your order.</p>
-        </div>
-        <a class="shopping-link" href="{{ url_for('cart') }}">{{ icon('back') }} Back to Cart</a>
-    </header>
-    <div class="shopping-columns">
-        <form class="shopping-checkout-form" id="checkout-form" action="{{ url_for('checkout') }}" method="post">
-            <section class="shopping-panel" aria-labelledby="contact-title">
-                <div class="shopping-section-heading">
-                    <span class="shopping-section-number">01</span>
-                    <div>
-                        <h2 id="contact-title">Contact information</h2>
-                        <p>Who will receive these materials?</p>
-                    </div>
-                </div>
-                <div class="shopping-field-grid">
-                    {{ field('first_name', 'First name', 'given-name') }}
-                    {{ field('last_name', 'Last name', 'family-name') }}
-                    {{ field('email', 'Email address', 'email', type='email', value=contact_email|default('', true), maxlength=254) }}
-                    {{ field('phone', 'Phone number', 'tel', type='tel', required=False, maxlength=30) }}
-                </div>
-            </section>
-            <section class="shopping-panel" aria-labelledby="shipping-title">
-                <div class="shopping-section-heading">
-                    <span class="shopping-section-number">02</span>
-                    <div>
-                        <h2 id="shipping-title">Shipping address</h2>
-                        <p>Where should your order be delivered?</p>
-                    </div>
-                </div>
-                <div class="shopping-field-grid">
-                    {{ field('street_address', 'Street address', 'address-line1', wide=True, maxlength=200) }}
-                    {{ field('apartment', 'Apartment / Suite', 'address-line2', required=False, wide=True) }}
-                    {{ field('city', 'City', 'address-level2') }}
-                    <div class="shopping-field">
-                        <label for="state">State</label>
-                        <select id="state" name="state" autocomplete="address-level1" required aria-describedby="state-error">
-                            <option value="">Select a state</option>
-                            <option value="AL">Alabama</option>
-                            <option value="AK">Alaska</option>
-                            <option value="AZ">Arizona</option>
-                            <option value="AR">Arkansas</option>
-                            <option value="CA">California</option>
-                            <option value="CO">Colorado</option>
-                            <option value="CT">Connecticut</option>
-                            <option value="DE">Delaware</option>
-                            <option value="DC">District of Columbia</option>
-                            <option value="FL">Florida</option>
-                            <option value="GA">Georgia</option>
-                            <option value="HI">Hawaii</option>
-                            <option value="ID">Idaho</option>
-                            <option value="IL">Illinois</option>
-                            <option value="IN">Indiana</option>
-                            <option value="IA">Iowa</option>
-                            <option value="KS">Kansas</option>
-                            <option value="KY">Kentucky</option>
-                            <option value="LA">Louisiana</option>
-                            <option value="ME">Maine</option>
-                            <option value="MD">Maryland</option>
-                            <option value="MA">Massachusetts</option>
-                            <option value="MI">Michigan</option>
-                            <option value="MN">Minnesota</option>
-                            <option value="MS">Mississippi</option>
-                            <option value="MO">Missouri</option>
-                            <option value="MT">Montana</option>
-                            <option value="NE">Nebraska</option>
-                            <option value="NV">Nevada</option>
-                            <option value="NH">New Hampshire</option>
-                            <option value="NJ">New Jersey</option>
-                            <option value="NM">New Mexico</option>
-                            <option value="NY">New York</option>
-                            <option value="NC">North Carolina</option>
-                            <option value="ND">North Dakota</option>
-                            <option value="OH">Ohio</option>
-                            <option value="OK">Oklahoma</option>
-                            <option value="OR">Oregon</option>
-                            <option value="PA">Pennsylvania</option>
-                            <option value="RI">Rhode Island</option>
-                            <option value="SC">South Carolina</option>
-                            <option value="SD">South Dakota</option>
-                            <option value="TN">Tennessee</option>
-                            <option value="TX">Texas</option>
-                            <option value="UT">Utah</option>
-                            <option value="VT">Vermont</option>
-                            <option value="VA">Virginia</option>
-                            <option value="WA">Washington</option>
-                            <option value="WV">West Virginia</option>
-                            <option value="WI">Wisconsin</option>
-                            <option value="WY">Wyoming</option>
-                        </select>
-                        <span class="shopping-field-error" id="state-error"></span>
-                    </div>
-                    <div class="shopping-field">
-                        <label for="zip_code">ZIP code</label>
-                        <input
-                            id="zip_code"
-                            name="zip_code"
-                            type="text"
-                            inputmode="numeric"
-                            autocomplete="postal-code"
-                            maxlength="10"
-                            pattern="[0-9]{5}(-[0-9]{4})?"
-                            required
-                            aria-describedby="zip_code-error"
-                        >
-                        <span class="shopping-field-error" id="zip_code-error"></span>
-                    </div>
-                    <div class="shopping-field">
-                        <label for="country">Country</label>
-                        <select id="country" name="country" autocomplete="country" required aria-describedby="country-error">
-                            <option value="US" selected>United States</option>
-                        </select>
-                        <span class="shopping-field-error" id="country-error"></span>
-                    </div>
-                </div>
-            </section>
-            <section class="shopping-panel" aria-labelledby="payment-title">
-                <div class="shopping-section-heading">
-                    <span class="shopping-section-number">03</span>
-                    <div>
-                        <h2 id="payment-title">Payment Method</h2>
-                        <p>Credit or Debit Card</p>
-                    </div>
-                </div>
-                <div class="shopping-payment-placeholder" id="payment-provider-container" aria-describedby="payment-note">
-                    <span class="shopping-payment-icon">{{ icon('card') }}</span>
-                    <strong>Secure payment processing is not connected yet.</strong>
-                    <p id="payment-note">Payment details will be entered through a secure payment provider when checkout is available.</p>
-                </div>
-            </section>
-            <section class="shopping-panel shopping-validation-panel" aria-label="Check contact and shipping information">
-                <div>
-                    <h2>Check your details</h2>
-                    <p>You can check this form before checkout becomes available. No information is submitted or saved.</p>
-                </div>
-                <button class="shopping-button shopping-secondary" type="submit">Check details</button>
-                <p id="checkout-validation-status" class="shopping-validation-status" role="status" aria-live="polite"></p>
-                <noscript>
-                    <p class="shopping-notice">Inline validation requires JavaScript. Submitting this form cannot place an order.</p>
-                </noscript>
-            </section>
-        </form>
-        {{ order_summary(cart_items, checkout=True) }}
+<header class="shopping-heading">
+    <div><p class="shopping-eyebrow">CONTACT &amp; DELIVERY</p><h1>Checkout</h1>
+    <p>Review your contact information, delivery address, and order.</p></div>
+    <a class="shopping-link" href="{{ url_for('cart') }}">Back to cart</a>
+</header>
+{% if error %}<p class="shopping-notice" role="alert">{{ error }}</p>{% endif %}
+<div class="shopping-columns">
+    <div class="shopping-checkout-form" id="checkout-form">
+        <p class="shopping-notice" id="checkout-availability">Online checkout is coming soon. Contact and payment details cannot be submitted yet.</p>
+        <fieldset class="shopping-preview-fields" disabled aria-describedby="checkout-availability">
+        <section class="shopping-panel">
+            <h2>Contact and delivery</h2>
+            <p>Contact details and shipping address</p>
+            <div class="shopping-field-grid">
+                {{ field('first_name', 'First name', 'given-name', value=form_data.get('first_name', ''), maxlength=70) }}
+                {{ field('last_name', 'Last name', 'family-name', value=form_data.get('last_name', ''), maxlength=70) }}
+                {{ field('email', 'Email', 'email', type='email', value=form_data.get('email', ''), maxlength=254) }}
+                {{ field('phone', 'Phone', 'tel', required=False, value=form_data.get('phone', ''), maxlength=30) }}
+                {{ field('street_address', 'Street address', 'address-line1', value=form_data.get('street_address', ''), maxlength=200, wide=True) }}
+                {{ field('apartment', 'Apartment / Suite', 'address-line2', required=False, value=form_data.get('apartment', ''), maxlength=200) }}
+                {{ field('city', 'City', 'address-level2', value=form_data.get('city', ''), maxlength=100) }}
+                {{ field('state', 'State abbreviation (e.g. IL)', 'address-level1', value=form_data.get('state', ''), maxlength=2) }}
+                {{ field('zip_code', 'ZIP code', 'postal-code', value=form_data.get('zip_code', ''), maxlength=10) }}
+                <div class="shopping-field"><label for="country">Country</label><select id="country" name="country"><option value="US">United States</option></select></div>
+            </div>
+        </section>
+        </fieldset>
+        <section class="shopping-panel" aria-labelledby="payment-title">
+            <h2 id="payment-title">Payment method</h2>
+            <div class="shopping-payment-placeholder" id="payment-provider-container">
+                <p>Payment options will be available when checkout opens.</p>
+            </div>
+        </section>
     </div>
+    {{ order_summary(cart_items, checkout=True) }}
+</div>
 {% endblock %}
