@@ -57,7 +57,7 @@
                 <div class="planner-table-scroll">
                     <table class="planner-materials" id="materials-table">
                         <caption class="plan-sr-only">Estimated material quantities, units and specifications</caption>
-                        <thead><tr><th scope="col">Material</th><th scope="col">Estimated quantity</th><th scope="col">Unit</th><th scope="col">Specification</th>{% if plan.has_purchase %}<th scope="col">Purchase quantity</th>{% endif %}</tr></thead>
+                        <thead><tr><th scope="col">Material</th><th scope="col">Estimated quantity</th><th scope="col">Unit</th><th scope="col">Specification</th></tr></thead>
                         <tbody>
                             {% for item in plan.materials %}
                                 <tr data-material-row>
@@ -65,7 +65,6 @@
                                     <td class="plan-quantity" data-label="Estimated quantity">{{ amount(item.quantity) }}</td>
                                     <td class="plan-unit" data-label="Unit">{{ item.quantity.unit or 'Not specified' }}</td>
                                     <td class="plan-material-spec" data-label="Specification">{{ item.specification|truncate(100, true) if item.specification else 'Not specified' }}</td>
-                                    {% if plan.has_purchase %}<td data-label="Purchase quantity">{{ amount(item.purchase) }} {{ item.purchase.unit }}</td>{% endif %}
                                 </tr>
                             {% endfor %}
                         </tbody>
@@ -153,8 +152,6 @@
                                 <div><dt>Original final quantity</dt><dd>{{ item.quantity.original }} {{ item.quantity.unit }}</dd></div>
                                 <div><dt>Waste allowance</dt><dd>{{ amount(item.waste) }}{% if item.waste.known %}%{% endif %}</dd></div>
                                 <div><dt>Rounding</dt><dd>{{ item.rounding }}</dd></div>
-                                {% if item.net.known %}<div><dt>Net need</dt><dd>{{ item.net.original }} {{ item.net.unit }}</dd></div>{% endif %}
-                                {% if item.adjusted.known %}<div><dt>With waste</dt><dd>{{ item.adjusted.original }} {{ item.adjusted.unit }}</dd></div>{% endif %}
                             </dl>
                             {% if item.formula %}<p><strong>Base formula:</strong> {{ item.formula }}. Quantities use compatible units before applying waste and whole-item rounding.</p>{% endif %}
                             {% if item.explanation %}<p>{{ item.explanation }}</p>{% endif %}

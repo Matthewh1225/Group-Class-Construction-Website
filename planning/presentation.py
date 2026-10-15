@@ -60,42 +60,22 @@ def display_quantity(value, unit="", manual=False):
                 "original": str(value) if value is not None else "Not supplied", "known": False}
 
 
-def material_rows(estimate, calculations=None, checked=False):
-    calculations = records(calculations)
-    calculations_by_id = {}
-    has_material_ids = False
-    for entry in calculations:
-        material_id = entry.get("material_id")
-        if material_id:
-            has_material_ids = True
-            try:
-                calculations_by_id.setdefault(material_id, entry)
-            except TypeError:
-                pass  # Malformed older IDs may be lists; match those below.
+CHECKED_METHODS = {"rectangle_area", "wall_area", "coverage", "rectangle_coverage",
+                   "wall_coverage", "perimeter", "count"}
 
+
+def material_rows(estimate):
     rows = []
     for index, item in enumerate(records(mapping(estimate).get("materials"))):
         calculation = mapping(item.get("calculation"))
-        item_id = item.get("id")
-        try:
-            saved = calculations_by_id.get(item_id, {}) if item_id else {}
-        except TypeError:
-            saved = next((entry for entry in calculations if entry.get("material_id") == item_id), {})
-        if not saved and not has_material_ids and index < len(calculations):
-            saved = calculations[index]
-        method = text(calculation.get("method")) or text(saved.get("method"))
-        raw_quantity = saved.get("quantity") if saved else item.get("quantity")
-        manual = method == "manual" or saved.get("status") == "unverified_estimate"
-        quantity = display_quantity(raw_quantity, item.get("unit"), manual)
+        method = text(calculation.get("method"))
+        manual = method == "manual"
+        quantity = display_quantity(item.get("quantity"), item.get("unit"), manual)
         if not quantity["known"]:
             verification = "Quantity not determined"
         elif manual:
             verification = "Manual estimate - not verified"
-        elif saved.get("status") == "invalid":
-            verification = "Calculation needs review"
-        elif saved.get("status") == "verified_arithmetic" or (checked and method in {
-                "rectangle_area", "wall_area", "coverage", "rectangle_coverage",
-                "wall_coverage", "perimeter", "count"}):
+        elif method in CHECKED_METHODS:
             verification = "Arithmetic checked by Python"
         else:
             verification = "Calculation status unavailable"
@@ -105,8 +85,8 @@ def material_rows(estimate, calculations=None, checked=False):
             "purpose": text(item.get("purpose")), "kind": text(item.get("kind")),
             "quantity": quantity, "method": method.replace("_", " ") or "Not provided",
             "verification": verification, "manual": manual,
-            "inputs": records(calculation.get("inputs") or saved.get("inputs")),
-            "explanation": text(calculation.get("explanation")) or text(saved.get("explanation")),
+            "inputs": records(calculation.get("inputs")),
+            "explanation": text(calculation.get("explanation")),
             "formula": {
                 "rectangle_area": "length x width x layers",
                 "wall_area": "(2 x (length + width) x height - openings area) x layers",
@@ -116,10 +96,7 @@ def material_rows(estimate, calculations=None, checked=False):
                 "perimeter": "2 x (length + width)", "count": "count",
             }.get(method, ""),
             "waste": display_quantity(item.get("waste_percent"), "%"),
-            "rounding": "Rounded up to whole items" if item.get("round_up") is True or item.get("rounding") == "whole" else "No whole-item rounding specified",
-            "purchase": display_quantity(item.get("purchase_count", saved.get("purchase_count")), item.get("purchase_unit", "")),
-            "net": display_quantity(saved.get("net_quantity"), item.get("unit")),
-            "adjusted": display_quantity(saved.get("adjusted_quantity"), item.get("unit")),
+            "rounding": "Rounded up to whole items" if item.get("round_up") is True else "No whole-item rounding specified",
             "original": item,
         })
     return rows
@@ -162,7 +139,7 @@ def plan_presentation(job):
     project = mapping(job.get("project") or job.get("original_request"))
     specification = mapping(job.get("specification") or result.get("specification"))
     # Version 2 estimates are saved only after Python validates their calculation methods.
-    rows = material_rows(estimate, result.get("calculations"), result.get("format_version") == 2)
+    rows = material_rows(estimate)
     project_type = text(project.get("project_type"))
     title = PROJECT_TEMPLATES.get(project_type, {}).get("title", "Your project") + " plan"
     questions = messages(estimate.get("questions"), specification.get("questions"),
@@ -176,8 +153,6 @@ def plan_presentation(job):
     for row in rows:
         if not row["quantity"]["known"]:
             warnings = messages(warnings, f"{row['name']}: quantity is unknown.")
-        elif row["verification"] == "Calculation needs review":
-            warnings = messages(warnings, f"{row['name']}: the calculation needs review.")
     for finding in records(result.get("findings")):
         if finding.get("status") != "resolved":
             warnings = messages(warnings, " ".join(messages(finding.get("evidence"), finding.get("proposed_change"))))
@@ -201,13 +176,12 @@ def plan_presentation(job):
         value = mapping(value)
         proposal = mapping(value.get("estimate")) or value
         independent.append({"label": name.replace("_", " ").capitalize(), "estimate": proposal,
-                            "rows": material_rows(proposal, value.get("calculations"), result.get("format_version") == 2)})
+                            "rows": material_rows(proposal)})
     return {"title": title, "description": text(estimate.get("summary")) or text(specification.get("summary")) or text(project.get("description")),
             "status_label": label, "status_tone": tone, "materials": rows,
             "specs": project_specs(project, specification, job.get("answers")),
             "warnings": warnings, "assumptions": assumptions, "questions": questions,
             "details": messages(specification.get("details")), "independent": independent,
-            "has_purchase": any(row["purchase"]["known"] for row in rows),
             "has_manual": any(row["manual"] for row in rows),
             "request": text(project.get("description")), "answers": records(job.get("answers")),
             "findings": records(result.get("findings")), "checks": records(result.get("python_checks")),

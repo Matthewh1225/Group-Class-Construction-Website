@@ -20,7 +20,7 @@ class LeaseLost(ValueError):
 
 
 def database_path():
-    default = Path(__file__).resolve().parents[1] / "instance" / "planner_jobs.sqlite3"
+    default = Path(__file__).resolve().parents[1] / "data" / "planner_jobs.sqlite3"
     return Path(os.getenv("PLANNER_JOB_DATABASE", str(default)))
 
 

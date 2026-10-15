@@ -10,7 +10,7 @@ from pydantic import ValidationError
 
 from . import ai_config
 from .ai_planner import response_metadata, workflow_model, workflow_response
-from .contracts import Estimate, Specification, check_estimate
+from .schemas import Estimate, Specification, check_estimate
 
 
 class StageError(Exception):
