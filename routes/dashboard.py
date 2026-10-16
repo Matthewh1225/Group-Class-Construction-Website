@@ -173,19 +173,6 @@ def project_delete(project_id):
     return redirect(url_for("dashboard.projects"))
 
 
-# Material lists are now part of each project. The old addresses redirect there.
-@dashboard_bp.get("/dashboard/material-lists")
-@dashboard_login_required
-def material_lists():
-    return redirect(url_for("dashboard.projects"))
-
-
-@dashboard_bp.get("/dashboard/projects/<int:project_id>/materials")
-@dashboard_login_required
-def material_list_detail(project_id):
-    return redirect(url_for("dashboard.project_detail", project_id=project_id, _anchor="materials"))
-
-
 @dashboard_bp.get("/dashboard/orders")
 @dashboard_login_required
 def orders():

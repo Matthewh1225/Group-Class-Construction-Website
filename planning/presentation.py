@@ -6,13 +6,12 @@ from .follow_up import unresolved_questions
 from .project_forms import PROJECT_TEMPLATES
 
 
-# Saved plans can come from older versions of the planner, so these small helpers read them safely: a missing or wrong-typed value becomes an empty dict, list or string.
-
+# Plans are rendered while they are still being built, so missing values become
+# an empty dict, list, or string until that stage finishes.
 def mapping(value):
     if isinstance(value, dict):
         return value
     return {}
-
 
 def records(value):
     # only the dictionaries in a list
@@ -199,9 +198,6 @@ STATUS_LABELS = {
 
 def status_label(job):
     status = job.get("status")
-    # plans saved before every tier had a review step
-    if status == "complete" and not mapping(job.get("result")).get("audited"):
-        return "Estimate ready", "ready"
     return STATUS_LABELS.get(status, ("Status unavailable", "neutral"))
 
 
@@ -221,29 +217,11 @@ def review_reason(job, rows, questions):
     return "This saved estimate was marked for review. Check its assumptions and details before using it."
 
 
-def plan_warnings(result, estimate, rows):
-    warnings = project_notices(messages(result.get("warnings"), estimate.get("warnings")))
-    # Older saved plans repeat the table's manual/unknown labels as warnings.
-    # Suppress those exact duplicates while keeping project-specific notices.
-    table_labels = set()
-    for row in rows:
-        if row["manual"]:
-            table_labels.add(f"{row['name']}: manual estimate; quantity arithmetic is unverified.")
-        if not row["quantity"]["known"]:
-            table_labels.add(f"{row['name']}: quantity is unknown.")
-    result = []
-    for warning in warnings:
-        if warning not in table_labels:
-            result.append(warning)
-    return result
-
-
 def plan_presentation(job):
     result = mapping(job.get("result"))
     estimate = mapping(result.get("estimate"))
-    # older jobs saved the request as "original_request"
-    project = mapping(job.get("project") or job.get("original_request"))
-    specification = mapping(job.get("specification") or result.get("specification"))
+    project = mapping(job.get("project"))
+    specification = mapping(job.get("specification"))
     rows = material_rows(estimate)
     project_type = text(project.get("project_type"))
     title = PROJECT_TEMPLATES.get(project_type, {}).get("title", "Your project") + " plan"
@@ -280,6 +258,7 @@ def plan_presentation(job):
             "status_label": label, "status_tone": tone,
             "review_reason": review_reason(job, rows, questions), "materials": rows,
             "specs": project_specs(project, specification, job.get("answers")),
-            "warnings": plan_warnings(result, estimate, rows), "assumptions": assumptions,
+            "warnings": project_notices(messages(result.get("warnings"), estimate.get("warnings"))),
+            "assumptions": assumptions,
             "questions": questions, "details": details,
             "request": text(project.get("description")), "answers": answers}

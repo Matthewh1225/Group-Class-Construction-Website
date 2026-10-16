@@ -32,8 +32,7 @@ def check_logged_in_user():
     except Error:
         # This check runs before every page. Let the requested page render when it
         # fails instead of replacing the entire response with unavailable.html.
-        # Routes that need database data should still catch their own read error
-        # and provide a section-specific fallback.
+
         current_app.logger.exception("Unable to refresh the signed-in account")
         g.database_unavailable = True
         return None

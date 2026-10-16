@@ -1,17 +1,11 @@
 # Subscription UI routes. Payment and subscription services remain stubs.
 
-from flask import Blueprint, redirect, render_template, request, url_for
+from flask import Blueprint, render_template, request
 
 from planning.ai_config import WORKFLOW_TIERS
 from routes.dashboard import dashboard_login_required
 
 subscription_bp = Blueprint("subscription", __name__)
-
-
-@subscription_bp.get("/subscription")
-def legacy_pricing_redirect():
-    return redirect(url_for("planner.planner"), code=302)
-
 
 @subscription_bp.route("/subscription/checkout", methods=["GET", "POST"])
 @dashboard_login_required

@@ -8,8 +8,8 @@ crews_bp = Blueprint("crews", __name__)
 
 @crews_bp.get("/crews")
 def crews():
-    # Project presets live in static/js/crews.js; rates come from services/crews.py.
-    # Quote requests need services.rentals.request_crew, which is still a stub.
+    # Project presets in static/js/crews.js; rates come from services/crews.py.
+    # Quote requests is still a stub.
     # Opened from a saved project (/crews?project_id=5), the page also offers "Save crew to project".
     # get_project only returns the signed-in user's own project.
     project = None

@@ -48,7 +48,7 @@ def connection():
         database.execute("CREATE INDEX IF NOT EXISTS planner_queue ON planner_jobs(status, created)")
     # A project the user saved from one planner job.
     # "plan" is a JSON copy of the job's plan at the time it was saved; "crew" is the chosen crew as JSON, or NULL.
-        # UNIQUE(owner, job_id) means one job can only ever become one project.
+        # (owner, job_id) means one job can only ever become one project.
         database.execute("""CREATE TABLE IF NOT EXISTS saved_projects (
             id INTEGER PRIMARY KEY AUTOINCREMENT, owner TEXT NOT NULL, job_id TEXT NOT NULL,
             name TEXT NOT NULL, plan TEXT NOT NULL, plan_version INTEGER NOT NULL,
