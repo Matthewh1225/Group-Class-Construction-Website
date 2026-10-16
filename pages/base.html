@@ -61,6 +61,11 @@
             </nav>
         {% endblock %}
         <main>
+            {% if g.database_unavailable|default(false) %}
+                <p class="site-message site-message-warning" role="status">
+                    Some account data could not be refreshed. The rest of the page is still available.
+                </p>
+            {% endif %}
             {# pages that show their own messages (the admin page) empty this block #}
             {% block flash_messages %}
                 {% for category, message in get_flashed_messages(with_categories=True) %}

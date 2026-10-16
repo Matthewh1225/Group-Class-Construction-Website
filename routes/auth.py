@@ -1,4 +1,4 @@
-from flask import Blueprint, current_app, redirect, render_template, request, session, url_for
+from flask import Blueprint, current_app, g, redirect, render_template, request, session, url_for
 from mysql.connector import Error, IntegrityError
 
 from utils.database import database_cursor
@@ -22,13 +22,21 @@ def check_logged_in_user():
     if "user_id" not in session or request.endpoint == "static":
         return None
 
-    # (if the database is down, app.py shows the "Service unavailable" page)
-    with database_cursor() as cursor:
-        cursor.execute(
-            "SELECT username, permission_level, status FROM users WHERE id = %s",
-            (session["user_id"],),
-        )
-        user = cursor.fetchone()
+    try:
+        with database_cursor() as cursor:
+            cursor.execute(
+                "SELECT username, permission_level, status FROM users WHERE id = %s",
+                (session["user_id"],),
+            )
+            user = cursor.fetchone()
+    except Error:
+        # This check runs before every page. Let the requested page render when it
+        # fails instead of replacing the entire response with unavailable.html.
+        # Routes that need database data should still catch their own read error
+        # and provide a section-specific fallback.
+        current_app.logger.exception("Unable to refresh the signed-in account")
+        g.database_unavailable = True
+        return None
 
     if user is None or user["status"] == "disabled":
         session.clear()
