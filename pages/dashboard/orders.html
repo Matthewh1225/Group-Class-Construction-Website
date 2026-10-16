@@ -1,4 +1,5 @@
 {% extends "dashboard/layout.html" %}
+{% from "dashboard/empty_state.html" import empty_state %}
 
 {% block title %}
     Order History - BuildBetter
@@ -7,8 +8,8 @@
 {% block dashboard_content %}
     <div class="dashboard-page-heading">
         <div>
-            <p class="dashboard-eyebrow">WORKSPACE / ORDERS</p>
-            <h1>Order History</h1>
+            <p class="sheet-tag"><span>D-05</span>Orders</p>
+            <h1>Order history</h1>
         </div>
     </div>
     {% if orders %}
@@ -28,7 +29,7 @@
                         <tr>
                             <td>{{ order.number }}</td>
                             <td>{{ order.placed_at or '—' }}</td>
-                            <td>{{ order.total or '—' }}</td>
+                            <td>{{ order.total if order.total is defined and order.total is not none and order.total != '' else '—' }}</td>
                             <td><span class="dashboard-tag">{{ order.status or '—' }}</span></td>
                             <td><a href="{{ url_for('dashboard.order_detail', order_id=order.id) }}">View Details</a></td>
                         </tr>
@@ -36,5 +37,9 @@
                 </tbody>
             </table>
         </div>
+    {% else %}
+        {% call empty_state('No orders yet', 'When you check out, your orders and their status will be listed here.') %}
+            <a class="dashboard-button dashboard-button-secondary" href="{{ url_for('products.products') }}">Browse materials</a>
+        {% endcall %}
     {% endif %}
 {% endblock %}

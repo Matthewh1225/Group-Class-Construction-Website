@@ -76,3 +76,12 @@
         setDrawerOpen(false, false);
     });
 })();
+
+// Show each saved timestamp (seconds) as a short local date, like "Oct 14, 2026".
+// Used by the project list, Project Details and Planning history.
+document.querySelectorAll("time[data-timestamp]").forEach(function (time) {
+    const date = new Date(Number(time.dataset.timestamp) * 1000);
+    if (isNaN(date)) return;
+    time.dateTime = date.toISOString();
+    time.textContent = date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+});

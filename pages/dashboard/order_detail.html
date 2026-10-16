@@ -14,9 +14,8 @@
     </nav>
     <div class="dashboard-page-heading">
         <div>
-            <p class="dashboard-eyebrow">ORDER DETAILS</p>
+            <p class="dashboard-eyebrow">Order Details</p>
             <h1>{{ 'Order ' ~ order.number if order else 'Order details' }}</h1>
-            <p>Products, shipping information, and totals for this order.</p>
         </div>
     </div>
     {% if order %}
@@ -32,11 +31,11 @@
                 </div>
                 <div>
                     <dt>Order total</dt>
-                    <dd>{{ order.total or '—' }}</dd>
+                    <dd>{{ order.total if order.total is defined and order.total is not none and order.total != '' else '—' }}</dd>
                 </div>
                 <div>
                     <dt>Shipping</dt>
-                    <dd>{{ order.shipping or '—' }}</dd>
+                    <dd>{{ order.shipping if order.shipping is defined and order.shipping is not none and order.shipping != '' else '—' }}</dd>
                 </div>
             </dl>
             <div class="dashboard-table-wrap">
@@ -54,8 +53,8 @@
                             <tr>
                                 <td>{{ item.name }}</td>
                                 <td>{{ item.quantity }}</td>
-                                <td>{{ item.unit_price or '—' }}</td>
-                                <td>{{ item.total or '—' }}</td>
+                                <td>{{ item.unit_price if item.unit_price is defined and item.unit_price is not none and item.unit_price != '' else '—' }}</td>
+                                <td>{{ item.total if item.total is defined and item.total is not none and item.total != '' else '—' }}</td>
                             </tr>
                         {% else %}
                             <tr>

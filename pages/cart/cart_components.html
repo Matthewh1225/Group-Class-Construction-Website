@@ -5,7 +5,6 @@
 {%- endmacro %}
 
 {% macro money(cents) -%}
-    {# Convert integer cents to dollars only for display. #}
     {% if cents is not none %}
         ${{ '{:,.2f}'.format(cents / 100) }}
     {% else %}
@@ -31,38 +30,20 @@
 {%- endmacro %}
 
 {% macro order_summary(items, checkout=False, totals=none) %}
-    {# Future backend supplies rounded line totals and an authoritative quote in cents. #}
     {% set totals = totals or {} %}
-    {# namespace keeps the running total available after the loop. #}
-    {% set pricing = namespace(cents=0, complete=True) %}
-    {% for item in items %}
-        {% if item.total_cents|default(None) is none or item.error|default(None) %}
-            {% set pricing.complete = False %}
-        {% else %}
-            {% set pricing.cents = pricing.cents + item.total_cents %}
-        {% endif %}
-    {% endfor %}
-    {% set subtotal = none %}
-    {% if pricing.complete %}
-        {% set subtotal = pricing.cents %}
-    {% endif %}
     <aside class="shopping-panel shopping-summary" aria-labelledby="order-summary-title">
         <p class="shopping-eyebrow">YOUR MATERIALS</p>
         <h2 id="order-summary-title">Order summary</h2>
         {% if checkout %}
             <ul class="shopping-summary-products">
                 {% for item in items %}
-                    {% set line_total = none %}
-                    {% if item.unit_price_cents|default(none) is not none %}
-                        {% set line_total = item.total_cents %}
-                    {% endif %}
                     <li>
                         {{ product_image(item) }}
                         <div>
                             {{ product_name(item) }}
                             <small>Qty {{ item.quantity }}</small>
                         </div>
-                        <strong>{{ money(line_total) }}</strong>
+                        <strong>{{ money(item.total_cents) }}</strong>
                     </li>
                 {% else %}
                     <li class="shopping-summary-empty">
@@ -76,7 +57,7 @@
             <dl class="shopping-totals">
                 <div>
                     <dt>Subtotal</dt>
-                    <dd>{{ money(subtotal) }}</dd>
+                    <dd>{{ money(totals.get('subtotal_cents')) }}</dd>
                 </div>
                 <div>
                     <dt>Shipping</dt>
@@ -91,15 +72,16 @@
                     <dd>{{ money(totals.get('total_cents')) }}</dd>
                 </div>
             </dl>
-            {% if pricing.complete %}
+            {% if totals.get('subtotal_cents') is not none %}
                 <p class="shopping-caption">Shipping, tax, and your final total will be confirmed at checkout.</p>
             {% else %}
                 <p class="shopping-caption">Resolve unavailable products or quantities before checkout.</p>
             {% endif %}
         {% endif %}
         {% if checkout %}
-            <button class="shopping-button shopping-primary" type="button" disabled aria-describedby="place-order-note">Place Order</button>
-            <p class="shopping-caption" id="place-order-note">Online checkout is coming soon. Orders cannot be submitted yet.</p>
+            {# form="checkout-form" connects this button to the form in checkout.html #}
+            <button class="shopping-button shopping-primary" type="submit" form="checkout-form" id="place-order" {% if not totals %}disabled{% endif %} aria-describedby="place-order-note">Place Order</button>
+            <p class="shopping-caption" id="place-order-note">{% if totals %}This is a test purchase. No card is charged.{% else %}Add available items to your cart to place an order.{% endif %}</p>
         {% elif items %}
             <a class="shopping-button shopping-primary" href="{{ url_for('checkout') }}">Proceed to Checkout {{ icon('arrow') }}</a>
             <a class="shopping-button shopping-secondary" href="{{ url_for('products.products') }}">Continue Shopping</a>

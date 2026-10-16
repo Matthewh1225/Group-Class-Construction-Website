@@ -3,18 +3,16 @@
 {% block title %}Checkout - BuildBetter{% endblock %}
 {% block shopping_content %}
 <header class="shopping-heading">
-    <div><p class="shopping-eyebrow">CONTACT &amp; DELIVERY</p><h1>Checkout</h1>
-    <p>Review your contact information, delivery address, and order.</p></div>
-    <a class="shopping-link" href="{{ url_for('cart') }}">Back to cart</a>
+    <div><p class="sheet-tag"><span>C-03</span>Contact &amp; delivery</p><h1>Checkout</h1></div>
+    <a class="shopping-link" href="{{ url_for('cart') }}"><span aria-hidden="true">&larr;</span> Back to cart</a>
 </header>
 {% if error %}<p class="shopping-notice" role="alert">{{ error }}</p>{% endif %}
 <div class="shopping-columns">
-    <div class="shopping-checkout-form" id="checkout-form">
-        <p class="shopping-notice" id="checkout-availability">Online checkout is coming soon. Contact and payment details cannot be submitted yet.</p>
-        <fieldset class="shopping-preview-fields" disabled aria-describedby="checkout-availability">
+    <form class="shopping-checkout-form" id="checkout-form" method="post" action="{{ url_for('checkout') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="checkout_key" value="{{ checkout_key }}">
         <section class="shopping-panel">
             <h2>Contact and delivery</h2>
-            <p>Contact details and shipping address</p>
             <div class="shopping-field-grid">
                 {{ field('first_name', 'First name', 'given-name', value=form_data.get('first_name', ''), maxlength=70) }}
                 {{ field('last_name', 'Last name', 'family-name', value=form_data.get('last_name', ''), maxlength=70) }}
@@ -28,14 +26,13 @@
                 <div class="shopping-field"><label for="country">Country</label><select id="country" name="country"><option value="US">United States</option></select></div>
             </div>
         </section>
-        </fieldset>
         <section class="shopping-panel" aria-labelledby="payment-title">
             <h2 id="payment-title">Payment method</h2>
             <div class="shopping-payment-placeholder" id="payment-provider-container">
-                <p>Payment options will be available when checkout opens.</p>
+                <p><strong>Test payment.</strong> No card number is needed and nothing is charged. Placing the order saves a fake payment so you can test the rest of the site.</p>
             </div>
         </section>
-    </div>
-    {{ order_summary(cart_items, checkout=True) }}
+    </form>
+    {{ order_summary(cart_items, checkout=True, totals=totals) }}
 </div>
 {% endblock %}

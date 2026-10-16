@@ -19,6 +19,7 @@
 
 {% block content %}
     {% set is_admin = admin_workspace|default(false) %}
+    {% set admin_nav = is_admin or session.get('permission_level') == 'admin' %}
     <svg class="dashboard-symbols" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
         <symbol id="icon-grid" viewBox="0 0 24 24">
             <rect x="3" y="3" width="7" height="7" rx="1"/>
@@ -38,6 +39,9 @@
         <symbol id="icon-user" viewBox="0 0 24 24">
             <circle cx="12" cy="8" r="4"/>
             <path d="M4 21a8 8 0 0 1 16 0"/>
+        </symbol>
+        <symbol id="icon-plan" viewBox="0 0 24 24">
+            <path d="M4 3h16v18H4zM4 16h16M12 16v5M8 7h8M8 11h5"/>
         </symbol>
         <symbol id="icon-arrow" viewBox="0 0 24 24">
             <path d="M5 12h14m-6-6 6 6-6 6"/>
@@ -67,13 +71,13 @@
         <aside
             class="dashboard-sidebar"
             id="dashboard-sidebar"
-            aria-label="{{ 'Admin' if is_admin else 'Dashboard' }} navigation"
+            aria-label="{{ 'Admin' if admin_nav else 'Dashboard' }} navigation"
             tabindex="-1"
         >
             <div class="dashboard-sidebar-header">
                 <a class="dashboard-sidebar-brand" href="{{ url_for('home') }}" aria-label="BuildBetter home">
                     <img class="dashboard-brand-logo" src="{{ url_for('static', filename='images/logo.png') }}" alt="">
-                    <span>BUILD BETTER<small>{{ 'ADMINISTRATION' if is_admin else 'DASHBOARD' }}</small></span>
+                    <span>BUILD BETTER<small>{{ 'ADMINISTRATION' if admin_nav else 'DASHBOARD' }}</small></span>
                 </a>
                 <button class="dashboard-sidebar-close dashboard-utility" type="button" aria-label="Close navigation">
                     <svg class="dashboard-icon" aria-hidden="true">
@@ -81,16 +85,16 @@
                     </svg>
                 </button>
             </div>
-            <p class="dashboard-nav-label">{{ 'ADMINISTRATION' if is_admin else 'WORKSPACE' }}</p>
+            <p class="dashboard-nav-label">{{ 'ADMINISTRATION' if admin_nav else 'WORKSPACE' }}</p>
             <nav class="dashboard-side-nav" aria-label="Dashboard navigation">
-                {% if is_admin %}
+                {% if admin_nav %}
                     <a href="{{ url_for('dashboard.dashboard') }}#overview" data-admin-nav="overview">
                         <svg class="dashboard-icon" aria-hidden="true">
                             <use href="#icon-grid"/>
                         </svg>
                         Overview
                     </a>
-                    <a href="{{ url_for('dashboard.dashboard') }}#users" data-admin-nav="users" aria-current="page">
+                    <a href="{{ url_for('dashboard.dashboard') }}#users" data-admin-nav="users" {% if is_admin %}aria-current="page"{% endif %}>
                         <svg class="dashboard-icon" aria-hidden="true">
                             <use href="#icon-user"/>
                         </svg>
@@ -98,33 +102,37 @@
                     </a>
                 {% else %}
                     <a href="{{ url_for('dashboard.dashboard') }}" {% if request.endpoint == 'dashboard.dashboard' %}aria-current="page"{% endif %}>
-                        <svg class="dashboard-icon">
+                        <svg class="dashboard-icon" aria-hidden="true">
                             <use href="#icon-grid"/>
                         </svg>
                         Overview
                     </a>
-                    <a href="{{ url_for('dashboard.projects') }}" {% if request.endpoint in ['dashboard.projects', 'dashboard.project_detail'] %}aria-current="page"{% endif %}>
-                        <svg class="dashboard-icon">
-                            <use href="#icon-folder"/>
-                        </svg>
-                        My Projects
-                    </a>
-                    <a href="{{ url_for('planner.planning_history') }}" {% if request.endpoint == 'planner.planning_history' %}aria-current="page"{% endif %}>
-                        <svg class="dashboard-icon" aria-hidden="true"><use href="#icon-list"/></svg>
-                        Saved Plans
-                    </a>
-                    <a href="{{ url_for('dashboard.material_lists') }}" {% if request.endpoint in ['dashboard.material_lists', 'dashboard.material_list_detail'] %}aria-current="page"{% endif %}>
-                        <svg class="dashboard-icon">
-                            <use href="#icon-list"/>
-                        </svg>
-                        Material Lists
-                    </a>
-                    <a href="{{ url_for('dashboard.orders') }}" {% if request.endpoint in ['dashboard.orders', 'dashboard.order_detail'] %}aria-current="page"{% endif %}>
-                        <svg class="dashboard-icon">
-                            <use href="#icon-bag"/>
-                        </svg>
-                        Orders
-                    </a>
+                {% endif %}
+                <a href="{{ url_for('dashboard.projects') }}" {% if request.endpoint in ['dashboard.projects', 'dashboard.project_detail'] %}aria-current="page"{% endif %}>
+                    <svg class="dashboard-icon" aria-hidden="true">
+                        <use href="#icon-folder"/>
+                    </svg>
+                    My Projects
+                </a>
+                <a href="{{ url_for('planner.planning_history') }}" {% if request.endpoint == 'planner.planning_history' %}aria-current="page"{% endif %}>
+                    <svg class="dashboard-icon" aria-hidden="true">
+                        <use href="#icon-plan"/>
+                    </svg>
+                    Planning History
+                </a>
+                <a href="{{ url_for('dashboard.orders') }}" {% if request.endpoint in ['dashboard.orders', 'dashboard.order_detail'] %}aria-current="page"{% endif %}>
+                    <svg class="dashboard-icon" aria-hidden="true">
+                        <use href="#icon-bag"/>
+                    </svg>
+                    Orders
+                </a>
+                <a href="{{ url_for('subscription.manage') }}" {% if request.endpoint == 'subscription.manage' %}aria-current="page"{% endif %}>
+                    <svg class="dashboard-icon" aria-hidden="true">
+                        <use href="#icon-spark"/>
+                    </svg>
+                    Subscription
+                </a>
+                {% if not admin_nav %}
                     <a href="{{ url_for('dashboard.settings') }}" {% if request.endpoint == 'dashboard.settings' %}aria-current="page"{% endif %}>
                         <svg class="dashboard-icon" aria-hidden="true">
                             <use href="#icon-settings"/>
@@ -144,12 +152,11 @@
                 'dashboard.dashboard': 'Overview',
                 'dashboard.projects': 'My Projects',
                 'dashboard.project_detail': 'My Projects',
-                'dashboard.material_lists': 'Material Lists',
-                'dashboard.material_list_detail': 'Material Lists',
                 'dashboard.orders': 'Orders',
                 'dashboard.order_detail': 'Orders',
                 'dashboard.settings': 'Settings',
-                'planner.planning_history': 'Saved Plans'
+                'subscription.manage': 'Subscription',
+                'planner.planning_history': 'Planning History'
             } %}
             <header class="dashboard-topbar">
                 <div class="dashboard-header-context">
@@ -165,6 +172,15 @@
                     </div>
                 </div>
                 <div class="dashboard-header-utilities">
+                    <button class="dashboard-utility theme-toggle" type="button" aria-label="Switch to light mode" title="Switch to light mode">
+                        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <g class="theme-sun" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+                                <circle cx="12" cy="12" r="4"/>
+                                <path d="M12 2v2m0 16v2M2 12h2m16 0h2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M19.1 4.9l-1.4 1.4M6.3 17.7l-1.4 1.4"/>
+                            </g>
+                            <path class="theme-moon" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M20 15.5A8.5 8.5 0 0 1 8.5 4 8.5 8.5 0 1 0 20 15.5Z"/>
+                        </svg>
+                    </button>
                     <a class="dashboard-utility" href="{{ cart_url|default(url_for('cart'), true) }}" aria-label="Shopping cart">
                         <svg class="dashboard-icon" aria-hidden="true">
                             <use href="#icon-bag"/>
@@ -185,6 +201,7 @@
                             <p>{{ session.get('username', 'Account') }}</p>
                             <a href="{{ url_for('dashboard.settings') }}">Account</a>
                             <form method="post" action="{{ url_for('auth.logout') }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <button type="submit">Logout</button>
                             </form>
                         </div>

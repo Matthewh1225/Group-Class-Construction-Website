@@ -1,17 +1,24 @@
-<div class="plan-actions">
-    <input type="hidden" name="plannerToken" value="{{ planner_token }}">
-    <input type="hidden" name="submissionKey" value="{{ submission_key }}">
-    <button type="submit" name="planType" value="fast">
-        <strong>Fast</strong>
-        <span>Estimate materials with a separate review</span>
-    </button>
-    <button type="submit" name="planType" value="standard" {% if not workflow_tiers.standard.enabled %}disabled title="Awaiting live provider verification"{% endif %}>
-        <strong>Standard</strong>
-        <span>Stronger planning and independent review</span>
-    </button>
-    <button type="submit" name="planType" value="pro" {% if not workflow_tiers.pro.enabled %}disabled title="Awaiting successful Pro provider verification"{% endif %}>
-        <strong>Pro Deep Quantum Ultra Max</strong>
-        <span>Two estimates with reconciliation</span>
-    </button>
-</div>
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<input type="hidden" name="submissionKey" value="{{ submission_key }}">
+<fieldset class="planner-tiers">
+    <legend>AI planning mode</legend>
+    <div class="planner-tier-options">
+        {% for tier_id, tier in workflow_tiers.items() %}
+            <label class="planner-tier">
+                <input type="radio" name="planType" value="{{ tier_id }}" {% if form_data.get('planType', 'fast') == tier_id %}checked{% endif %} {% if tier_id == 'pro' and not pro_allowed %}disabled{% endif %} required>
+                <span class="tier-content">
+                    <strong>{{ tier.label }}</strong>
+                    {% if tier_id == 'fast' %}
+                        <span>Quick estimate + review</span>
+                    {% elif tier_id == 'standard' %}
+                        <span>Detailed estimate + review</span>
+                    {% endif %}
+                    {% if tier_id == 'pro' and not pro_allowed %}<small>Needs {{ tier.label }} access</small>{% endif %}
+                </span>
+            </label>
+        {% endfor %}
+    </div>
+    {% if not pro_allowed %}<p class="planner-access-note"><a href="{{ url_for('subscription.checkout') }}">About {{ workflow_tiers.pro.label }}</a></p>{% endif %}
+</fieldset>
+<button class="planner-generate" type="submit">Generate estimate <span aria-hidden="true">&rarr;</span></button>
 <p class="plan-status" role="status" aria-live="polite" hidden></p>

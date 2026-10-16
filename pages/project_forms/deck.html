@@ -1,67 +1,62 @@
 <section
     id="deck-questions-step"
     class="planner-step template-questions"
-    {% if project_template != "deck" %}hidden{% endif %}
+    {% if project_mode != "template" or project_template != "deck" %}hidden{% endif %}
 >
-    <h1>Backyard Deck Details</h1>
+    <button class="template-back step-back" type="button">&larr; All templates</button>
+    <h2 tabindex="-1">Outdoor deck details</h2>
     <form method="post" action="{{ url_for('planner.submit_planning_job') }}">
         <input type="hidden" name="projectMode" value="template">
         <input type="hidden" name="projectTemplate" value="{{ template_id }}">
-        <label for="deck-length">Length in feet</label>
-        <input id="deck-length" name="lengthFt" type="number" min="1" step="1" value="{{ form_data.get('lengthFt', '') }}" required>
-        <label for="deck-width">Width in feet</label>
-        <input id="deck-width" name="widthFt" type="number" min="1" step="1" value="{{ form_data.get('widthFt', '') }}" required>
-        <label for="deck-height">Height above ground in feet</label>
-        <input id="deck-height" name="heightFt" type="number" min="0" step="1" value="{{ form_data.get('heightFt', '') }}" required>
-        <fieldset>
-            <legend>
-                Decking material
-            </legend>
-            <label>
-                <input
-                    type="radio"
-                    name="decking"
-                    value="pressure-treated wood"
-                    {% if form_data.get('decking') == 'pressure-treated wood' %}checked{% endif %}
-                    required
-                >
-                Pressure-treated wood
-            </label>
-            <label>
-                <input type="radio" name="decking" value="cedar" {% if form_data.get('decking') == 'cedar' %}checked{% endif %}>
-                Cedar
-            </label>
+        <fieldset class="field-group">
+            <legend>Dimensions</legend>
+            <div class="field-row">
+                <div class="form-field">
+                    <label for="deck-length">Length <span class="sr-only">in feet</span></label>
+                    <div class="unit-input">
+                        <input id="deck-length" name="lengthFt" type="number" inputmode="numeric" min="1" step="1" value="{{ form_data.get('lengthFt', '') }}" required>
+                        <span aria-hidden="true">ft</span>
+                    </div>
+                </div>
+                <div class="form-field">
+                    <label for="deck-width">Width <span class="sr-only">in feet</span></label>
+                    <div class="unit-input">
+                        <input id="deck-width" name="widthFt" type="number" inputmode="numeric" min="1" step="1" value="{{ form_data.get('widthFt', '') }}" required>
+                        <span aria-hidden="true">ft</span>
+                    </div>
+                </div>
+                <div class="form-field">
+                    <label for="deck-height">Height above ground <span class="sr-only">in feet</span></label>
+                    <div class="unit-input">
+                        <input id="deck-height" name="heightFt" type="number" inputmode="numeric" min="0" step="1" value="{{ form_data.get('heightFt', '') }}" required>
+                        <span aria-hidden="true">ft</span>
+                    </div>
+                </div>
+            </div>
         </fieldset>
-        <fieldset>
-            <legend>
-                Railing
-            </legend>
-            <label>
-                <input type="radio" name="railing" value="yes" {% if form_data.get('railing') == 'yes' %}checked{% endif %} required>
-                Yes
-            </label>
-            <label>
-                <input type="radio" name="railing" value="no" {% if form_data.get('railing') == 'no' %}checked{% endif %}>
-                No
-            </label>
-        </fieldset>
-        <fieldset>
-            <legend>
-                Stairs
-            </legend>
-            <label>
-                <input type="radio" name="stairs" value="yes" {% if form_data.get('stairs') == 'yes' %}checked{% endif %} required>
-                Yes
-            </label>
-            <label>
-                <input type="radio" name="stairs" value="no" {% if form_data.get('stairs') == 'no' %}checked{% endif %}>
-                No
-            </label>
-        </fieldset>
-        <label for="deck-description">Additional description</label>
-        <textarea id="deck-description" class="planner-input" name="userInput"
-                  placeholder="Describe the location or special requirements...">{{ form_data.get('userInput', '') }}</textarea>
+        <div class="choice-grid">
+            <fieldset class="choice-group">
+                <legend>Decking material</legend>
+                <div class="choice-buttons">
+                    <label><input type="radio" name="decking" value="pressure-treated wood" {% if form_data.get('decking') == 'pressure-treated wood' %}checked{% endif %} required><span>Pressure-treated</span></label>
+                    <label><input type="radio" name="decking" value="cedar" {% if form_data.get('decking') == 'cedar' %}checked{% endif %}><span>Cedar</span></label>
+                </div>
+            </fieldset>
+            {% for name, question in [('railing', 'Railing'), ('stairs', 'Stairs')] %}
+                <fieldset class="choice-group">
+                    <legend>{{ question }}</legend>
+                    <div class="choice-buttons">
+                        <label><input type="radio" name="{{ name }}" value="yes" {% if form_data.get(name) == 'yes' %}checked{% endif %} required><span>Yes</span></label>
+                        <label><input type="radio" name="{{ name }}" value="no" {% if form_data.get(name) == 'no' %}checked{% endif %}><span>No</span></label>
+                    </div>
+                </fieldset>
+            {% endfor %}
+        </div>
+        <div class="form-field">
+            <label for="deck-description">Additional description <span class="optional">(optional)</span></label>
+            <textarea id="deck-description" class="planner-input" name="userInput"
+                      placeholder="Describe the location or special requirements...">{{ form_data.get('userInput', '') }}</textarea>
+        </div>
         {% include "project_forms/plan_buttons.html" %}
-        <button class="template-back" type="button">Back</button>
     </form>
 </section>

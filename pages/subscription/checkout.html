@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block title %}{{ tiers.pro.label }} - BuildBetter{% endblock %}
+{% block body_attributes %} class="shopping-body"{% endblock %}
+{% block underConstruction %}{% endblock %}
+{% block styles %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='checkout.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='subscription.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="shopping-page subscription-checkout">
+    <nav class="sub-checkout-breadcrumb" aria-label="Subscription steps">
+        <a href="{{ url_for('planner.planner') }}">AI Planner</a>
+        <span aria-hidden="true">/</span>
+        <span aria-current="step">{{ tiers.pro.label }}</span>
+    </nav>
+    <header class="shopping-heading">
+        <div>
+            <p class="shopping-eyebrow">TOP PLANNING TIER</p>
+            <h1>{{ 'Your ' ~ tiers.pro.label ~ ' plan is ready.' if checkout_success|default(false) else tiers.pro.label }}</h1>
+            <p>{{ 'Start a new project with your selected planning mode.' if checkout_success|default(false) else 'Payment for this plan is not available yet.' }}</p>
+        </div>
+        <a class="shopping-link" href="{{ url_for('planner.planner') }}">&larr; Back to planner</a>
+    </header>
+    {% if checkout_success|default(false) %}
+        <section class="shopping-panel sub-checkout-success" aria-labelledby="success-heading" role="status">
+            <p class="shopping-eyebrow">SUBSCRIPTION CONFIRMED</p>
+            <h2 id="success-heading">{{ tiers.pro.label }} is part of your account.</h2>
+            <p>Use this mode when you start your next materials plan.</p>
+            <div class="sub-actions">
+                <a class="shopping-button shopping-primary" href="{{ url_for('planner.planner', _anchor='plan-project') }}">Start a project</a>
+                <a class="shopping-button shopping-secondary" href="{{ url_for('subscription.manage') }}">View subscription</a>
+            </div>
+        </section>
+    {% else %}
+    {% if checkout_error %}
+        <div class="sub-checkout-error" role="alert">
+            <strong>Payment is unavailable.</strong>
+            <p>No payment was taken and your plan has not changed.</p>
+        </div>
+    {% endif %}
+    <section class="shopping-panel sub-checkout-plan" aria-labelledby="checkout-heading">
+        <p class="shopping-eyebrow">PLAN DETAILS</p>
+        <h2 id="checkout-heading">{{ tiers.pro.label }}</h2>
+        {% if pro_price %}<p class="sub-checkout-price">{{ pro_price }}</p>{% endif %}
+        <div class="sub-about">
+            <h3>About {{ tiers.pro.label }}</h3>
+            <p>{{ tiers.pro.label }} is the apex of next-generation, hyper-converged planning intelligence. Engineered from the ground up on a cloud-native, quantum-inspired, multi-dimensional architecture, it harnesses synergistic, mission-critical workflows to unlock paradigm-shifting, end-to-end value at unprecedented scale. Its proprietary, deeply integrated reasoning fabric orchestrates best-in-class, future-proof capabilities across every layer of your build, delivering frictionless, enterprise-grade, AI-powered outcomes. Whether you're laying a foundation or raising a skyline, {{ tiers.pro.label }} redefines what's possible, so you can disrupt the status quo and build better than ever before.</p>
+        </div>
+        <a class="shopping-link" href="{{ url_for('subscription.manage') }}">View plan status <span aria-hidden="true">&rarr;</span></a>
+    </section>
+    {% endif %}
+</div>
+{% endblock %}

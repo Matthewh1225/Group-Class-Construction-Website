@@ -1,0 +1,46 @@
+<footer class="site-footer">
+    <div class="wrap footer-grid">
+        <div class="footer-brand">
+            <a href="{{ url_for('home') }}" class="footer-logo"><img src="{{ url_for('static', filename='images/logo.png') }}" alt="" width="56" height="56" loading="lazy"><span>BuildBetter</span></a>
+            <p>AI materials planning and construction supplies.</p>
+        </div>
+        <nav aria-labelledby="footer-shop">
+            <h2 id="footer-shop">Shop</h2>
+            <ul>
+                <li><a href="{{ url_for('products.products') }}">Products</a></li>
+                <li><a href="{{ url_for('crews.crews') }}">Hire crews</a></li>
+                <li><a href="{{ url_for('cart') }}">Cart</a></li>
+            </ul>
+        </nav>
+        <nav aria-labelledby="footer-plan">
+            <h2 id="footer-plan">Plan</h2>
+            <ul>
+                <li><a href="{{ url_for('planner.planner') }}">AI Planner</a></li>
+                <li><a href="{{ url_for('dashboard.projects') }}">My Projects</a></li>
+            </ul>
+        </nav>
+        <nav aria-labelledby="footer-account">
+            <h2 id="footer-account">Account</h2>
+            <ul>
+                {% if session.get("user_id") %}
+                    <li><a href="{{ url_for('dashboard.dashboard') }}">Dashboard</a></li>
+                    <li><a href="{{ url_for('subscription.manage') }}">Subscription</a></li>
+                    <li><a href="{{ url_for('dashboard.settings') }}">Settings</a></li>
+                    <li>
+                        <form method="post" action="{{ url_for('auth.logout') }}">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit">Log out</button>
+                        </form>
+                    </li>
+                {% else %}
+                    <li><a href="{{ url_for('auth.login') }}">Log in</a></li>
+                    <li><a href="{{ url_for('auth.register') }}">Create an account</a></li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    <div class="wrap footer-base">
+        <p>&copy; BuildBetter</p>
+        {% if not hide_estimate_disclaimer|default(false) %}<p>Estimates are planning aids, not engineering approval.</p>{% endif %}
+    </div>
+</footer>

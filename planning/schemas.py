@@ -1,5 +1,3 @@
-"""One estimate format for every tier, with Python quantity checks."""
-
 import math
 from decimal import Decimal, ROUND_CEILING
 from typing import Literal
@@ -73,21 +71,30 @@ def area_in(value, unit, target):
     return value * factors[unit] / factors[target]
 
 
+REQUIRED_INPUTS = {
+    "rectangle_area": {"length", "width", "layers"},
+    "wall_area": {"length", "width", "height", "openings_area"},
+    "coverage": {"area", "layers", "coverage"},
+    "rectangle_coverage": {"length", "width", "layers", "coverage"},
+    "wall_coverage": {"length", "width", "height", "openings_area", "layers", "coverage"},
+    "perimeter": {"length", "width"},
+    "count": {"count"},
+    "manual": set(),
+}
+
+COVERAGE_METHODS = {"coverage", "rectangle_coverage", "wall_coverage"}
+
+
 def validated_inputs(material):
-    """Check the input names and positive measurements for one method."""
     method = material.calculation.method
-    inputs = {item.name: (Decimal(str(item.value)), normalize_unit(item.unit))
-              for item in material.calculation.inputs}
-    required = {
-        "rectangle_area": {"length", "width", "layers"},
-        "wall_area": {"length", "width", "height", "openings_area"},
-        "coverage": {"area", "layers", "coverage"},
-        "rectangle_coverage": {"length", "width", "layers", "coverage"},
-        "wall_coverage": {"length", "width", "height", "openings_area", "layers", "coverage"},
-        "perimeter": {"length", "width"}, "count": {"count"}, "manual": set(),
-    }
-    if len(inputs) != len(material.calculation.inputs) or set(inputs) != required[method]:
-        raise ValueError(f"{material.name}: {method} requires exactly {sorted(required[method])}.")
+    # name -> (value as an exact Decimal, normalized unit)
+    inputs = {}
+    for item in material.calculation.inputs:
+        inputs[item.name] = (Decimal(str(item.value)), normalize_unit(item.unit))
+    required = REQUIRED_INPUTS[method]
+    # a name listed twice makes the dictionary shorter than the list
+    if len(inputs) != len(material.calculation.inputs) or set(inputs) != required:
+        raise ValueError(f"{material.name}: {method} requires exactly {sorted(required)}.")
     if method != "manual":
         for name, (value, _) in inputs.items():
             if name not in {"count", "openings_area"} and value <= 0:
@@ -96,56 +103,74 @@ def validated_inputs(material):
 
 
 def net_quantity(material, inputs):
-    """Convert measurements and calculate the amount before waste."""
+    # inputs maps each input name to (Decimal value, unit).
+    # Decimal keeps the arithmetic exact, so rounding up never adds an extra item by mistake.
     method = material.calculation.method
     unit = normalize_unit(material.unit)
+
     if method == "count":
-        net, input_unit = inputs["count"]
-        if input_unit != unit:
+        count, count_unit = inputs["count"]
+        if count_unit != unit:
             raise ValueError("Count input and material units must match.")
+        return count
+
+    if method == "perimeter":
+        length = length_in(*inputs["length"], unit)
+        width = length_in(*inputs["width"], unit)
+        return 2 * (length + width)
+
+    # The other methods find an area first.
+    # A coverage method then divides it by a rate such as 32 sq_ft/sheet; the rate decides the area unit (sq_ft here).
+    if method in COVERAGE_METHODS:
+        coverage, rate_unit = inputs["coverage"]
+        area_unit, slash, output_unit = rate_unit.partition("/")
+        area_unit = normalize_unit(area_unit)
+        if not slash or normalize_unit(output_unit) != unit or unit in {"sq_ft", "sq_m"}:
+            raise ValueError(
+                f"{material.name}: coverage unit '{rate_unit}' cannot produce '{unit}'. "
+                "Use sq_ft/sheet or sq_ft/gallon with the matching output unit. "
+                "For area output use rectangle_area/wall_area; for unsupported rates use manual."
+            )
     else:
         area_unit = unit
-        if "coverage" in method:
-            coverage, rate_unit = inputs["coverage"]
-            area_unit, separator, output_unit = rate_unit.partition("/")
-            area_unit = normalize_unit(area_unit)
-            if not separator or normalize_unit(output_unit) != unit or unit in {"sq_ft", "sq_m"}:
-                raise ValueError(
-                    f"{material.name}: coverage unit '{rate_unit}' cannot produce '{unit}'. "
-                    "Use sq_ft/sheet or sq_ft/gallon with the matching output unit. "
-                    "For area output use rectangle_area/wall_area; for unsupported rates use manual."
-                )
-        if method == "perimeter":
-            target = unit
-        elif area_unit in {"sq_ft", "sq_m"}:
-            target = "ft" if area_unit == "sq_ft" else "m"
-        else:
-            raise ValueError("Area calculations require sq_ft or sq_m.")
-        if method == "coverage":
-            net = area_in(*inputs["area"], area_unit)
-        else:
-            length = length_in(*inputs["length"], target)
-            width = length_in(*inputs["width"], target)
-            net = length * width
-            if method == "perimeter":
-                net = 2 * (length + width)
-            elif method.startswith("wall"):
-                height = length_in(*inputs["height"], target)
-                net = 2 * (length + width) * height - area_in(*inputs["openings_area"], area_unit)
-                if net < 0:
-                    raise ValueError("Openings exceed the wall area.")
-        if "layers" in inputs:
-            layers, layers_unit = inputs["layers"]
-            if layers_unit != "count":
-                raise ValueError("Layers must use count units.")
-            net *= layers
-        if "coverage" in method:
-            net /= coverage
-    return net
+    # lengths are converted to feet for square feet, or metres for square metres
+    if area_unit == "sq_ft":
+        length_unit = "ft"
+    elif area_unit == "sq_m":
+        length_unit = "m"
+    else:
+        raise ValueError("Area calculations require sq_ft or sq_m.")
+
+    if method == "coverage":
+        area = area_in(*inputs["area"], area_unit)
+    elif method in {"rectangle_area", "rectangle_coverage"}:
+        length = length_in(*inputs["length"], length_unit)
+        width = length_in(*inputs["width"], length_unit)
+        area = length * width
+    else:
+    # wall_area and wall_coverage: four walls, 2 x (length + width) x height, minus doors and windows
+        length = length_in(*inputs["length"], length_unit)
+        width = length_in(*inputs["width"], length_unit)
+        height = length_in(*inputs["height"], length_unit)
+        openings = area_in(*inputs["openings_area"], area_unit)
+        area = 2 * (length + width) * height - openings
+        if area < 0:
+            raise ValueError("Openings exceed the wall area.")
+
+    # layers (such as two coats of paint) multiply the area; wall_area has none
+    if "layers" in inputs:
+        layers, layers_unit = inputs["layers"]
+        if layers_unit != "count":
+            raise ValueError("Layers must use count units.")
+        area = area * layers
+
+    if method in COVERAGE_METHODS:
+        return area / coverage
+    return area
 
 
 def calculate_quantity(material):
-    """Return the final quantity; never execute a model-supplied expression."""
+    # Return the final quantity; never execute a model-supplied expression.
     inputs = validated_inputs(material)
     if material.calculation.method == "manual":
         if not material.notes.strip():
@@ -164,7 +189,6 @@ def calculate_quantity(material):
 
 
 def check_estimate(estimate):
-    """Validate formulas and replace model arithmetic before saving any stage."""
     if not estimate.materials and not estimate.questions:
         raise ValueError("An estimate needs materials or a clarification question.")
     for material in estimate.materials:

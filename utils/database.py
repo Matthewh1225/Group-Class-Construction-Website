@@ -34,7 +34,7 @@ def database_settings():
         "password": os.getenv("DB_PASSWORD"),
     }
 
-# lets other files use this with a with statement
+# Commit after the caller finishes; failures roll back before the connection closes.
 @contextmanager
 def database_cursor():
     connection = mysql.connector.connect(
@@ -42,15 +42,11 @@ def database_cursor():
         ssl_disabled=False,
     )
     try:
-        # dictionary=True lets us use column names instead of indexes
         with connection.cursor(dictionary=True) as cursor:
-            # the code inside the caller's with block runs here
             yield cursor
             connection.commit()
     except Exception:
-        # undo the changes if something failed
         connection.rollback()
         raise
     finally:
-        # close the connection even if there was an error
         connection.close()

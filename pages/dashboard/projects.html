@@ -1,21 +1,58 @@
 {% extends "dashboard/layout.html" %}
-{% from "dashboard/project_card.html" import project_card %}
+{% from "dashboard/project_list.html" import project_list %}
+{% from "dashboard/empty_state.html" import empty_state %}
 
 {% block title %}
     My Projects - BuildBetter
 {% endblock %}
 
+{% block flash_messages %}
+{% endblock %}
+
 {% block dashboard_content %}
     <div class="dashboard-page-heading">
         <div>
-            <p class="dashboard-eyebrow">WORKSPACE / PROJECTS</p>
+            <p class="sheet-tag"><span>D-03</span>Projects</p>
             <h1>My Projects</h1>
         </div>
-        <a class="dashboard-button dashboard-button-primary" href="{{ url_for('planner.planner') }}">Start a new plan <span aria-hidden="true">→</span></a>
+        <a class="dashboard-button dashboard-button-primary" href="{{ url_for('planner.planner') }}">Start a new plan <span aria-hidden="true">&rarr;</span></a>
     </div>
-    <div class="dashboard-project-grid">
-        {% for project in projects %}
-            {{ project_card(project) }}
-        {% endfor %}
-    </div>
+    {% for category, message in get_flashed_messages(with_categories=True) %}
+        <p class="dashboard-message {{ category }} project-message" role="{{ 'alert' if category == 'error' else 'status' }}">{{ message }}</p>
+    {% endfor %}
+
+    {% if total %}
+        {# search and filter run on the server, so they also work without JavaScript #}
+        <form class="project-filters" method="get" action="{{ url_for('dashboard.projects') }}" role="search">
+            <label>
+                <span>Search by name</span>
+                <input type="search" name="q" value="{{ search }}" maxlength="120" placeholder="Project name">
+            </label>
+            <label>
+                <span>Status</span>
+                <select name="status">
+                    <option value="">All statuses</option>
+                    {% for option in statuses %}
+                        <option value="{{ option }}" {% if option == status %}selected{% endif %}>{{ option }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <button class="dashboard-button dashboard-button-secondary" type="submit">Filter</button>
+            {% if search or status %}<a class="dashboard-text-link" href="{{ url_for('dashboard.projects') }}">Clear</a>{% endif %}
+        </form>
+
+        {% if projects %}
+            {{ project_list(projects, 'Your projects, most recently updated first') }}
+        {% else %}
+            <p class="dashboard-muted project-no-match">No projects match this search.</p>
+        {% endif %}
+    {% else %}
+        {% call empty_state('No saved projects yet', 'Plan a project with the AI Planner, then choose Save Project to keep its materials and crew here.') %}
+            <a class="dashboard-button dashboard-button-primary" href="{{ url_for('planner.planner') }}">Open the AI Planner</a>
+        {% endcall %}
+    {% endif %}
+
+    <p class="project-history-link">
+        <a class="dashboard-text-link" href="{{ url_for('planner.planning_history') }}">Planning history: every AI plan, saved or not <span aria-hidden="true">&rarr;</span></a>
+    </p>
 {% endblock %}

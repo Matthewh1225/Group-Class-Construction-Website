@@ -11,78 +11,142 @@
 {% block underConstruction %}{% endblock %}
 
 {% block content %}
-<section class="catalog" aria-labelledby="catalog-title">
-    <header class="catalog-header">
-        <p class="catalog-eyebrow">BUILD YOUR NEXT PROJECT</p>
-        <h1 id="catalog-title">Products</h1>
-        <p>Browse materials, supplies, and tools for your build.</p>
+{% set selected_slug = selected.slug if selected else '' %}
+
+<div class="catalog">
+    <header class="catalog-header grid-bg">
+        <div class="wrap catalog-header-grid">
+            <div>
+                <p class="sheet-tag"><span>C-01</span>Material catalog</p>
+                <h1 id="catalog-title">Materials &amp; tools</h1>
+            </div>
+            <aside class="catalog-planner-callout" aria-labelledby="callout-title">
+                <h2 id="callout-title">Not sure what you need?</h2>
+                <a class="text-link" href="{{ url_for('planner.planner') }}">Open the AI Planner <span class="arrow" aria-hidden="true">&rarr;</span></a>
+            </aside>
+        </div>
     </header>
-    <form class="catalog-search" action="{{ url_for('products.products') }}" method="get" role="search">
-        <label for="product-search">Search products</label>
-        <div class="catalog-search-controls">
-            <input id="product-search" type="search" name="q" value="{{ search }}" maxlength="200" placeholder="Try lumber, screws, or a SKU" disabled aria-describedby="catalog-status">
-            <button type="button" disabled>Search</button>
-            {% if search %}<a href="{{ url_for('products.products') }}">Clear</a>{% endif %}
-        </div>
-    </form>
-    <p id="catalog-status" class="catalog-count">Online shopping is coming soon.</p>
-    {% if catalog_error %}
-        <div class="catalog-notice" role="alert">
-            <h2>Products are temporarily unavailable</h2>
-            <p>We could not load the catalog. Please try again shortly.</p>
-        </div>
-    {% elif products %}
-        <p class="catalog-count">Showing {{ products|length }} product{{ '' if products|length == 1 else 's' }}{% if search %} for “{{ search }}”{% endif %}</p>
-        <div class="catalog-grid">
-            {% for product in products %}
-                <article class="product-card">
-                    <p class="product-category">{{ product.category_name or 'Materials & tools' }}</p>
-                    <h2>{{ product.product_name }}</h2>
-                    <p class="product-manufacturer">{{ product.manufacturer_name or 'Manufacturer not listed' }}</p>
-                    {% if product.specification %}<p class="product-specification">{{ product.specification }}</p>{% endif %}
-                    <dl class="product-details">
-                        <div><dt>SKU</dt><dd>{{ product.sku }}</dd></div>
-                        <div><dt>Sold by</dt><dd>{{ product.unit }}{% if product.pack_quantity > 1 %} · {{ '%g'|format(product.pack_quantity) }} per pack{% endif %}</dd></div>
-                    </dl>
-                    <footer class="product-footer">
-                        {% if product.unit_price is not none %}
-                            <p class="product-price">{% if product.currency == 'USD' %}${% else %}{{ product.currency }} {% endif %}{{ '%.2f'|format(product.unit_price) }} <span>/ {{ product.unit }}</span></p>
-                        {% else %}
-                            <p class="product-price product-price-unknown">Price unavailable</p>
-                        {% endif %}
-                        {% if product.unit_price is none or not product.is_available %}
-                            <span class="product-status">Currently unavailable</span>
-                        {% elif not product.available_quantity or product.available_quantity <= 0 %}
-                            <span class="product-status">Out of stock</span>
-                        {% else %}
-                            <span class="product-status product-status-available">In stock</span>
-                        {% endif %}
-                        {% if product.unit_price is not none and product.is_available and product.available_quantity and product.available_quantity >= product.purchase_increment and product.currency == 'USD' %}
-                            <div class="product-cart-form">
-                                <label for="quantity-{{ product.product_id }}">Quantity ({{ product.unit }})</label>
-                                <input id="quantity-{{ product.product_id }}" name="quantity" type="number" min="{{ product.purchase_increment }}" step="{{ product.purchase_increment }}" max="{{ product.available_quantity }}" value="{{ product.purchase_increment }}" disabled>
-                                <button type="button" disabled aria-describedby="catalog-status">Add to Cart</button>
-                            </div>
-                        {% else %}
-                            <button class="product-cart-unavailable" disabled>Unavailable</button>
-                        {% endif %}
-                    </footer>
-                </article>
-            {% endfor %}
-        </div>
-    {% else %}
-        <div class="catalog-notice">
-            <h2>No products found</h2>
-            <p>{% if search %}Try another product name or SKU.{% else %}There are no products to display on this page.{% endif %}</p>
-            <a href="{{ url_for('products.products') }}">Browse all products</a>
-        </div>
-    {% endif %}
-    {% if not catalog_error and (page > 1 or has_next) %}
-        <nav class="catalog-pagination" aria-label="Product pages">
-            {% if page > 1 %}<a href="{{ url_for('products.products', q=search, page=page-1) }}">Previous</a>{% endif %}
-            <span>Page {{ page }}</span>
-            {% if has_next %}<a href="{{ url_for('products.products', q=search, page=page+1) }}">Next</a>{% endif %}
-        </nav>
-    {% endif %}
-</section>
+
+    <div class="wrap">
+        <form class="catalog-search" action="{{ url_for('products.products') }}" method="get" role="search">
+            {% if selected %}<input type="hidden" name="category" value="{{ selected.slug }}">{% endif %}
+            <label for="product-search">Search products{% if selected %} in {{ selected.name }}{% endif %}</label>
+            <div class="catalog-search-controls">
+                <span class="catalog-search-field">
+                    <svg class="catalog-search-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg>
+                    <input id="product-search" type="search" name="q" value="{{ search }}" maxlength="200" placeholder="Try lumber, screws, or a SKU">
+                </span>
+                <button class="btn btn-primary" type="submit">Search</button>
+                {% if search %}<a class="text-link" href="{{ url_for('products.products', category=selected_slug or None) }}">Clear</a>{% endif %}
+            </div>
+        </form>
+
+        <section class="catalog-categories" aria-labelledby="categories-title">
+            <h2 id="categories-title" class="sr-only">Browse by category</h2>
+            <ul class="category-grid">
+                {% for category in categories %}
+                    <li>
+                        <a class="category-tile" href="{{ url_for('products.products', category=category.slug, _anchor='catalog-results') }}" {% if category.slug == selected_slug %}aria-current="true"{% endif %}>
+                            <span class="category-code">{{ category.code }}</span>
+                            <svg class="category-art" viewBox="0 0 120 80" aria-hidden="true" focusable="false">
+                                <path class="category-marks" d="{{ category.marks }}"/>
+                                <path class="category-lines" d="{{ category.art }}"/>
+                            </svg>
+                            <span class="category-name">{{ category.name }}</span>
+                            <span class="category-note">{{ category.note }}</span>
+                            <span class="arrow" aria-hidden="true">&rarr;</span>
+                        </a>
+                    </li>
+                {% endfor %}
+            </ul>
+        </section>
+
+        <section class="catalog-results" id="catalog-results" aria-labelledby="results-title">
+            <div class="catalog-results-head">
+                <div>
+                    <p class="catalog-results-code">{{ selected.code if selected else 'MAT-ALL' }}</p>
+                    <h2 id="results-title">{{ selected.name if selected else 'All products' }}</h2>
+                </div>
+                {% if selected %}<a class="text-link" href="{{ url_for('products.products', _anchor='catalog-results') }}">Show all categories</a>{% endif %}
+            </div>
+
+            {% if catalog_error %}
+                <div class="catalog-notice" role="alert">
+                    <h3>Products are temporarily unavailable</h3>
+                    <p>Try again shortly.</p>
+                </div>
+            {% elif products %}
+                <p class="catalog-count">Showing {{ products|length }} product{{ '' if products|length == 1 else 's' }}{% if search %} for &ldquo;{{ search }}&rdquo;{% endif %}</p>
+                <div class="catalog-grid">
+                    {% for product in products %}
+                        <article class="product-card">
+                            <p class="product-category">{{ product.category_name or 'Materials & tools' }}</p>
+                            <h3>{{ product.product_name }}</h3>
+                            <p class="product-manufacturer">{{ product.manufacturer_name or 'Manufacturer not listed' }}</p>
+                            {% if product.specification %}<p class="product-specification">{{ product.specification }}</p>{% endif %}
+                            <dl class="product-details">
+                                <div><dt>SKU</dt><dd>{{ product.sku }}</dd></div>
+                                <div><dt>Sold by</dt><dd>{{ product.unit }}{% if product.pack_quantity > 1 %} · {{ '%g'|format(product.pack_quantity) }} per pack{% endif %}</dd></div>
+                            </dl>
+                            <footer class="product-footer">
+                                {% if product.unit_price is not none %}
+                                    <p class="product-price">{% if product.currency == 'USD' %}${% else %}{{ product.currency }} {% endif %}{{ '%.2f'|format(product.unit_price) }} <span>/ {{ product.unit }}</span></p>
+                                {% else %}
+                                    <p class="product-price product-price-unknown">Price unavailable</p>
+                                {% endif %}
+                                {% if product.unit_price is none or not product.is_available %}
+                                    <span class="product-status">Currently unavailable</span>
+                                {% elif not product.available_quantity or product.available_quantity <= 0 %}
+                                    <span class="product-status">Out of stock</span>
+                                {% else %}
+                                    <span class="product-status product-status-available">In stock</span>
+                                {% endif %}
+                                {% if product.unit_price is not none and product.is_available and product.available_quantity and product.available_quantity >= product.purchase_increment and product.currency == 'USD' %}
+                                    <form class="product-cart-form" method="post" action="{{ url_for('cart_add') }}">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <input type="hidden" name="product_id" value="{{ product.product_id }}">
+                                        <input type="hidden" name="category" value="{{ selected_slug }}">
+                                        <input type="hidden" name="q" value="{{ search }}">
+                                        <input type="hidden" name="page" value="{{ page }}">
+                                        <label for="quantity-{{ product.product_id }}">Quantity ({{ product.unit }})</label>
+                                        <input id="quantity-{{ product.product_id }}" name="quantity" type="number" min="{{ product.purchase_increment }}" step="{{ product.purchase_increment }}" max="{{ product.available_quantity }}" value="{{ product.purchase_increment }}" required>
+                                        <button class="btn btn-primary" type="submit">Add to Cart</button>
+                                    </form>
+                                {% else %}
+                                    <button class="product-cart-unavailable" disabled>Unavailable</button>
+                                {% endif %}
+                            </footer>
+                        </article>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="catalog-notice">
+                    <svg class="catalog-notice-art" viewBox="0 0 120 80" aria-hidden="true" focusable="false">
+                        <path class="category-marks" d="M10 70H110M20 22H100M20 18V26M100 18V26"/>
+                        <path class="category-lines" d="M24 34h72v32H24zM24 34l12-8h72l-12 8M96 66l12-8V26M52 46h16"/>
+                    </svg>
+                    <div>
+                        <h3>{% if search %}No products match &ldquo;{{ search }}&rdquo;{% elif selected %}No {{ selected.name }} products listed yet{% else %}No products listed yet{% endif %}</h3>
+                        {% if selected %}<p>{{ selected.name }} ({{ selected.note|lower }}) will appear here once the catalog is connected.</p>{% endif %}
+                        <div class="actions">
+                            <a class="btn btn-primary" href="{{ url_for('planner.planner') }}">Plan a project <span class="arrow" aria-hidden="true">&rarr;</span></a>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+
+            {% if not catalog_error and (page > 1 or has_next) %}
+                <nav class="catalog-pagination" aria-label="Product pages">
+                    {% if page > 1 %}<a class="btn btn-ghost" href="{{ url_for('products.products', q=search, category=selected_slug or None, page=page-1) }}">&larr; Previous</a>{% endif %}
+                    <span>Page {{ page }}</span>
+                    {% if has_next %}<a class="btn btn-ghost" href="{{ url_for('products.products', q=search, category=selected_slug or None, page=page+1) }}">Next &rarr;</a>{% endif %}
+                </nav>
+            {% endif %}
+        </section>
+    </div>
+</div>
+{% endblock %}
+
+{% block footer %}
+    {% include "site_footer.html" %}
 {% endblock %}

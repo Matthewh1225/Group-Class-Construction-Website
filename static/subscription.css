@@ -1,0 +1,19 @@
+.sub-checkout-breadcrumb { display: flex; gap: 10px; margin-bottom: 24px; color: var(--shop-muted); font-size: 13px; }
+.sub-checkout-breadcrumb a { color: inherit; text-decoration: none; }
+.sub-checkout-breadcrumb a:hover { color: var(--shop-accent); }
+.sub-checkout-price { margin: 20px 0 !important; color: var(--shop-accent); font-size: 24px; font-weight: 700; }
+.sub-checkout-plan { max-width: 760px; }
+.sub-about { margin: 0 0 24px; }
+.sub-about h3 { margin: 0 0 8px; font-size: 15px; }
+.sub-about p { margin: 0; color: var(--shop-muted); font-size: 14px; line-height: 1.65; }
+.sub-checkout-error { margin-bottom: 24px; padding: 16px 20px; border: 1px solid var(--danger-border); border-radius: 10px; background: var(--danger-bg); color: var(--danger); text-align: left; }
+.sub-checkout-error p { margin-top: 4px; }
+.sub-checkout-success { max-width: 760px; border-color: var(--success-border); }
+.sub-checkout-success > p:not(.shopping-eyebrow) { margin-top: 12px; color: var(--shop-muted); }
+.sub-checkout-success .sub-actions { margin-top: 24px; }
+
+.sub-card { margin-top: 20px; }
+.sub-card-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; margin-bottom: 18px; }
+.dashboard-detail-card .sub-card-head h2 { margin: 0; }
+.sub-method { margin: 0; font-weight: 650; }
+.sub-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 22px; }

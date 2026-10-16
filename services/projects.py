@@ -1,33 +1,46 @@
-def get_user_projects(user_id):
-    """Retrieve all saved projects for the user."""
+"Saved project service placeholders."
+
+
+def can_save(job):
+    "Check whether a planner job is ready to save."
     pass
 
-
-def get_project_by_id(project_id, user_id):
-    """Retrieve a single project ."""
+def default_project_name(job):
+    "Suggest a name for a planner job."
     pass
 
-
-def create_project(user_id, project_data):
-    """Create a new saved project."""
+def save_project(user_id, job, name):
+    "Save a planner job as a project for the user."
     pass
 
-
-def update_project(project_id, user_id, project_data):
-    """Update an existing saved project."""
+def get_user_projects(user_id, limit=None):
+    "Return the projects saved by the user."
     pass
-
-
-def delete_project(project_id, user_id):
-    """Delete a user's saved project and associated data."""
-    pass
-
-
-def get_recent_projects(user_id, limit=5):
-    """Retrieve a user's most recently modified projects."""
-    pass
-
 
 def get_project_count(user_id):
-    """Count the saved projects belonging to a user."""
+    "Count the projects saved by the user."
+    pass
+
+def get_project(project_id, user_id):
+    "Return an owned project by its project ID."
+    pass
+
+def get_project_for_job(job_id, user_id):
+    "Return an owned project saved from a planner job."
+    pass
+
+def rename_project(project_id, user_id, name):
+    "Rename an owned project."
+    pass
+
+def set_project_completed(project_id, user_id, completed):
+    "Mark an owned project complete or incomplete."
+    pass
+
+def save_project_crew(project_id, user_id, crew):
+    "Save the crew estimate for an owned project."
+    pass
+
+def delete_project(project_id, user_id):
+    "Delete an owned project."
     pass

@@ -1,0 +1,11 @@
+{# Shown when a database query fails on any page (see database_unavailable in app.py). #}
+{% extends "base.html" %}
+{% block title %}Unavailable - BuildBetter{% endblock %}
+{% block underConstruction %}{% endblock %}
+{% block content %}
+<section class="wrap unavailable-page">
+    <h1>Service unavailable</h1>
+    <p>Please try again shortly.</p>
+    <a class="text-link" href="{{ url_for('home') }}">Back to home</a>
+</section>
+{% endblock %}

@@ -1,4 +1,3 @@
-
 import "./planner-submit.js";
 
 const methodStep = document.getElementById("method-step");
@@ -6,18 +5,32 @@ const templateStep = document.getElementById("template-step");
 const sizeStep = document.getElementById("size-step");
 const plannerStep = document.getElementById("planner-form");
 const templateQuestionSteps = document.querySelectorAll(".template-questions");
-// ... adds each template step to the same list
 const steps = [methodStep, templateStep, sizeStep, plannerStep, ...templateQuestionSteps];
 const modeInput = document.getElementById("project-mode");
 const sizeInput = document.getElementById("project-size");
 const templateInput = document.getElementById("project-template");
-const descriptionInput = document.getElementById("user-input");
+const progressSteps = document.querySelectorAll(".planner-progress li");
 
-// Show just one step at a time.
+function showProgress(stage) {
+    for (const item of progressSteps) {
+        if (item.dataset.stage === stage) {
+            item.setAttribute("aria-current", "step");
+        } else {
+            item.removeAttribute("aria-current");
+        }
+    }
+}
+
 function showStep(selectedStep) {
     for (const step of steps) {
         step.hidden = step !== selectedStep;
     }
+    const hasDetails = selectedStep === plannerStep || selectedStep.classList.contains("template-questions");
+    showProgress(hasDetails ? "details" : "project");
+    // Move keyboard users to the heading of the step that just appeared.
+    const heading = selectedStep.querySelector("h2") || selectedStep.querySelector("button");
+    if (heading) heading.focus({ preventScroll: true });
+    document.querySelector(".planner-progress").scrollIntoView({ block: "nearest" });
 }
 
 document.getElementById("choose-template").addEventListener("click", function () {
@@ -41,7 +54,6 @@ document.querySelectorAll(".project-option").forEach(function (button) {
 
 document.querySelectorAll(".template-option").forEach(function (button) {
     button.addEventListener("click", function () {
-        // dataset reads the data-template attribute from the button
         const templateName = button.dataset.template;
         templateInput.value = templateName;
         sizeInput.value = button.dataset.size;
@@ -62,7 +74,16 @@ document.querySelectorAll(".back-button").forEach(function (button) {
         modeInput.value = "";
         sizeInput.value = "";
         templateInput.value = "";
-        descriptionInput.value = "";
         showStep(methodStep);
+    });
+});
+
+document.querySelector(".details-back").addEventListener("click", function () {
+    showStep(sizeStep);
+});
+
+document.querySelectorAll(".planner-page form").forEach(function (form) {
+    form.addEventListener("focusin", function (event) {
+        showProgress(event.target.closest(".planner-tiers, .planner-generate") ? "estimate" : "details");
     });
 });

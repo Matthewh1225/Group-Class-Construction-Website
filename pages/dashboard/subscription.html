@@ -1,0 +1,66 @@
+{% extends "dashboard/layout.html" %}
+
+{% block title %}Subscription - BuildBetter{% endblock %}
+{% block styles %}
+    {{ super() }}
+    <link rel="stylesheet" href="{{ url_for('static', filename='subscription.css') }}">
+{% endblock %}
+{% block dashboard_content %}
+    <div class="dashboard-page-heading">
+        <div>
+            <p class="sheet-tag"><span>D-06</span>Subscription</p>
+            <h1>Subscription</h1>
+        </div>
+    </div>
+
+    <section class="dashboard-card dashboard-detail-card sub-card" aria-labelledby="current-plan-title">
+        <div class="sub-card-head"><h2 id="current-plan-title">Plan status</h2></div>
+        {% if subscription %}
+            <dl class="dashboard-detail-list">
+                <div><dt>Plan</dt><dd>{{ tiers.pro.label if subscription.plan_name in ['Pro', tiers.pro.label] else subscription.plan_name }}</dd></div>
+                <div><dt>Status</dt><dd>{{ subscription.status|replace('_', ' ')|title }}</dd></div>
+                {% if subscription.current_period_end %}<div><dt>{{ 'Access ends' if subscription.status in ['cancelled', 'expired'] else 'Current period ends' }}</dt><dd>{{ subscription.current_period_end }}</dd></div>{% endif %}
+            </dl>
+        {% else %}
+            <p class="dashboard-muted">No subscription is active.</p>
+        {% endif %}
+        {% set has_pro = subscription and subscription.plan_name in ['Pro', tiers.pro.label] and subscription.status != 'expired' %}
+        {% if subscription and subscription.management_url %}
+            <div class="sub-actions">
+                <a class="dashboard-button dashboard-button-primary" href="{{ subscription.management_url }}">Manage plan</a>
+            </div>
+        {% elif not has_pro %}
+            <div class="sub-actions">
+                <a class="dashboard-button dashboard-button-primary" href="{{ url_for('subscription.checkout') }}">Subscribe now</a>
+            </div>
+        {% endif %}
+    </section>
+
+    {% if payment_method %}
+    <section class="dashboard-card dashboard-detail-card sub-card" aria-labelledby="payment-method-title">
+        <div class="sub-card-head"><h2 id="payment-method-title">Payment method</h2></div>
+        <p class="sub-method">{{ payment_method.brand }} ending in {{ payment_method.last_four }}</p>
+        {% if payment_method.update_url %}<a class="dashboard-text-link" href="{{ payment_method.update_url }}">Update payment method</a>{% endif %}
+    </section>
+    {% endif %}
+
+    {% if invoices %}
+    <section class="dashboard-card dashboard-detail-card sub-card" aria-labelledby="billing-history-title">
+        <div class="sub-card-head"><h2 id="billing-history-title">Billing history</h2></div>
+            <div class="dashboard-table-wrap">
+                <table class="dashboard-data-table">
+                    <thead><tr><th scope="col">Date</th><th scope="col">Description</th><th scope="col">Amount</th><th scope="col">Status</th><th scope="col">Invoice</th></tr></thead>
+                    <tbody>
+                        {% for invoice in invoices %}
+                            <tr>
+                                <td>{{ invoice.date }}</td><td>{{ invoice.description }}</td>
+                                <td>{{ invoice.amount }}</td><td>{{ invoice.status|title }}</td>
+                                <td>{% if invoice.url %}<a class="dashboard-text-link" href="{{ invoice.url }}">View</a>{% else %}?{% endif %}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+    </section>
+    {% endif %}
+{% endblock %}

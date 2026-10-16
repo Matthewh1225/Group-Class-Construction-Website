@@ -2,11 +2,10 @@ const navbar = document.querySelector('.navbar');
 const menuToggle = navbar.querySelector('.navbar-toggle');
 const menuLabel = menuToggle.querySelector('.navbar-toggle-label');
 // keep this breakpoint the same as the mobile CSS
-const mobileViewport = window.matchMedia('(max-width: 960px)');
+const mobileViewport = window.matchMedia('(max-width: 1100px)');
 
 function setMenuOpen(open) {
     navbar.classList.toggle('menu-open', open);
-    // let screen readers know if the menu is open
     menuToggle.setAttribute('aria-expanded', String(open));
     menuLabel.textContent = open ? 'Close' : 'Menu';
 }

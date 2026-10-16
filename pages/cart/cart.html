@@ -3,14 +3,22 @@
 {% block title %}Shopping Cart - BuildBetter{% endblock %}
 {% block shopping_content %}
 <header class="shopping-heading">
-    <div><p class="shopping-eyebrow">YOUR MATERIALS</p><h1>Your Shopping Cart</h1><p>Review the materials for your next project.</p></div>
-    <a class="shopping-link" href="{{ url_for('products.products') }}">Continue shopping</a>
+    <div><p class="sheet-tag"><span>C-02</span>Cart</p><h1>Your cart</h1></div>
+    <a class="shopping-link" href="{{ url_for('products.products') }}">Continue shopping <span aria-hidden="true">&rarr;</span></a>
 </header>
 {% if cart_items %}
 <div class="shopping-columns">
     <section class="shopping-panel" aria-label="Cart items">
-        <p class="shopping-notice" id="cart-controls-note">Cart updates will be available when online shopping opens.</p>
         {% for item in cart_items %}
+        {# The quantity box and Remove button below belong to these two forms through their form="..." attribute. #}
+        <form id="update-{{ item.product_id }}" method="post" action="{{ url_for('cart_update') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="product_id" value="{{ item.product_id }}">
+        </form>
+        <form id="remove-{{ item.product_id }}" method="post" action="{{ url_for('cart_remove') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="product_id" value="{{ item.product_id }}">
+        </form>
         <article class="shopping-cart-row">
             {{ product_image(item) }}
             <div class="shopping-cart-product">
@@ -20,25 +28,31 @@
             </div>
             <div class="shopping-cart-controls">
                 <label for="cart-quantity-{{ item.product_id }}">Quantity</label>
-                <input id="cart-quantity-{{ item.product_id }}" name="quantity" type="number" min="{{ item.purchase_increment }}" step="{{ item.purchase_increment }}" value="{{ item.quantity }}" disabled aria-describedby="cart-controls-note" class="shopping-cart-quantity">
-                <button class="shopping-button shopping-secondary" type="button" disabled aria-describedby="cart-controls-note">Update</button>
+                <input id="cart-quantity-{{ item.product_id }}" name="quantity" type="number" min="{{ item.purchase_increment }}" step="{{ item.purchase_increment }}" value="{{ item.quantity }}" form="update-{{ item.product_id }}" required class="shopping-cart-quantity">
+                <button class="shopping-button shopping-secondary" type="submit" form="update-{{ item.product_id }}">Update</button>
             </div>
             <div class="shopping-cart-line-total">
                 <strong>{{ money(item.total_cents) }}</strong>
                 <div>
-                    <button class="shopping-remove" type="button" disabled aria-describedby="cart-controls-note" aria-label="Remove {{ item.name }}">Remove</button>
+                    <button class="shopping-remove" type="submit" form="remove-{{ item.product_id }}" aria-label="Remove {{ item.name }}">Remove</button>
                 </div>
             </div>
         </article>
         {% endfor %}
     </section>
-    {{ order_summary(cart_items) }}
+    {{ order_summary(cart_items, totals=totals) }}
 </div>
 {% else %}
 <section class="shopping-panel shopping-empty">
+    <svg class="shopping-empty-art" viewBox="0 0 160 100" aria-hidden="true" focusable="false">
+        <path class="shopping-art-marks" d="M8 88H152M24 18H136M24 14V22M136 14V22"/>
+        <path d="M24 70H136V78H24ZM30 78V88M80 78V88M130 78V88M24 34H136V70H24Z" stroke-dasharray="5 4"/>
+    </svg>
     <h2>Your cart is empty</h2>
-    <p>Browse materials and tools for your next project.</p>
-    <a class="shopping-button shopping-primary" href="{{ url_for('products.products') }}">Browse products</a>
+    <div class="shopping-empty-actions">
+        <a class="shopping-button shopping-primary" href="{{ url_for('products.products') }}">Browse products</a>
+        <a class="shopping-button shopping-secondary" href="{{ url_for('planner.planner') }}">Plan a project</a>
+    </div>
 </section>
 {% endif %}
 {% endblock %}

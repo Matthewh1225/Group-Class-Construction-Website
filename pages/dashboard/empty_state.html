@@ -1,0 +1,17 @@
+{# Empty state for dashboard pages: a dashed "not built yet" drawing, a message and actions.
+   Use it with {% call empty_state('Title', 'Message') %} ...action links... {% endcall %} #}
+{% macro empty_state(title, text, heading_tag='h2') %}
+    <div class="dashboard-empty">
+        <svg class="dashboard-empty-art" viewBox="0 0 160 110" aria-hidden="true" focusable="false">
+            <path class="m" d="M8 96H152M28 104V88M132 104V88M28 102H132"/>
+            <path class="o" d="M28 96V54L80 22L132 54V96ZM18 58L80 18L142 58M68 96V70H92V96M40 62H58V78H40ZM102 62H120V78H102Z"/>
+        </svg>
+        <div>
+            <{{ heading_tag }}>{{ title }}</{{ heading_tag }}>
+            <p>{{ text }}</p>
+            <div class="dashboard-actions">
+                {{ caller() }}
+            </div>
+        </div>
+    </div>
+{% endmacro %}

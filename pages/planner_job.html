@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block title %}{{ plan.title }} - BuildBetter{% endblock %}
 {% block underConstruction %}{% endblock %}
+{% block flash_messages %}{% endblock %}
 {% block styles %}<link rel="stylesheet" href="{{ url_for('static', filename='planner.css') }}">{% endblock %}
 
 {% macro amount(quantity) -%}
@@ -11,11 +12,11 @@
 <section class="planner-job" id="planning-job"
          data-status-url="{{ url_for('planner.planning_job_status', job_id=job.id) }}" data-job-status="{{ job.status }}">
     <nav class="plan-breadcrumb" aria-label="Plan navigation">
-        <a href="{{ url_for('planner.planning_history') }}">&larr; Saved plans</a><span aria-hidden="true">/</span><span>Project plan</span>
+        <a href="{{ url_for('dashboard.projects') }}">&larr; My Projects</a><span aria-hidden="true">/</span><span>Project plan</span>
     </nav>
     <header class="plan-header">
         <div class="plan-heading-row">
-            <p class="plan-eyebrow">BUILDBETTER &middot; MATERIALS PLANNING</p>
+            <p class="sheet-tag"><span>B-02</span>Materials schedule</p>
             <span class="plan-status-badge plan-status-{{ plan.status_tone }}" id="job-progress" role="status" aria-live="polite">{{ plan.status_label }}</span>
         </div>
         <h1>{{ plan.title }}</h1>
@@ -27,7 +28,10 @@
         <div class="plan-notice"><p>Your plan is being prepared. This page updates automatically; you can return to it later.</p>
             <a href="{{ url_for('planner.planning_job', job_id=job.id) }}">Refresh progress</a></div>
     {% endif %}
-    {% for message in get_flashed_messages() %}<p class="plan-alert" role="alert">{{ message }}</p>{% endfor %}
+    {% for category, message in get_flashed_messages(with_categories=True) %}
+        {% if category == 'success' %}<p class="plan-alert plan-alert-success" role="status">{{ message }}</p>
+        {% else %}<p class="plan-alert" role="alert">{{ message }}</p>{% endif %}
+    {% endfor %}
     {% if job.error %}<p class="plan-alert" role="alert">{{ job.error }}</p>{% endif %}
 
     {% if plan.specs %}
@@ -45,7 +49,7 @@
     {% if job.result %}
         <section class="plan-estimate" aria-labelledby="materials-title">
             <div class="plan-section-heading">
-                <div><h2 id="materials-title">Materials estimate</h2><p>Estimated quantities for your project</p></div>
+                <div><h2 id="materials-title">Materials estimate</h2></div>
                 <span class="plan-count">{{ plan.materials|length }} material{{ 's' if plan.materials|length != 1 else '' }}</span>
             </div>
             {% if plan.materials %}
@@ -61,7 +65,7 @@
                         <tbody>
                             {% for item in plan.materials %}
                                 <tr data-material-row>
-                                    <th scope="row"><span class="plan-material-name">{{ item.name }}</span>{% if item.manual %}<small class="plan-manual">Manual estimate</small>{% endif %}{% if item.kind in ['optional', 'alternative', 'tool'] %}<small>{{ item.kind|capitalize }}</small>{% endif %}</th>
+                                    <th scope="row"><span class="plan-material-name">{{ item.name }}</span>{% if item.manual %}<small class="plan-manual">Manual estimate</small>{% endif %}</th>
                                     <td class="plan-quantity" data-label="Estimated quantity">{{ amount(item.quantity) }}</td>
                                     <td class="plan-unit" data-label="Unit">{{ item.quantity.unit or 'Not specified' }}</td>
                                     <td class="plan-material-spec" data-label="Specification">{{ item.specification|truncate(100, true) if item.specification else 'Not specified' }}</td>
@@ -70,32 +74,61 @@
                         </tbody>
                     </table>
                 </div>
-            {% else %}<p class="plan-empty">No material quantities are available yet. Review the details needed below.</p>{% endif %}
+            {% else %}<p class="plan-empty">Material quantities could not be determined from the supplied project details.</p>{% endif %}
         </section>
         <aside class="plan-notice" aria-label="About this estimate">
             <span class="plan-notice-icon" aria-hidden="true">i</span>
-            <p>These are planning estimates. Product matching and pricing are not available yet.{% if plan.has_manual %} Manual quantities are labeled and have not been verified.{% endif %}</p>
+            <div>
+                {% if plan.review_reason %}<p><strong>Review needed:</strong> {{ plan.review_reason }}</p>{% endif %}
+                <p>Planning estimate, not engineering approval. Verify measurements and quantities before purchasing.</p>
+                {% if plan.warnings %}<ul>{% for warning in plan.warnings %}<li>{{ warning }}</li>{% endfor %}</ul>{% endif %}
+            </div>
         </aside>
     {% endif %}
 
-    {% if plan.warnings %}
-        <section class="plan-alert" aria-labelledby="notices-title">
-            <h2 id="notices-title">Items to review</h2>
-            <ul>{% for warning in plan.warnings %}<li>{{ warning }}</li>{% endfor %}</ul>
+    {% if saved_project %}
+        <section class="plan-save" id="save-project" aria-labelledby="save-title">
+            <div>
+                <h2 id="save-title">Saved to My Projects</h2>
+                <p class="plan-muted">{{ saved_project.name }}{% if saved_project.update_available %} &middot; this plan has been revised since you saved it{% endif %}</p>
+            </div>
+            <div class="plan-save-actions">
+                {% if saved_project.update_available %}
+                    <form method="post" action="{{ url_for('planner.planning_job_save', job_id=job.id) }}" data-save-project>
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="name" value="{{ saved_project.name }}">
+                        <button type="submit">Update Project</button>
+                    </form>
+                {% endif %}
+                <a class="plan-button{% if saved_project.update_available %} plan-button-secondary{% endif %}" href="{{ url_for('dashboard.project_detail', project_id=saved_project.id) }}">View Project</a>
+            </div>
+        </section>
+    {% elif can_save %}
+        <section class="plan-save" id="save-project" aria-labelledby="save-title">
+            <form method="post" action="{{ url_for('planner.planning_job_save', job_id=job.id) }}" data-save-project>
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <h2 id="save-title">Save this project</h2>
+                <label for="project-name">Project name</label>
+                <div class="plan-save-row">
+                    <input id="project-name" name="name" type="text" maxlength="120" value="{{ default_name }}" required>
+                    <button type="submit">Save Project</button>
+                </div>
+            </form>
         </section>
     {% endif %}
+
     {% if job.status == 'needs_input' %}
         <section class="plan-questions" aria-labelledby="questions-title">
             <h2 id="questions-title">Complete your project details</h2>
-            <p>Answer the questions below so planning can continue.</p>
+            <p>Add the details you know. Approximate dimensions are welcome; include units.</p>
             <form method="post" action="{{ url_for('planner.planning_job_answers', job_id=job.id) }}">
-                <input type="hidden" name="plannerToken" value="{{ planner_token }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <input type="hidden" name="specificationVersion" value="{{ job.specification_version }}">
                 {% for question in job.questions %}
                     <label for="answer-{{ loop.index }}">{{ question.question }}</label>
-                    <textarea id="answer-{{ loop.index }}" name="answers" class="planner-input question-answer" required maxlength="2000"></textarea>
+                    <textarea id="answer-{{ loop.index }}" name="answers" class="planner-input question-answer" aria-describedby="answer-help" maxlength="2000"></textarea>
                 {% endfor %}
-                <p class="plan-muted">Enter &ldquo;Not sure&rdquo; if a detail is unknown.</p>
+                <p id="answer-help" class="plan-muted">Not sure? Leave a field blank to use a planning assumption where possible. Quantities that need missing measurements or a safety review will remain unresolved.</p>
                 <button type="submit">Continue planning</button>
             </form>
         </section>
@@ -110,29 +143,21 @@
                     {% for item in plan.materials %}
                         <article class="plan-detail-item"><h3>{{ item.name }}</h3>
                             {% if item.specification %}<p>{{ item.specification }}</p>{% endif %}
-                            {% if item.purpose %}<p><strong>Use:</strong> {{ item.purpose }}</p>{% endif %}
                             {% if item.notes %}<p>{{ item.notes }}</p>{% endif %}
-                            {% if not item.notes and not item.specification and not item.purpose %}<p class="plan-muted">No additional notes supplied.</p>{% endif %}
+                            {% if not item.notes and not item.specification %}<p class="plan-muted">No additional notes supplied.</p>{% endif %}
                         </article>
                     {% endfor %}
                     {% if plan.specs|length > 6 %}<h3>Additional specifications</h3><dl class="plan-spec-grid">{% for spec in plan.specs[6:] %}<div><dt>{{ spec.label }}</dt><dd>{{ spec.value }}<small>{{ spec.source }}</small></dd></div>{% endfor %}</dl>{% endif %}
-                    {% if plan.independent %}
-                        <h3>Pro estimates before reconciliation</h3><p class="plan-muted">These are the initial proposals. Use the reviewed materials estimate above.</p>
-                        {% for proposal in plan.independent %}
-                            <h4>{{ proposal.label }} estimate</h4>
-                            {% if proposal.estimate.summary %}<p>{{ proposal.estimate.summary }}</p>{% endif %}
-                            <ul>{% for item in proposal.rows %}<li>{{ item.name }} &mdash; {{ amount(item.quantity) }} {{ item.quantity.unit }}</li>{% endfor %}</ul>
-                        {% endfor %}
-                    {% endif %}
                 </div>
             </details>
             <details id="assumptions-details">
                 <summary>Assumptions &amp; Unresolved Details<span class="plan-chevron" aria-hidden="true"></span></summary>
                 <div class="plan-details-body">
                     <h3>Planner assumptions</h3>
-                    {% if plan.assumptions %}<ul>{% for item in plan.assumptions %}<li>{{ item }}</li>{% endfor %}</ul>{% else %}<p class="plan-muted">No assumptions were listed.</p>{% endif %}
-                    <h3>Details needing confirmation</h3>
-                    {% if plan.questions %}<ul>{% for question in plan.questions %}<li>{{ question }}</li>{% endfor %}</ul>{% else %}<p class="plan-muted">No follow-up questions were listed.</p>{% endif %}
+                    {% if plan.assumptions %}<ul>{% for item in plan.assumptions[:3] %}<li>{{ item }}</li>{% endfor %}</ul>
+                        {% if plan.assumptions|length > 3 %}<details><summary>More assumptions</summary><ul>{% for item in plan.assumptions[3:] %}<li>{{ item }}</li>{% endfor %}</ul></details>{% endif %}
+                    {% else %}<p class="plan-muted">No assumptions were listed.</p>{% endif %}
+                    {% if plan.questions and job.status != 'needs_input' %}<h3>Details needing confirmation</h3><ul>{% for question in plan.questions %}<li>{{ question }}</li>{% endfor %}</ul>{% endif %}
                     {% if plan.request %}<h3>Your original request</h3><p>{{ plan.request }}</p>{% endif %}
                     {% if plan.answers %}<h3>Your clarifications</h3><dl>{% for answer in plan.answers %}<dt>{{ answer.question }}</dt><dd>{{ answer.answer }}</dd>{% endfor %}</dl>{% endif %}
                     {% if plan.details %}<h3>Planner's interpretation</h3><ul>{% for detail in plan.details %}<li>{{ detail }}</li>{% endfor %}</ul>{% endif %}
@@ -141,20 +166,15 @@
             <details id="quantity-details">
                 <summary>Quantity Calculations<span class="plan-chevron" aria-hidden="true"></span></summary>
                 <div class="plan-details-body">
-                    <p class="plan-muted">Table values are rounded for readability. Original quantities are preserved below. Arithmetic checks do not verify measurements, material suitability or engineering compliance.</p>
                     {% for item in plan.materials %}
                         <article class="plan-detail-item">
                             <h3>{{ item.name }}</h3><p class="plan-verification">{{ item.verification }}</p>
                             <dl class="plan-calculation-grid">
                                 <div><dt>Method</dt><dd>{{ item.method|capitalize }}</dd></div>
-                                <div><dt>Original final quantity</dt><dd>{{ item.quantity.original }} {{ item.quantity.unit }}</dd></div>
+                                <div><dt>Exact quantity</dt><dd>{{ item.quantity.original }} {{ item.quantity.unit }}</dd></div>
                                 <div><dt>Waste allowance</dt><dd>{{ amount(item.waste) }}{% if item.waste.known %}%{% endif %}</dd></div>
-                                <div><dt>Rounding</dt><dd>{{ item.rounding }}</dd></div>
                             </dl>
-                            {% if item.formula %}<p><strong>Base formula:</strong> {{ item.formula }}. Quantities use compatible units before applying waste and whole-item rounding.</p>{% endif %}
-                            {% if item.explanation %}<p>{{ item.explanation }}</p>{% endif %}
-                            {% if item.manual %}<p>Manual quantity includes any stated waste allowance. See the material notes for the basis of this estimate.</p>{% endif %}
-                            {% if item.inputs %}<h4>Calculation inputs</h4><ul>{% for input in item.inputs %}<li>{{ input.name|default('Input')|replace('_', ' ')|capitalize }}: {{ input.value|default('Not supplied') }} {{ input.unit|default('') }}{% if input.assumption %} &mdash; Assumption: {{ input.assumption }}{% endif %}</li>{% endfor %}</ul>{% endif %}
+                            {% if item.inputs %}<h4>Calculation inputs</h4><ul>{% for input in item.inputs %}<li>{{ input.name|default('Input')|replace('_', ' ')|capitalize }}: {{ input.value|default('Not supplied') }} {{ input.unit|default('') }}</li>{% endfor %}</ul>{% endif %}
                         </article>
                     {% endfor %}
                     <a href="{{ url_for('planner.planning_job_result', job_id=job.id) }}">View original plan data (JSON)</a>
@@ -164,14 +184,19 @@
     {% endif %}
     <footer class="plan-footer">
         <a class="plan-button" href="{{ url_for('planner.planner') }}">Start a new project</a>
-        <a href="{{ url_for('planner.planning_history') }}">Saved planning jobs</a>
+        <a href="{{ url_for('planner.planning_history') }}">Planning history</a>
         {% if job.status == 'failed' %}
-            <form method="post" action="{{ url_for('planner.planning_job_retry', job_id=job.id) }}"><input type="hidden" name="plannerToken" value="{{ planner_token }}"><button type="submit">Retry unfinished work</button></form>
+            <form method="post" action="{{ url_for('planner.planning_job_retry', job_id=job.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit">Retry unfinished work</button></form>
         {% endif %}
         {% if job.status in ['queued', 'running', 'needs_input'] %}
-            <form method="post" action="{{ url_for('planner.planning_job_cancel', job_id=job.id) }}"><input type="hidden" name="plannerToken" value="{{ planner_token }}"><button class="plan-button-secondary" type="submit">Cancel planning</button></form>
+            <form method="post" action="{{ url_for('planner.planning_job_cancel', job_id=job.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="plan-button-secondary" type="submit">Cancel planning</button></form>
         {% endif %}
     </footer>
 </section>
 <script src="{{ url_for('static', filename='js/planner-job.js') }}" defer></script>
+{% endblock %}
+
+{% block footer %}
+    {% set hide_estimate_disclaimer = true %}
+    {% include "site_footer.html" %}
 {% endblock %}

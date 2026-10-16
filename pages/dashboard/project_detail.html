@@ -1,48 +1,232 @@
 {% extends "dashboard/layout.html" %}
 
+{# project comes from read_project (services/projects.py), plan from plan_presentation
+   (planning/presentation.py) and crew from crew_estimate (services/crews.py). #}
+
 {% block title %}
-    Project Details - BuildBetter
+    {{ project.name }} - BuildBetter
 {% endblock %}
+
+{% block flash_messages %}
+{% endblock %}
+
+{% macro amount(quantity) -%}
+    {% if quantity.approximate %}<span aria-hidden="true">&asymp; </span><span class="sr-only">Approximately </span>{% endif %}{{ quantity.value }}
+{%- endmacro %}
 
 {% block dashboard_content %}
     <nav class="dashboard-breadcrumb" aria-label="Breadcrumb">
-        <a href="{{ url_for('dashboard.dashboard') }}">Overview</a>
-        <span>/</span>
         <a href="{{ url_for('dashboard.projects') }}">My Projects</a>
-        <span>/</span>
-        <span>Project Details</span>
+        <span aria-hidden="true">/</span>
+        <span>{{ project.name }}</span>
     </nav>
     <div class="dashboard-page-heading">
         <div>
-            <p class="dashboard-eyebrow">SAVED PROJECT</p>
-            <h1>{{ project.name if project else 'Project details' }}</h1>
-            {% if project and project.description %}
-                <p>{{ project.description }}</p>
-            {% endif %}
+            <p class="dashboard-eyebrow">{{ project.type }}</p>
+            <h1>{{ project.name }}</h1>
+            <p class="project-heading-meta">
+                <span class="status-tag status-{{ project.status_tone }}">{{ project.status }}</span>
+                <span>Updated <time data-timestamp="{{ project.updated }}"></time></span>
+            </p>
         </div>
     </div>
-    {% if project %}
-        <section class="dashboard-card dashboard-detail-card">
-            <h2>Project details</h2>
-            <dl class="dashboard-detail-list">
-                <div>
-                    <dt>Status</dt>
-                    <dd>{{ project.status or '—' }}</dd>
-                </div>
-                <div>
-                    <dt>Created</dt>
-                    <dd>{{ project.created_at or '—' }}</dd>
-                </div>
-                <div>
-                    <dt>Last modified</dt>
-                    <dd>{{ project.updated_at or '—' }}</dd>
-                </div>
-                <div>
-                    <dt>Estimated materials cost</dt>
-                    <dd>{{ project.estimated_materials_cost or '—' }}</dd>
-                </div>
-            </dl>
-            <a class="dashboard-button dashboard-button-secondary" href="{{ url_for('dashboard.material_list_detail', project_id=project.id) }}">View material list</a>
-        </section>
+    {% for category, message in get_flashed_messages(with_categories=True) %}
+        <p class="dashboard-message {{ category }} project-message" role="{{ 'alert' if category == 'error' else 'status' }}">{{ message }}</p>
+    {% endfor %}
+
+    {% if project.job_running %}
+        <p class="project-notice">The AI Planner is revising this plan. Your saved estimate below stays the same until you update the project.</p>
+    {% elif project.update_available %}
+        <form class="project-notice" method="post" action="{{ url_for('planner.planning_job_save', job_id=project.job_id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="name" value="{{ project.name }}">
+            <input type="hidden" name="return_to" value="project">
+            <span>A revised AI plan is ready for this project.</span>
+            <button class="dashboard-button dashboard-button-primary" type="submit">Update Project</button>
+        </form>
     {% endif %}
+
+    <section class="dashboard-card dashboard-detail-card project-section" id="overview" aria-labelledby="overview-title">
+        <h2 id="overview-title">Project overview</h2>
+        <dl class="dashboard-detail-list project-facts">
+            <div><dt>Type</dt><dd>{{ project.type }}</dd></div>
+            <div><dt>Status</dt><dd>{{ project.status }}</dd></div>
+            <div><dt>Created</dt><dd><time data-timestamp="{{ project.created }}"></time></dd></div>
+            <div><dt>Last updated</dt><dd><time data-timestamp="{{ project.updated }}"></time></dd></div>
+        </dl>
+        {% if plan.description %}
+            <h3>AI summary</h3>
+            <p>{{ plan.description }}</p>
+        {% endif %}
+        {% if plan.request %}
+            <h3>Original request</h3>
+            <p>{{ plan.request }}</p>
+        {% endif %}
+        {% if plan.specs %}
+            <dl class="dashboard-detail-list project-specs">
+                {% for spec in plan.specs %}
+                    <div><dt>{{ spec.label }}</dt><dd>{{ spec.value }}</dd></div>
+                {% endfor %}
+            </dl>
+        {% endif %}
+        {% if plan.answers %}
+            <h3>Your answers to the planner</h3>
+            <dl class="project-answers">
+                {% for answer in plan.answers %}
+                    <div><dt>{{ answer.question }}</dt><dd>{{ answer.answer }}</dd></div>
+                {% endfor %}
+            </dl>
+        {% endif %}
+        {% if plan.review_reason or plan.warnings or plan.questions %}
+            <div class="project-warnings">
+                <h3>Review notes</h3>
+                <ul>
+                    {% if plan.review_reason %}<li>{{ plan.review_reason }}</li>{% endif %}
+                    {% for warning in plan.warnings %}<li>{{ warning }}</li>{% endfor %}
+                    {% for question in plan.questions %}<li>Needs confirmation: {{ question }}</li>{% endfor %}
+                </ul>
+            </div>
+        {% endif %}
+    </section>
+
+    <section class="dashboard-card dashboard-detail-card project-section" id="materials" aria-labelledby="materials-title">
+        <div class="dashboard-section-heading">
+            <h2 id="materials-title">Materials list</h2>
+            <span class="dashboard-muted">{{ plan.materials|length }} material{{ '' if plan.materials|length == 1 else 's' }}</span>
+        </div>
+        {% if plan.materials %}
+            <div class="dashboard-table-wrap">
+                <table class="dashboard-data-table project-materials">
+                    <thead>
+                        <tr>
+                            <th scope="col">Material</th>
+                            <th scope="col">Quantity</th>
+                            <th scope="col">Unit</th>
+                            <th scope="col">Waste</th>
+                            <th scope="col">Specification &amp; notes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in plan.materials %}
+                            <tr>
+                                <th scope="row">{{ item.name }}<small>{{ item.verification }}</small></th>
+                                <td>{{ amount(item.quantity) }}</td>
+                                <td>{{ item.quantity.unit or '—' }}</td>
+                                <td>{% if item.waste.known %}{{ amount(item.waste) }}%{% else %}—{% endif %}</td>
+                                <td class="project-material-notes">
+                                    {{ item.specification or '—' }}
+                                    {% if item.notes %}<small>{{ item.notes }}</small>{% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <p class="dashboard-muted">Material quantities could not be determined from the project details.</p>
+        {% endif %}
+        {% if plan.assumptions %}
+            <details class="project-more">
+                <summary>Planner assumptions ({{ plan.assumptions|length }})</summary>
+                <ul>{% for item in plan.assumptions %}<li>{{ item }}</li>{% endfor %}</ul>
+            </details>
+        {% endif %}
+        <p class="dashboard-muted project-footnote">Planning estimate, not engineering approval. Verify measurements and quantities before purchasing.</p>
+    </section>
+
+    {% if project.crew and project.crew.source == 'preset' %}
+        {% set crew_url = url_for('crews.crews', project_id=project.id, project=project.crew.preset, size=project.crew.size, _anchor='estimate') %}
+    {% elif project.crew %}
+        {% set crew_url = url_for('crews.crews', project_id=project.id, crew='custom', _anchor='estimate') %}
+    {% else %}
+        {% set crew_url = url_for('crews.crews', project_id=project.id) %}
+    {% endif %}
+    <section class="dashboard-card dashboard-detail-card project-section" id="crew" aria-labelledby="crew-title">
+        <div class="dashboard-section-heading">
+            <h2 id="crew-title">Crew &amp; labor</h2>
+            {% if crew %}<span class="dashboard-muted">{{ crew.label }}</span>{% endif %}
+        </div>
+        {% if crew %}
+            <dl class="dashboard-detail-list project-facts">
+                <div><dt>Estimated labor cost</dt><dd class="project-cost">{{ crew.cost }}</dd></div>
+                <div><dt>Working days</dt><dd>{{ crew.days }}</dd></div>
+                <div><dt>Workers</dt><dd>{{ crew.workers }}</dd></div>
+                <div><dt>Full crew per hour</dt><dd>{{ crew.hourly }}</dd></div>
+            </dl>
+            <div class="dashboard-table-wrap">
+                <table class="dashboard-data-table">
+                    <thead>
+                        <tr>
+                            <th scope="col">Specialty</th>
+                            <th scope="col">Workers</th>
+                            <th scope="col">Rate / hr</th>
+                            <th scope="col">Crew / hr</th>
+                            <th scope="col">Days on site</th>
+                            <th scope="col">Labor cost</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in crew.rows %}
+                            <tr>
+                                <th scope="row">{{ row.name }}</th>
+                                <td>{{ row.workers }}</td>
+                                <td>{{ row.rate }}</td>
+                                <td>{{ row.hourly }}</td>
+                                <td>{{ row.days }}</td>
+                                <td>{{ row.cost }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <p class="dashboard-muted project-footnote">Estimated labor only, using illustrative rates and 8-hour days. Not a booking or confirmed quote; materials, equipment, permits and taxes are not included.</p>
+            <div class="project-actions">
+                <a class="dashboard-button dashboard-button-secondary" href="{{ crew_url }}">Edit crew</a>
+                <form method="post" action="{{ url_for('dashboard.project_crew_remove', project_id=project.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button class="dashboard-text-link project-link-button" type="submit">Remove crew</button>
+                </form>
+            </div>
+        {% else %}
+            <p class="dashboard-muted">No crew selected. Choose a recommended crew or build your own to estimate labor costs.</p>
+            <div class="project-actions">
+                <a class="dashboard-button dashboard-button-secondary" href="{{ crew_url }}">Add a crew</a>
+            </div>
+        {% endif %}
+    </section>
+
+    <section class="dashboard-card dashboard-detail-card project-section" id="actions" aria-labelledby="actions-title">
+        <h2 id="actions-title">Project actions</h2>
+        <div class="project-actions">
+            {% if project.job_exists %}
+                <a class="dashboard-button dashboard-button-secondary" href="{{ url_for('planner.planning_job', job_id=project.job_id) }}">View AI Plan</a>
+            {% endif %}
+            <form method="post" action="{{ url_for('dashboard.project_completed', project_id=project.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                {% if project.completed %}
+                    <input type="hidden" name="completed" value="no">
+                    <button class="dashboard-button dashboard-button-secondary" type="submit">Reopen project</button>
+                {% else %}
+                    <input type="hidden" name="completed" value="yes">
+                    <button class="dashboard-button dashboard-button-secondary" type="submit">Mark as completed</button>
+                {% endif %}
+            </form>
+        </div>
+        <form class="project-rename" method="post" action="{{ url_for('dashboard.project_rename', project_id=project.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <label for="project-name">Project name</label>
+            <div>
+                <input id="project-name" name="name" type="text" maxlength="120" value="{{ project.name }}" required>
+                <button class="dashboard-button dashboard-button-secondary" type="submit">Rename</button>
+            </div>
+        </form>
+        <details class="project-delete">
+            <summary>Delete project</summary>
+            <form method="post" action="{{ url_for('dashboard.project_delete', project_id=project.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <p>Delete &ldquo;{{ project.name }}&rdquo; and its saved crew? The AI plan stays in your planning history.</p>
+                <button class="dashboard-button dashboard-button-danger" type="submit">Yes, delete project</button>
+            </form>
+        </details>
+    </section>
 {% endblock %}

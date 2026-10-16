@@ -13,24 +13,33 @@ async function updateJob() {
         }
         const job = await response.json();
         failures = 0;
-        progress.textContent = job.status === "queued" ? "Waiting to start" : job.phase;
+        progress.textContent = job.status === "queued" ? "Queued for planning" : job.phase;
         if (!["queued", "running"].includes(job.status)) {
             window.location.reload();
             return;
         }
         window.setTimeout(updateJob, 2000);
-    } catch (error) {
+    } catch {
         failures += 1;
         if (failures < 3) {
             window.setTimeout(updateJob, 4000);
         } else {
-            progress.textContent = "Progress is temporarily unavailable. Refresh this page to try again.";
+            progress.textContent = "Progress unavailable. Refresh to try again.";
         }
     }
 }
 
 if (jobPage) {
     window.setTimeout(updateJob, 2000);
+}
+
+// Save Project: disable the button after the first click so it is only sent once.
+// (The server also refuses to make a second project from the same plan.)
+const saveForms = document.querySelectorAll("form[data-save-project]");
+for (const form of saveForms) {
+    form.addEventListener("submit", function () {
+        form.querySelector("button[type=submit]").disabled = true;
+    });
 }
 
 // Long estimates are searchable; all materials remain visible without JavaScript.

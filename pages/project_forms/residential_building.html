@@ -1,45 +1,28 @@
 <section
     id="residential_building-questions-step"
     class="planner-step template-questions"
-    {% if project_template != "residential_building" %}hidden{% endif %}
+    {% if project_mode != "template" or project_template != "residential_building" %}hidden{% endif %}
 >
-    <h1>Residential Building Details</h1>
+    <button class="template-back step-back" type="button">&larr; All templates</button>
+    <h2 tabindex="-1">Residential building details</h2>
     <form method="post" action="{{ url_for('planner.submit_planning_job') }}">
         <input type="hidden" name="projectMode" value="template">
         <input type="hidden" name="projectTemplate" value="{{ template_id }}">
-        <label for="residential-floors">Number of floors</label>
-        <input
-            id="residential-floors"
-            name="floors"
-            type="number"
-            min="1"
-            step="1"
-            value="{{ form_data.get('floors', '') }}"
-            required
-        >
-        <label for="residential-bedrooms">Number of bedrooms</label>
-        <input
-            id="residential-bedrooms"
-            name="bedrooms"
-            type="number"
-            min="1"
-            step="1"
-            value="{{ form_data.get('bedrooms', '') }}"
-            required
-        >
-        <label for="residential-bathrooms">Number of bathrooms</label>
-        <input
-            id="residential-bathrooms"
-            name="bathrooms"
-            type="number"
-            min="1"
-            step="1"
-            value="{{ form_data.get('bathrooms', '') }}"
-            required
-        >
-        <label for="residential-description">Additional description</label>
-        <textarea id="residential-description" class="planner-input" name="userInput">{{ form_data.get('userInput', '') }}</textarea>
+        <fieldset class="field-group">
+            <legend>Layout</legend>
+            <div class="field-row">
+                {% for field_id, name, label in [('residential-floors', 'floors', 'Floors'), ('residential-bedrooms', 'bedrooms', 'Bedrooms'), ('residential-bathrooms', 'bathrooms', 'Bathrooms')] %}
+                    <div class="form-field">
+                        <label for="{{ field_id }}">{{ label }}</label>
+                        <input id="{{ field_id }}" name="{{ name }}" type="number" inputmode="numeric" min="{{ 1 if name == 'floors' else 0 }}" step="1" value="{{ form_data.get(name, '') }}" required>
+                    </div>
+                {% endfor %}
+            </div>
+        </fieldset>
+        <div class="form-field">
+            <label for="residential-description">Additional description <span class="optional">(optional)</span></label>
+            <textarea id="residential-description" class="planner-input" name="userInput" placeholder="Square footage, style, foundation type...">{{ form_data.get('userInput', '') }}</textarea>
+        </div>
         {% include "project_forms/plan_buttons.html" %}
-        <button class="template-back" type="button">Back</button>
     </form>
 </section>

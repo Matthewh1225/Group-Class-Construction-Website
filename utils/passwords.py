@@ -1,4 +1,9 @@
 import bcrypt
+import sys
+
+
+# Share Python's exact Unicode digit set with browser validation.
+PASSWORD_DIGITS = "".join(chr(code) for code in range(sys.maxunicode + 1) if chr(code).isdigit())
 
 
 def validate_password(password):
@@ -6,21 +11,13 @@ def validate_password(password):
         raise ValueError("Password must be at least 3 characters.")
     # bcrypt counts bytes, so some characters take up more than one
     if len(password.encode("utf-8")) > 72:
-        raise ValueError("Password must be at most 72 UTF-8 bytes.")
+        raise ValueError("Password is too long.")
     if not any(char.isdigit() for char in password):
         raise ValueError("Password must contain at least one number.")
-    has_special_character = False
-    for char in password:
-        if not char.isalnum() and not char.isspace():
-            has_special_character = True
-            break
-    if not has_special_character:
-        raise ValueError("Password must contain at least one special character.")
 
 
 def hash_password(password):
     validate_password(password)
-    # the random salt means matching passwords can have different hashes
     return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
 
 
@@ -28,7 +25,6 @@ def verify_password_hash(password, stored_pass):
     if not isinstance(password, str) or not isinstance(stored_pass, str):
         return False
     try:
-        # bcrypt checks the saved hash without decrypting it
         return bcrypt.checkpw(password.encode("utf-8"), stored_pass.encode("utf-8"))
     except ValueError:
         return False

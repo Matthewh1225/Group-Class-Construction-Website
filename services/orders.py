@@ -1,31 +1,30 @@
-"""Future orders services. Backend implementation is pending."""
-
-
-def get_user_orders(user_id):
-    'the order history for a user.'
-    pass
-
-
-def get_order_by_id(order_id, user_id):
-    'single order with ownership validation.'
-    pass
-
-
-def get_order_items(order_id, user_id):
-    'Retrieve products and quantities in an order.'
-    pass
-
-
-def get_order_status(order_id, user_id):
-    'Retrieve the current status of an order.'
-    pass
+"Order service placeholders."
 
 
 def create_order(user_id, checkout_data):
-    'Create a customer order from validated checkout information.'
+    "Place a TEST order for everything in the user's cart. Returns the order id. Raises ValueError if the cart cannot be bought."
     pass
 
+def get_user_orders(user_id):
+    "Retrieve the user's order history, newest first, ready to show on the Orders page."
+    pass
+
+def get_order_by_id(order_id, user_id):
+    "Retrieve one of the user's orders for display, or None if it does not exist or belongs to someone else."
+    pass
+
+def get_order_items(order_id, user_id):
+    "Retrieve the products and quantities in one of the user's orders."
+    pass
 
 def get_order_confirmation(order_id, user_id):
-    "Retrieve verified order and payment details for the order's owner."
+    "Retrieve the order and its items for the confirmation page, or None if it is not the user's order."
+    pass
+
+def get_order_status(order_id, user_id):
+    "Retrieve the current status of an order."
+    pass
+
+def cancel_order(user_id, order_id):
+    "Cancel the user's own pending order and release its stock. Returns True if it was cancelled."
     pass

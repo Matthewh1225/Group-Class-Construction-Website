@@ -4,15 +4,17 @@
     User Management - BuildBetter
 {% endblock %}
 
+{# this page shows its messages inside the user management area instead #}
+{% block flash_messages %}
+{% endblock %}
+
 {% block dashboard_content %}
-    {# Admin views use the complete user collection supplied by the existing route. #}
     {% set admin_count = users|selectattr('permission_level', 'equalto', 'admin')|list|length %}
     <div class="admin-workspace" id="admin-workspace" data-current-user-id="{{ session.get('user_id') }}">
         <div class="dashboard-page-heading">
             <div>
                 <p class="dashboard-eyebrow" id="admin-eyebrow">ADMINISTRATION / USER MANAGEMENT</p>
                 <h1 id="admin-page-title">User Management</h1>
-                <p id="admin-page-description">Manage user accounts, view roles, and control account access.</p>
             </div>
             <button class="dashboard-button dashboard-button-primary" type="button" data-open-add-user><span aria-hidden="true">+</span> Add User</button>
         </div>
@@ -57,7 +59,6 @@
             <div class="admin-table-heading">
                 <div>
                     <h2 id="admin-users-title">Registered users</h2>
-                    <p>All accounts across BuildBetter.</p>
                 </div>
                 <span class="admin-total-label">{{ users|length }} accounts</span>
             </div>
@@ -104,6 +105,7 @@
                         <th scope="col" aria-sort="none" data-sort-column="role">
                             <button type="button" data-sort="role">Role <span data-sort-indicator="role" aria-hidden="true">&updownarrow;</span></button>
                         </th>
+                        <th scope="col">Status</th>
                         <th scope="col" aria-sort="none" data-sort-column="joined">
                             <button type="button" data-sort="joined">Joined <span data-sort-indicator="joined" aria-hidden="true">&updownarrow;</span></button>
                         </th>
@@ -112,7 +114,7 @@
                 </thead>
                 <tbody id="user-list">
                     {% for user in users %}
-                        <tr class="admin-user-row" data-user-id="{{ user.id }}" data-username="{{ user.username }}" data-email="{{ user.email }}" data-role="{{ user.permission_level }}" data-joined="{{ user.created_at or '' }}">
+                        <tr class="admin-user-row" data-user-id="{{ user.id }}" data-username="{{ user.username }}" data-email="{{ user.email }}" data-role="{{ user.permission_level }}" data-status="{{ user.status }}" data-joined="{{ user.created_at or '' }}">
                             <td class="admin-user-cell">
                                 <div class="admin-user-identity">
                                     <span class="admin-avatar" aria-hidden="true">{{ (user.username or '?')[:1]|upper }}</span>
@@ -128,6 +130,13 @@
                                 </div>
                             </td>
                             <td class="admin-role-cell"><span class="admin-role-badge {{ 'admin-role-admin' if user.permission_level == 'admin' else 'admin-role-user' }}">{{ 'Admin' if user.permission_level == 'admin' else 'User' }}</span></td>
+                            <td class="admin-status-cell">
+                                {% if user.status == 'disabled' %}
+                                    <span class="admin-status-badge admin-status-disabled">Disabled</span>
+                                {% else %}
+                                    <span class="admin-status-badge admin-status-active">Active</span>
+                                {% endif %}
+                            </td>
                             <td class="admin-joined-cell">
                                 <time data-user-date>{% if user.created_at %}{{ user.created_at }}{% else %}&mdash;{% endif %}</time>
                             </td>
@@ -140,14 +149,21 @@
                                         Details
                                     </button>
                                     {% if user.id != session.get('user_id') %}
-                                        <form class="admin-delete-form" method="post" action="{{ url_for('dashboard.delete_user', user_id=user.id) }}">
-                                            <button class="admin-row-button admin-row-danger" type="submit" aria-label="Delete {{ user.username }}">
-                                                <svg class="dashboard-icon" aria-hidden="true">
-                                                    <use href="#icon-trash"/>
-                                                </svg>
-                                                Delete
-                                            </button>
-                                        </form>
+                                        {% if user.status == 'disabled' %}
+                                            <form method="post" action="{{ url_for('dashboard.change_user_status', user_id=user.id) }}">
+                                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                <input type="hidden" name="status" value="active">
+                                                <button class="admin-row-button" type="submit" aria-label="Enable account for {{ user.username }}">Enable Account</button>
+                                            </form>
+                                        {% else %}
+                                            <button class="admin-row-button" type="button" data-disable-user data-status-url="{{ url_for('dashboard.change_user_status', user_id=user.id) }}" aria-label="Disable account for {{ user.username }}">Disable Account</button>
+                                        {% endif %}
+                                        <button class="admin-row-button admin-row-danger" type="button" data-delete-user data-delete-url="{{ url_for('dashboard.delete_user', user_id=user.id) }}" aria-label="Delete {{ user.username }} completely">
+                                            <svg class="dashboard-icon" aria-hidden="true">
+                                                <use href="#icon-trash"/>
+                                            </svg>
+                                            Delete Completely
+                                        </button>
                                     {% else %}
                                         <span class="admin-self-note">Your account</span>
                                     {% endif %}
@@ -156,7 +172,7 @@
                         </tr>
                     {% endfor %}
                     <tr id="admin-empty-row" {% if users %}hidden{% endif %}>
-                        <td colspan="4">
+                        <td colspan="5">
                             <div class="admin-table-empty">
                                 <h3 id="admin-empty-title">No users found</h3>
                                 <p id="admin-empty-description">Create an account using Add User.</p>
@@ -186,5 +202,5 @@
 {% endblock %}
 
 {% block dashboard_scripts %}
-    <script src="{{ url_for('static', filename='js/admin-dashboard.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='js/admin-dashboard.js') }}" type="module"></script>
 {% endblock %}

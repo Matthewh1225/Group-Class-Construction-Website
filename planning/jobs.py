@@ -1,9 +1,8 @@
-"""A small durable SQLite queue, shared by Flask and a separate planner worker.
+# This file stores planner jobs, plus the projects users save from them (the saved_projects table, used by services/projects.py).
+# Existing MySQL catalog and account code is unchanged.
+# The web server and worker must use the same persistent local file.
 
-This stores planner jobs only. Existing MySQL catalog and account code is unchanged.
-The web server and worker must use the same persistent local file.
-"""
-
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -16,11 +15,18 @@ from .ai_config import WORKFLOW_TIERS, WORKFLOW_VERSION
 
 
 class LeaseLost(ValueError):
-    """The worker cannot save a job it no longer owns."""
+    pass
 
 
 def database_path():
-    default = Path(__file__).resolve().parents[1] / "data" / "planner_jobs.sqlite3"
+    # Flask and the worker share this path.
+# DATABASE_ENV=test (the MySQL test database) also switches to a separate test file, made by sql/setup_test_database.py, so testing never touches real plans.
+    # PLANNER_JOB_DATABASE overrides both (the unit tests use a temporary file).
+    data_folder = Path(__file__).resolve().parents[1] / "data"
+    if os.getenv("DATABASE_ENV") == "test":
+        default = data_folder / "planner_jobs_test.sqlite3"
+    else:
+        default = data_folder / "planner_jobs.sqlite3"
     return Path(os.getenv("PLANNER_JOB_DATABASE", str(default)))
 
 
@@ -40,6 +46,15 @@ def connection():
             data TEXT NOT NULL, UNIQUE(owner, submission_key)
         )""")
         database.execute("CREATE INDEX IF NOT EXISTS planner_queue ON planner_jobs(status, created)")
+    # A project the user saved from one planner job.
+    # "plan" is a JSON copy of the job's plan at the time it was saved; "crew" is the chosen crew as JSON, or NULL.
+        # UNIQUE(owner, job_id) means one job can only ever become one project.
+        database.execute("""CREATE TABLE IF NOT EXISTS saved_projects (
+            id INTEGER PRIMARY KEY AUTOINCREMENT, owner TEXT NOT NULL, job_id TEXT NOT NULL,
+            name TEXT NOT NULL, plan TEXT NOT NULL, plan_version INTEGER NOT NULL,
+            crew TEXT, completed INTEGER NOT NULL DEFAULT 0,
+            created REAL NOT NULL, updated REAL NOT NULL, UNIQUE(owner, job_id)
+        )""")
         yield database
         database.commit()
     except Exception:
@@ -59,13 +74,11 @@ def decode(row):
 
 
 def submit_job(owner, submission_key, project, tier="fast"):
-    import hashlib
-
     settings = WORKFLOW_TIERS.get(tier)
-    if settings is None or not settings["enabled"]:
-        raise ValueError("This tier is awaiting its required completion gate.")
+    if settings is None:
+        raise ValueError("This planning tier is unavailable.")
     if tier == "pro" and not pro_access_allowed(owner):
-        raise ValueError("Pro access has not been enabled for this account.")
+        raise ValueError(f"{WORKFLOW_TIERS['pro']['label']} access has not been enabled for this account.")
     if not isinstance(submission_key, str) or not 8 <= len(submission_key) <= 100:
         raise ValueError("Reload the planner before submitting this form.")
     encoded = json.dumps({"project": project, "tier": tier}, sort_keys=True, allow_nan=False)
@@ -75,9 +88,9 @@ def submit_job(owner, submission_key, project, tier="fast"):
     owner = str(owner)
     now = time.time()
     job_id = uuid.uuid4().hex
-    data = {"tier": tier, "project": project, "original_request": project,
+    data = {"tier": tier, "project": project,
             "config_version": WORKFLOW_VERSION, "specification_version": 1,
-            "plan_version": 1, "stages": {}, "attempts": [], "answers": [],
+            "stages": {}, "attempts": [], "answers": [],
             "result": None, "error": None}
     with connection() as database:
         # One transaction prevents simultaneous submissions from bypassing quotas.
@@ -107,7 +120,8 @@ def submit_job(owner, submission_key, project, tier="fast"):
 def pro_access_allowed(owner):
     if not str(owner or "").strip():
         return False
-    # Explicit server-side testing access; never read this from a submitted form.
+    # Off unless a developer opts in with PLANNER_PRO_TEST_ACCESS=true in .env, which gives EVERY account Pro.
+    # Never read this from a submitted form.
     if os.getenv("PLANNER_PRO_TEST_ACCESS", "").strip().lower() == "true":
         return True
     allowed = os.getenv("PLANNER_PRO_USER_IDS", "").split(",")
@@ -118,7 +132,6 @@ def pro_access_allowed(owner):
 
 
 def check_queue_capacity(database, owner):
-    """Check the shared queue rules within a caller's write transaction."""
     active = database.execute(
         "SELECT COUNT(*) FROM planner_jobs WHERE owner = ? AND status IN ('queued', 'running')",
         (owner,),
@@ -133,14 +146,18 @@ def check_queue_capacity(database, owner):
 
 
 def check_resume_capacity(database, job):
-    """Check resume gates inside the caller's write transaction."""
     if job["config_version"] != WORKFLOW_VERSION:
         raise ValueError("This job uses an older format. Start a new project.")
-    if not WORKFLOW_TIERS[job["tier"]]["enabled"]:
-        raise ValueError("This tier is awaiting its completion gate.")
     if job["tier"] == "pro" and not pro_access_allowed(job["owner"]):
-        raise ValueError("Pro access has not been enabled for this account.")
+        raise ValueError(f"{WORKFLOW_TIERS['pro']['label']} access has not been enabled for this account.")
     check_queue_capacity(database, job["owner"])
+
+
+def round_attempts(job):
+    # Answering starts a new specification version (a new round).
+    # Older attempts stay in job["attempts"] as history but do not use up the new round's budget.
+    return [attempt for attempt in job["attempts"]
+            if attempt.get("specification_version") == job["specification_version"]]
 
 
 def get_job(job_id, owner):
@@ -150,11 +167,17 @@ def get_job(job_id, owner):
     return decode(row)
 
 
-def list_jobs(owner, limit=20):
+def count_jobs(owner):
+    with connection() as database:
+        return database.execute("SELECT COUNT(*) FROM planner_jobs WHERE owner = ?",
+                                (str(owner),)).fetchone()[0]
+
+
+def list_jobs(owner, limit=20, offset=0):
     with connection() as database:
         rows = database.execute(
-            "SELECT * FROM planner_jobs WHERE owner = ? ORDER BY created DESC LIMIT ?",
-            (str(owner), limit),
+            "SELECT * FROM planner_jobs WHERE owner = ? ORDER BY created DESC, id DESC LIMIT ? OFFSET ?",
+            (str(owner), limit, offset),
         ).fetchall()
     return [decode(row) for row in rows]
 
@@ -190,13 +213,7 @@ def save_job(job, worker):
     for key in ["id", "owner", "status", "phase", "created", "updated"]:
         data.pop(key, None)
     with connection() as database:
-        database.execute("BEGIN IMMEDIATE")
-        previous = database.execute(
-            "SELECT * FROM planner_jobs WHERE id = ? AND worker = ? AND status = 'running'",
-            (job["id"], worker),
-        ).fetchone()
-        if previous is None:
-            raise LeaseLost("This worker no longer owns the job, or the job was cancelled.")
+        # The update only matches while this worker still owns the running job.
         changed = database.execute(
             "UPDATE planner_jobs SET data = ?, status = ?, phase = ?, updated = ?, lease_until = ? WHERE id = ? AND worker = ? AND status = 'running'",
             (json.dumps(data, allow_nan=False), job["status"], job["phase"], time.time(),
@@ -213,20 +230,20 @@ def answer_job(job_id, owner, answers, expected_version):
                                (job_id, str(owner))).fetchone()
         job = decode(row)
         if job is None or job["status"] != "needs_input":
-            raise ValueError("This job is not waiting for answers.")
+            raise ValueError("This job is not ready to accept answers.")
         if expected_version != job["specification_version"]:
             raise ValueError("These questions have changed. Reload the page.")
         check_resume_capacity(database, job)
         questions = job["questions"]
-        if len(answers) != len(questions) or any(not answer.strip() or len(answer) > 2000 for answer in answers):
-            raise ValueError("Answer each question, or enter 'Not sure'.")
+        if len(answers) != len(questions) or any(len(answer) > 2000 for answer in answers):
+            raise ValueError("Submit one answer per question, using at most 2,000 characters each.")
         clarifications = []
         for question, answer in zip(questions, answers):
-            clarifications.append({"id": question["id"], "question": question["question"], "answer": answer.strip()})
+            clarifications.append({"id": question["id"], "question": question["question"],
+                                   "answer": answer.strip() or "Not sure; use reasonable planning assumptions where possible."})
         job["answers"].extend(clarifications)
         job["previous_specification"] = job.get("specification")
         job["specification_version"] += 1
-        job["plan_version"] += 1
         job["stages"] = {}
         job["result"] = None
         job["error"] = None
@@ -246,27 +263,20 @@ def retry_job(job_id, owner):
             raise ValueError("Only a failed job can be retried.")
         settings = WORKFLOW_TIERS[job["tier"]]
         check_resume_capacity(database, job)
-        if len(job["attempts"]) >= settings["max_attempts"]:
+        if len(round_attempts(job)) >= settings["max_attempts"]:
             raise ValueError("This job has exhausted its provider attempts. Start a new project.")
-        stage = job.get("current_stage")
-        if not stage:
-            raise ValueError("This job cannot be resumed. Start a new project.")
-        invocations = job.setdefault("stage_invocations", {})
-        # Both parallel branches may have exhausted recovery. Reset every
-        # unfinished stage in this specification, retaining successful stages.
-        unfinished = {stage}
-        unfinished.update(
-            attempt["name"] for attempt in job["attempts"]
-            if attempt["specification_version"] == job["specification_version"]
-            and attempt["name"] not in job["stages"]
-        )
-        for name in unfinished:
-            invocations[name] = invocations.get(name, 1) + 1
+        # Finished stages are saved in job["stages"] and reused; the rest run again.
         job["error"] = None
         database.execute(
             "UPDATE planner_jobs SET data = ?, status = 'queued', worker = NULL, lease_until = 0, updated = ? WHERE id = ?",
             (json.dumps(job), time.time(), job_id),
         )
+
+
+def delete_planner_jobs(owner):
+    with connection() as database:
+        database.execute("DELETE FROM planner_jobs WHERE owner = ?", (str(owner),))
+        database.execute("DELETE FROM saved_projects WHERE owner = ?", (str(owner),))
 
 
 def cancel_job(job_id, owner):

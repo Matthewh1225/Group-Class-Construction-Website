@@ -1,3 +1,5 @@
+import {passwordChecks} from "./account-forms.js";
+
 (() => {
     const workspace = document.getElementById("admin-workspace");
     if (!workspace) return;
@@ -26,11 +28,10 @@
         return timestamp === null ? "\u2014" : dateFormatter.format(new Date(timestamp));
     }
 
-    // Keep the full collection separate from the filtered and paginated rows.
     const users = Array.from(workspace.querySelectorAll(".admin-user-row")).map((row) => {
         const user = {
             row, id: row.dataset.userId, username: row.dataset.username,
-            email: row.dataset.email, role: row.dataset.role,
+            email: row.dataset.email, role: row.dataset.role, status: row.dataset.status,
             joined: parseDate(row.dataset.joined),
         };
         const time = row.querySelector("[data-user-date]");
@@ -43,7 +44,12 @@
         const query = search.value.trim().toLocaleLowerCase();
         const matched = users.filter((user) => {
             const matchesSearch = user.username.toLocaleLowerCase().includes(query) || user.email.toLocaleLowerCase().includes(query);
-            const matchesRole = roleFilter.value === "all" || (roleFilter.value === "admin" ? user.role === "admin" : user.role !== "admin");
+            let matchesRole = true;
+            if (roleFilter.value === "admin") {
+                matchesRole = user.role === "admin";
+            } else if (roleFilter.value !== "all") {
+                matchesRole = user.role !== "admin";
+            }
             return matchesSearch && matchesRole;
         });
         matched.sort((a, b) => {
@@ -52,8 +58,15 @@
                 if (a.joined === null && b.joined !== null) return 1;
                 if (b.joined === null && a.joined !== null) return -1;
             }
-            const compared = state.sort === "joined" ? (a.joined ?? 0) - (b.joined ?? 0) : collator.compare(a[state.sort], b[state.sort]);
-            return compared ? compared * (state.direction === "asc" ? 1 : -1) : collator.compare(a.id, b.id);
+            let compared;
+            if (state.sort === "joined") {
+                compared = (a.joined ?? 0) - (b.joined ?? 0);
+            } else {
+                compared = collator.compare(a[state.sort], b[state.sort]);
+            }
+            if (compared === 0) return collator.compare(a.id, b.id);
+            if (state.direction === "desc") return -compared;
+            return compared;
         });
         const pages = Math.max(1, Math.ceil(matched.length / state.pageSize));
         state.page = Math.min(Math.max(1, state.page), pages);
@@ -77,10 +90,18 @@
         directionButton.setAttribute("aria-label", state.direction === "asc" ? "Sort descending" : "Sort ascending");
         directionButton.title = directionButton.getAttribute("aria-label");
         workspace.querySelectorAll("[data-sort-column]").forEach((heading) => {
-            heading.setAttribute("aria-sort", heading.dataset.sortColumn === state.sort ? (state.direction === "asc" ? "ascending" : "descending") : "none");
+            let sortDescription = "none";
+            if (heading.dataset.sortColumn === state.sort) {
+                sortDescription = state.direction === "asc" ? "ascending" : "descending";
+            }
+            heading.setAttribute("aria-sort", sortDescription);
         });
         workspace.querySelectorAll("[data-sort-indicator]").forEach((indicator) => {
-            indicator.textContent = indicator.dataset.sortIndicator === state.sort ? (state.direction === "asc" ? "\u2191" : "\u2193") : "\u2195";
+            let arrow = "\u2195";
+            if (indicator.dataset.sortIndicator === state.sort) {
+                arrow = state.direction === "asc" ? "\u2191" : "\u2193";
+            }
+            indicator.textContent = arrow;
         });
     }
 
@@ -91,7 +112,11 @@
     directionButton.addEventListener("click", () => { state.direction = state.direction === "asc" ? "desc" : "asc"; resetPage(); });
     workspace.querySelectorAll("[data-sort]").forEach((button) => {
         button.addEventListener("click", () => {
-            state.direction = state.sort === button.dataset.sort && state.direction === "asc" ? "desc" : "asc";
+            if (state.sort === button.dataset.sort && state.direction === "asc") {
+                state.direction = "desc";
+            } else {
+                state.direction = "asc";
+            }
             state.sort = button.dataset.sort;
             sortSelect.value = state.sort;
             resetPage();
@@ -112,7 +137,6 @@
         document.getElementById("admin-page-title").textContent = overview ? "Admin Overview" : "User Management";
         document.getElementById("dashboard-header-section").textContent = overview ? "Overview" : "Users";
         document.getElementById("admin-eyebrow").textContent = overview ? "ADMINISTRATION / OVERVIEW" : "ADMINISTRATION / USER MANAGEMENT";
-        document.getElementById("admin-page-description").textContent = overview ? "A clear view of your BuildBetter accounts." : "Manage user accounts, view roles, and control account access.";
         document.querySelectorAll("[data-admin-nav]").forEach((link) => {
             if ((link.dataset.adminNav === "overview") === overview) link.setAttribute("aria-current", "page");
             else link.removeAttribute("aria-current");
@@ -131,41 +155,61 @@
             document.getElementById("admin-detail-username").textContent = user.username || "\u2014";
             document.getElementById("admin-detail-email").textContent = user.email || "\u2014";
             document.getElementById("admin-detail-role").textContent = user.role === "admin" ? "Admin" : "User";
+            document.getElementById("admin-detail-status").textContent = user.status === "disabled" ? "Disabled" : "Active";
             document.getElementById("admin-detail-joined").textContent = formatDate(user.joined);
             document.getElementById("admin-detail-id").textContent = user.id;
             detailsDialog.showModal();
         });
     });
 
-    const deleteDialog = document.getElementById("admin-delete-dialog");
-    const confirmDelete = document.getElementById("admin-confirm-delete");
-    let selectedDeleteForm = null;
-    let confirmedDelete = false;
-    let deleting = false;
+    const disableDialog = document.getElementById("admin-disable-dialog");
+    const disableForm = document.getElementById("admin-disable-form");
     users.forEach((user) => {
-        const form = user.row.querySelector(".admin-delete-form");
-        if (!form) return;
-        form.addEventListener("submit", (event) => {
-            if (deleting) { event.preventDefault(); return; }
-            if (!confirmedDelete || selectedDeleteForm !== form) {
-                event.preventDefault();
-                selectedDeleteForm = form;
-                document.getElementById("admin-delete-username").textContent = user.username;
-                deleteDialog.showModal();
-                return;
-            }
-            deleting = true;
-            confirmDelete.disabled = true;
-            confirmDelete.textContent = "Deleting\u2026";
-            form.querySelector("button").disabled = true;
+        const button = user.row.querySelector("[data-disable-user]");
+        if (!button) return;
+        button.addEventListener("click", () => {
+            document.getElementById("admin-disable-username").textContent = user.username;
+            disableForm.action = button.dataset.statusUrl;
+            disableDialog.showModal();
         });
     });
-    confirmDelete.addEventListener("click", () => {
-        if (!selectedDeleteForm || deleting) return;
-        confirmedDelete = true;
-        selectedDeleteForm.requestSubmit();
+
+    // Delete Completely: step 1 is a warning, step 2 asks the admin to type DELETE.
+    // The server checks the typed word again, so this is not the only safeguard.
+    const deleteDialog = document.getElementById("admin-delete-dialog");
+    const deleteWarning = document.getElementById("admin-delete-step-1");
+    const deleteForm = document.getElementById("admin-delete-step-2");
+    const deleteInput = document.getElementById("admin-delete-confirm");
+    const confirmDelete = document.getElementById("admin-confirm-delete");
+    users.forEach((user) => {
+        const button = user.row.querySelector("[data-delete-user]");
+        if (!button) return;
+        button.addEventListener("click", () => {
+            document.getElementById("admin-delete-username").textContent = user.username;
+            deleteForm.action = button.dataset.deleteUrl;
+            deleteWarning.hidden = false;
+            deleteForm.hidden = true;
+            deleteInput.value = "";
+            confirmDelete.disabled = true;
+            deleteDialog.showModal();
+        });
     });
-    deleteDialog.addEventListener("close", () => { confirmedDelete = false; selectedDeleteForm = null; });
+    document.getElementById("admin-delete-continue").addEventListener("click", () => {
+        deleteWarning.hidden = true;
+        deleteForm.hidden = false;
+        deleteInput.focus();
+    });
+    deleteInput.addEventListener("input", () => {
+        confirmDelete.disabled = deleteInput.value !== "DELETE";
+    });
+    deleteForm.addEventListener("submit", (event) => {
+        if (deleteInput.value !== "DELETE") {
+            event.preventDefault();
+            return;
+        }
+        confirmDelete.disabled = true;
+        confirmDelete.textContent = "Deleting\u2026";
+    });
 
     const addDialog = document.getElementById("admin-add-dialog");
     const addForm = document.getElementById("admin-add-form");
@@ -192,19 +236,20 @@
         let error = "";
         if (input.name === "username" || input.name === "email") input.value = input.value.trim();
         if (input.validity.valueMissing) error = "This field is required.";
-        else if (input.name === "email" && input.validity.typeMismatch) error = "Enter a valid email address.";
+        else if (input.name === "username" && input.value.includes("@")) error = "Usernames cannot contain @.";
+        else if (input.name === "email" && input.validity.typeMismatch) error = "Enter a valid email.";
         else if (input.name === "password") {
-            if ([...input.value].length < 3) error = "Use at least 3 characters.";
-            else if (new TextEncoder().encode(input.value).length > 72) error = "Use no more than 72 UTF-8 bytes.";
-            else if (!/\p{N}/u.test(input.value)) error = "Include at least one number.";
-            else if (!/[^\p{L}\p{N}\s]/u.test(input.value)) error = "Include at least one special character.";
+            const checks = passwordChecks(input.value, addForm.dataset.passwordDigits);
+            if (!checks.length) error = "Use at least 3 characters.";
+            else if (!checks.bytes) error = "Use no more than 72 UTF-8 bytes.";
+            else if (!checks.number) error = "Include at least one number.";
         } else if (input.name === "confirm_password" && input.value !== addForm.elements.password.value) error = "Passwords do not match.";
         input.setAttribute("aria-invalid", String(Boolean(error)));
         document.getElementById(`${input.id}-error`).textContent = error;
         return !error;
     }
 
-    const inputs = Array.from(addForm.querySelectorAll("input"));
+    const inputs = Array.from(addForm.querySelectorAll("input:not([type=hidden])"));
     inputs.forEach((input) => {
         input.addEventListener("blur", () => validateField(input));
         input.addEventListener("input", () => {
@@ -254,13 +299,10 @@
     // Back navigation can restore disabled buttons from a cached page.
     window.addEventListener("pageshow", (event) => {
         submitting = false;
-        deleting = false;
-        confirmedDelete = false;
         createButton.disabled = false;
         createButton.textContent = "Create User";
-        confirmDelete.disabled = false;
-        confirmDelete.textContent = "Delete User";
-        workspace.querySelectorAll(".admin-delete-form button").forEach((button) => { button.disabled = false; });
+        confirmDelete.disabled = deleteInput.value !== "DELETE";
+        confirmDelete.textContent = "Delete Completely";
         if (event.persisted) {
             addForm.elements.password.value = "";
             addForm.elements.confirm_password.value = "";

@@ -1,83 +1,93 @@
 {% extends "dashboard/layout.html" %}
-{% from "dashboard/project_card.html" import project_card %}
+{% from "dashboard/project_list.html" import project_list %}
+{% from "dashboard/empty_state.html" import empty_state %}
 
 {% block title %}
     Dashboard - BuildBetter
 {% endblock %}
 
+{% macro stat_value(value) -%}
+    {# a missing count means that part of the backend is not connected yet #}
+    {% if value is not none %}
+        <strong>{{ value }}</strong>
+    {% else %}
+        <strong aria-hidden="true">&mdash;</strong>
+        <span class="dashboard-stat-note">Not connected yet</span>
+    {% endif %}
+{%- endmacro %}
+
 {% block dashboard_content %}
     <div class="dashboard-page-heading">
         <div>
-            <p class="dashboard-eyebrow">YOUR WORKSPACE</p>
-            <h1>Welcome back{% if username %}, {{ username }}{% endif %}!</h1>
-            <p>Manage your projects, materials, and orders.</p>
+            <p class="sheet-tag"><span>D-01</span>Your workspace</p>
+            <h1>Welcome back{% if username %}, {{ username }}{% endif %}.</h1>
         </div>
     </div>
     <section class="dashboard-hero" aria-labelledby="planner-cta-title">
         <div>
-            <span class="dashboard-hero-icon">
-                <svg class="dashboard-icon">
-                    <use href="#icon-spark"/>
-                </svg>
-            </span>
-            <h2 id="planner-cta-title">Ready to start something new?</h2>
-            <p>Describe your construction project and generate a materials estimate.</p>
+            <h2 id="planner-cta-title">Ready to draw up something new?</h2>
+            <p>Describe your project or pick a template, and the AI Planner drafts the materials list.</p>
             <a class="dashboard-button dashboard-button-primary" href="{{ url_for('planner.planner') }}">
-                Start AI Project Planner
-                <svg class="dashboard-icon">
+                Open the AI Planner
+                <svg class="dashboard-icon" aria-hidden="true">
                     <use href="#icon-arrow"/>
                 </svg>
             </a>
         </div>
-        <div class="dashboard-hero-decoration" aria-hidden="true">
-            <span></span>
-            <span></span>
-            <span></span>
-        </div>
+        <svg class="dashboard-hero-drawing" viewBox="0 0 300 170" aria-hidden="true" focusable="false">
+            <path class="m" d="M20 140H280M60 146V160M240 146V160M60 153H240M260 40V140M254 40H266M254 140H266"/>
+            <text x="150" y="168" text-anchor="middle">YOUR NEXT BUILD</text>
+            <path class="o" d="M60 140V80L150 30L240 80V140ZM46 86L150 24L254 86M132 140V100H168V140M80 92H112V118H80ZM188 92H220V118H188Z"/>
+        </svg>
     </section>
     <section class="dashboard-section" aria-label="Workspace summary">
         <div class="dashboard-stat-grid">
-            <a class="dashboard-card dashboard-stat" href="{{ url_for('dashboard.projects') }}">
+            <a class="dashboard-card dashboard-stat dashboard-stat-featured" href="{{ url_for('dashboard.projects') }}">
                 <span class="dashboard-stat-icon">
-                    <svg class="dashboard-icon">
+                    <svg class="dashboard-icon" aria-hidden="true">
                         <use href="#icon-folder"/>
                     </svg>
                 </span>
-                <span class="dashboard-stat-label">Saved Projects</span>
-                <strong>{{ project_count if project_count is not none else '—' }}</strong>
+                <span class="dashboard-stat-label">My projects</span>
+                {{ stat_value(project_count) }}
             </a>
-            <a class="dashboard-card dashboard-stat" href="{{ url_for('dashboard.material_lists') }}">
+            <a class="dashboard-card dashboard-stat" href="{{ url_for('planner.planning_history') }}">
                 <span class="dashboard-stat-icon">
-                    <svg class="dashboard-icon">
-                        <use href="#icon-list"/>
+                    <svg class="dashboard-icon" aria-hidden="true">
+                        <use href="#icon-spark"/>
                     </svg>
                 </span>
-                <span class="dashboard-stat-label">Material Lists</span>
-                <strong>{{ material_list_count if material_list_count is not none else '—' }}</strong>
+                <span class="dashboard-stat-label">AI planning history</span>
+                <span class="dashboard-stat-open">Open history <span aria-hidden="true">&rarr;</span></span>
             </a>
             <a class="dashboard-card dashboard-stat" href="{{ url_for('cart') }}">
                 <span class="dashboard-stat-icon">
-                    <svg class="dashboard-icon">
+                    <svg class="dashboard-icon" aria-hidden="true">
                         <use href="#icon-bag"/>
                     </svg>
                 </span>
-                <span class="dashboard-stat-label">Cart Items</span>
-                <strong>{{ cart_count if cart_count is not none else '—' }}</strong>
+                <span class="dashboard-stat-label">Cart items</span>
+                {{ stat_value(cart_count) }}
             </a>
         </div>
     </section>
     <section class="dashboard-section" aria-labelledby="recent-projects-title">
         <div class="dashboard-section-heading">
             <div>
-                <p class="dashboard-eyebrow">PICK UP WHERE YOU LEFT OFF</p>
-                <h2 id="recent-projects-title">Recent Projects</h2>
+                <p class="dashboard-eyebrow">Pick up where you left off</p>
+                <h2 id="recent-projects-title">Recent projects</h2>
             </div>
-            <a class="dashboard-text-link" href="{{ url_for('dashboard.projects') }}">View All Projects <span aria-hidden="true">→</span></a>
+            {% if recent_projects %}
+                <a class="dashboard-text-link" href="{{ url_for('dashboard.projects') }}">View all projects <span aria-hidden="true">&rarr;</span></a>
+            {% endif %}
         </div>
-        <div class="dashboard-project-grid">
-            {% for project in recent_projects %}
-                {{ project_card(project, compact=True) }}
-            {% endfor %}
-        </div>
+        {% if recent_projects %}
+            {{ project_list(recent_projects, 'Recently updated projects') }}
+        {% else %}
+            {% call empty_state('No saved projects yet', 'Plan a project with the AI Planner, then choose Save Project to keep it here.', 'h3') %}
+                <a class="dashboard-button dashboard-button-primary" href="{{ url_for('planner.planner') }}">Open the AI Planner</a>
+                <a class="dashboard-text-link" href="{{ url_for('planner.planning_history') }}">Planning history <span aria-hidden="true">&rarr;</span></a>
+            {% endcall %}
+        {% endif %}
     </section>
 {% endblock %}
