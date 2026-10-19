@@ -16,15 +16,23 @@
                 <p class="dashboard-eyebrow" id="admin-eyebrow">ADMINISTRATION / USER MANAGEMENT</p>
                 <h1 id="admin-page-title">User Management</h1>
             </div>
-            <button class="dashboard-button dashboard-button-primary" type="button" data-open-add-user><span aria-hidden="true">+</span> Add User</button>
+            {% if not users_error %}
+                <button class="dashboard-button dashboard-button-primary" type="button" data-open-add-user><span aria-hidden="true">+</span> Add User</button>
+            {% endif %}
         </div>
         <div id="admin-feedback">
+            {% if users_error %}
+                <p class="dashboard-message error admin-feedback" role="alert">
+                    The user list is temporarily unavailable. Try again shortly.
+                </p>
+            {% endif %}
             {% with messages = get_flashed_messages(with_categories=true) %}
                 {% for category, message in messages %}
                     <p class="dashboard-message {{ category }} admin-feedback" data-flash-category="{{ category }}" role="{{ 'alert' if category == 'error' else 'status' }}">{{ message }}</p>
                 {% endfor %}
             {% endwith %}
         </div>
+        {% if not users_error %}
         <section class="dashboard-stat-grid admin-stat-grid" aria-label="User statistics">
             {% set user_statistics = [
                 ('Total Users', users|length, 'icon-user'),
@@ -43,6 +51,7 @@
                 </div>
             {% endfor %}
         </section>
+        {% endif %}
         <section id="admin-overview" hidden aria-labelledby="admin-overview-title">
             <div class="dashboard-card admin-overview-card">
                 <div class="admin-overview-icon">
@@ -54,6 +63,7 @@
                 <a class="dashboard-button dashboard-button-primary" href="#users">Manage Users <span aria-hidden="true">&rarr;</span></a>
             </div>
         </section>
+        {% if not users_error %}
         <section id="user-management" class="dashboard-card admin-users-card" aria-labelledby="admin-users-title">
             <div class="admin-table-heading">
                 <div>
@@ -195,7 +205,10 @@
                 </div>
             </div>
         </section>
-        {% include 'dashboard/admin_popups.html' %}
+        {% endif %}
+        {% if not users_error %}
+            {% include 'dashboard/admin_popups.html' %}
+        {% endif %}
     </div>
 {% endblock %}
 

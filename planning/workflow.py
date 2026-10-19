@@ -235,7 +235,6 @@ def finish_plan(job, estimate, estimates, checkpoint):
         "planning_status": planning_status,
         "estimate": estimate.model_dump(), "warnings": warnings,
         "independent_estimates": estimates, "review_process_degraded": degraded,
-        "audited": True,
     }
     if not ask_questions(job, questions, checkpoint):
         job["questions"] = []

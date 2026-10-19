@@ -5,13 +5,12 @@ from decimal import Decimal, InvalidOperation
 from .project_forms import PROJECT_TEMPLATES
 
 
-# Saved plans can come from older versions of the planner, so these small helpers read them safely: a missing or wrong-typed value becomes an empty dict, list or string.
-
+# Plans are rendered while they are still being built, so missing values become
+# an empty dict, list, or string until that stage finishes.
 def mapping(value):
     if isinstance(value, dict):
         return value
     return {}
-
 
 def records(value):
     # only the dictionaries in a list
@@ -169,13 +168,27 @@ def status_label(job):
     return STATUS_LABELS.get(status, ("Status unavailable", "neutral"))
 
 
-# Collects everything the plan page shows from a job into one dict.
+def review_reason(job, rows, questions):
+    if job.get("status") != "partial":
+        return ""
+    unknown = 0
+    for row in rows:
+        if not row["quantity"]["known"]:
+            unknown = unknown + 1
+    if unknown == 1:
+        return "1 material quantity could not be determined from the details given."
+    if unknown > 1:
+        return f"{unknown} material quantities could not be determined from the details given."
+    if questions:
+        return "Some project details still need confirmation; see Assumptions & Unresolved Details."
+    return "This saved estimate was marked for review. Check its assumptions and details before using it."
+
+
 def plan_presentation(job):
     result = mapping(job.get("result"))
     estimate = mapping(result.get("estimate"))
-    # older jobs saved the request as "original_request"
-    project = mapping(job.get("project") or job.get("original_request"))
-    specification = mapping(job.get("specification") or result.get("specification"))
+    project = mapping(job.get("project"))
+    specification = mapping(job.get("specification"))
     rows = material_rows(estimate)
     project_type = text(project.get("project_type"))
     title = PROJECT_TEMPLATES.get(project_type, {}).get("title", "Your project") + " plan"
@@ -198,5 +211,7 @@ def plan_presentation(job):
             "materials": rows,
             "material_details": [row for row in rows if row["specification"] or row["notes"]],
             "specs": project_specs(project, specification, job.get("answers")),
-            "details": details,
+            "warnings": project_notices(messages(result.get("warnings"), estimate.get("warnings"))),
+            "assumptions": assumptions,
+            "questions": questions, "details": details,
             "request": text(project.get("description")), "answers": answers}

@@ -1,4 +1,4 @@
-from flask import Blueprint, current_app, redirect, render_template, request, session, url_for
+from flask import Blueprint, current_app, g, redirect, render_template, request, session, url_for
 from mysql.connector import Error, IntegrityError
 
 from utils.database import database_cursor

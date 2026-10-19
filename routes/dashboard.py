@@ -1,7 +1,7 @@
 import sqlite3
 from functools import wraps
 
-from flask import Blueprint, abort, current_app, flash, redirect, render_template, request, session, url_for
+from flask import Blueprint, abort, current_app, flash, g, redirect, render_template, request, session, url_for
 from mysql.connector import Error, IntegrityError
 
 from planning.presentation import plan_presentation
@@ -44,17 +44,28 @@ def dashboard():
             flash(str(error), "error")
         except IntegrityError:
             flash("Username or email already in use.", "error")
+        except Error:
+            current_app.logger.exception("Unable to create an admin user")
+            flash("User creation is temporarily unavailable. Nothing was changed.", "error")
 
         # redirect after POST so refreshing does not create the user again
         return redirect(url_for("dashboard.dashboard"))
 
     if permission_level == "admin":
-        with database_cursor() as cursor:
-            cursor.execute("SELECT id, username, email, permission_level, status, created_at FROM users ORDER BY id")
-            users = cursor.fetchall()
+        users_error = False
+        try:
+            with database_cursor() as cursor:
+                cursor.execute("SELECT id, username, email, permission_level, status, created_at FROM users ORDER BY id")
+                users = cursor.fetchall()
+        except Error:
+            current_app.logger.exception("Unable to load the admin user list")
+            g.database_unavailable = True
+            users = []
+            users_error = True
         return render_template(
             "admin_dashboard.html", username=session.get("username"),
-            permission_level=permission_level, users=users, admin_workspace=True,
+            permission_level=permission_level, users=users, users_error=users_error,
+            admin_workspace=True,
         )
 
     user_id = session["user_id"]
@@ -206,6 +217,10 @@ def change_user_status(user_id):
         found = set_user_status(user_id, status)
     except ValueError as error:
         flash(str(error), "error")
+        return redirect(url_for("dashboard.dashboard"))
+    except Error:
+        current_app.logger.exception("Unable to change status for user %s", user_id)
+        flash("The account status could not be changed. Try again shortly.", "error")
         return redirect(url_for("dashboard.dashboard"))
 
     if not found:

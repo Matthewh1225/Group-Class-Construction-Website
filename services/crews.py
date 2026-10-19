@@ -107,9 +107,6 @@ def crew_estimate(crew):
     total_low = 0
     total_high = 0
     for member in crew["members"]:
-        if member["role"] not in CREW_RATES:
-            # a specialty that was removed from CREW_RATES after this crew was saved
-            continue
         specialty = CREW_RATES[member["role"]]
         hourly = member["workers"] * specialty["rate"]
         low = hourly * HOURS_PER_DAY * member["days"][0]
