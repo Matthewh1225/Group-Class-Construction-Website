@@ -4,7 +4,7 @@ plannerForms.forEach(function (form) {
     form.addEventListener("submit", function () {
         const status = form.querySelector(".plan-status");
         const button = form.querySelector(".planner-generate");
-        status.textContent = "Saving your project and starting planning...";
+        status.textContent = "Starting planning...";
         status.hidden = false;
         button.disabled = true;
         button.classList.add("is-busy");

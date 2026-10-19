@@ -1,6 +1,4 @@
 # This file stores planner jobs, plus the projects users save from them (the saved_projects table, used by services/projects.py).
-# Existing MySQL catalog and account code is unchanged.
-# The web server and worker must use the same persistent local file.
 
 import hashlib
 import json
@@ -11,6 +9,8 @@ import time
 import uuid
 from contextlib import contextmanager
 
+from services.subscriptions import has_active_pro
+
 from .ai_config import WORKFLOW_TIERS, WORKFLOW_VERSION
 
 
@@ -20,8 +20,7 @@ class LeaseLost(ValueError):
 
 def database_path():
     # Flask and the worker share this path.
-# DATABASE_ENV=test (the MySQL test database) also switches to a separate test file, made by sql/setup_test_database.py, so testing never touches real plans.
-    # PLANNER_JOB_DATABASE overrides both (the unit tests use a temporary file).
+    # DATABASE_ENV=test (the MySQL test database)       
     data_folder = Path(__file__).resolve().parents[1] / "data"
     if os.getenv("DATABASE_ENV") == "test":
         default = data_folder / "planner_jobs_test.sqlite3"
@@ -30,6 +29,8 @@ def database_path():
     return Path(os.getenv("PLANNER_JOB_DATABASE", str(default)))
 
 
+# Opens the planner's SQLite file (making the tables if they are missing).
+# Saves the changes when the "with" block ends, or undoes them if an error happens.
 @contextmanager
 def connection():
     path = database_path()
@@ -46,8 +47,8 @@ def connection():
             data TEXT NOT NULL, UNIQUE(owner, submission_key)
         )""")
         database.execute("CREATE INDEX IF NOT EXISTS planner_queue ON planner_jobs(status, created)")
-    # A project the user saved from one planner job.
-    # "plan" is a JSON copy of the job's plan at the time it was saved; "crew" is the chosen crew as JSON, or NULL.
+    # A project the user saved
+    # "plan" is a JSON copy of the job's plan at the time it was saved; "crew" is the crew info as JSON.
         # UNIQUE(owner, job_id) means one job can only ever become one project.
         database.execute("""CREATE TABLE IF NOT EXISTS saved_projects (
             id INTEGER PRIMARY KEY AUTOINCREMENT, owner TEXT NOT NULL, job_id TEXT NOT NULL,
@@ -64,6 +65,7 @@ def connection():
         database.close()
 
 
+# Turns a database row into  dict 
 def decode(row):
     if row is None:
         return None
@@ -73,6 +75,8 @@ def decode(row):
     return job
 
 
+# Adds a new planning job to the queue and returns it. Raises ValueError if a limit is hit
+# Sending the same submission_key twice returns the first job instead of making a second one.
 def submit_job(owner, submission_key, project, tier="fast"):
     settings = WORKFLOW_TIERS.get(tier)
     if settings is None:
@@ -116,21 +120,14 @@ def submit_job(owner, submission_key, project, tier="fast"):
         )
     return get_job(job_id, owner)
 
-
+# Pro is only for signed-in users who have an active Pro subscription.
 def pro_access_allowed(owner):
     if not str(owner or "").strip():
         return False
-    # Off unless a developer opts in with PLANNER_PRO_TEST_ACCESS=true in .env, which gives EVERY account Pro.
-    # Never read this from a submitted form.
-    if os.getenv("PLANNER_PRO_TEST_ACCESS", "").strip().lower() == "true":
-        return True
-    allowed = os.getenv("PLANNER_PRO_USER_IDS", "").split(",")
-    for user_id in allowed:
-        if str(owner) == user_id.strip():
-            return True
-    return False
+    return has_active_pro(owner)
 
 
+# Raises ValueError if this user already has a job waiting or running, or if the queue is full.
 def check_queue_capacity(database, owner):
     active = database.execute(
         "SELECT COUNT(*) FROM planner_jobs WHERE owner = ? AND status IN ('queued', 'running')",
@@ -145,7 +142,8 @@ def check_queue_capacity(database, owner):
         raise ValueError("The planner queue is full. Please try again later.")
 
 
-def check_resume_capacity(database, job):
+# Raises ValueError if a job cannot be put back in the queue 
+def check_requeue(database, job):
     if job["config_version"] != WORKFLOW_VERSION:
         raise ValueError("This job uses an older format. Start a new project.")
     if job["tier"] == "pro" and not pro_access_allowed(job["owner"]):
@@ -160,6 +158,7 @@ def round_attempts(job):
             if attempt.get("specification_version") == job["specification_version"]]
 
 
+# Returns one job if it belongs to this owner, otherwise None.
 def get_job(job_id, owner):
     with connection() as database:
         row = database.execute("SELECT * FROM planner_jobs WHERE id = ? AND owner = ?",
@@ -167,12 +166,14 @@ def get_job(job_id, owner):
     return decode(row)
 
 
+# How many jobs this owner has made in total 
 def count_jobs(owner):
     with connection() as database:
         return database.execute("SELECT COUNT(*) FROM planner_jobs WHERE owner = ?",
                                 (str(owner),)).fetchone()[0]
 
 
+# One page of this owner's jobs, newest first. offset is how many jobs to skip.
 def list_jobs(owner, limit=20, offset=0):
     with connection() as database:
         rows = database.execute(
@@ -182,6 +183,7 @@ def list_jobs(owner, limit=20, offset=0):
     return [decode(row) for row in rows]
 
 
+# The worker takes the oldest queued job and marks it "running" for 5 minutes. Returns None if there is nothing to take.
 def claim_job(worker):
     now = time.time()
     with connection() as database:
@@ -208,6 +210,7 @@ def claim_job(worker):
         return job
 
 
+# Saves a running job's progress. Raises LeaseLost if this worker no longer owns the job (for example it was cancelled).
 def save_job(job, worker):
     data = job.copy()
     for key in ["id", "owner", "status", "phase", "created", "updated"]:
@@ -223,6 +226,7 @@ def save_job(job, worker):
             raise LeaseLost("This worker no longer owns the job, or the job was cancelled.")
 
 
+# Stores the user's answers to the follow-up questions and puts the job back in the queue to plan again.
 def answer_job(job_id, owner, answers, expected_version):
     with connection() as database:
         database.execute("BEGIN IMMEDIATE")
@@ -233,7 +237,7 @@ def answer_job(job_id, owner, answers, expected_version):
             raise ValueError("This job is not ready to accept answers.")
         if expected_version != job["specification_version"]:
             raise ValueError("These questions have changed. Reload the page.")
-        check_resume_capacity(database, job)
+        check_requeue(database, job)
         questions = job["questions"]
         if len(answers) != len(questions) or any(len(answer) > 2000 for answer in answers):
             raise ValueError("Submit one answer per question, using at most 2,000 characters each.")
@@ -253,6 +257,7 @@ def answer_job(job_id, owner, answers, expected_version):
         )
 
 
+# Puts a failed job back in the queue. Raises ValueError if the job did not fail or has used all its attempts.
 def retry_job(job_id, owner):
     with connection() as database:
         database.execute("BEGIN IMMEDIATE")
@@ -262,7 +267,7 @@ def retry_job(job_id, owner):
         if job is None or job["status"] != "failed":
             raise ValueError("Only a failed job can be retried.")
         settings = WORKFLOW_TIERS[job["tier"]]
-        check_resume_capacity(database, job)
+        check_requeue(database, job)
         if len(round_attempts(job)) >= settings["max_attempts"]:
             raise ValueError("This job has exhausted its provider attempts. Start a new project.")
         # Finished stages are saved in job["stages"] and reused; the rest run again.
@@ -273,12 +278,14 @@ def retry_job(job_id, owner):
         )
 
 
+# Deletes all of one user's planning jobs and saved projects (used when their account is deleted).
 def delete_planner_jobs(owner):
     with connection() as database:
         database.execute("DELETE FROM planner_jobs WHERE owner = ?", (str(owner),))
         database.execute("DELETE FROM saved_projects WHERE owner = ?", (str(owner),))
 
 
+# Cancels a job that is queued, running, or waiting for answers. Returns True if it was cancelled.
 def cancel_job(job_id, owner):
     with connection() as database:
         changed = database.execute(

@@ -38,7 +38,7 @@
             </table>
         </div>
     {% else %}
-        {% call empty_state('No orders yet', 'When you check out, your orders and their status will be listed here.') %}
+        {% call empty_state('No orders yet') %}
             <a class="dashboard-button dashboard-button-secondary" href="{{ url_for('products.products') }}">Browse materials</a>
         {% endcall %}
     {% endif %}

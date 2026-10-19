@@ -79,7 +79,6 @@ import {passwordChecks} from "./account-forms.js";
         tableBody.append(emptyRow);
         emptyRow.hidden = matched.length > 0;
         document.getElementById("admin-empty-title").textContent = users.length ? "No matching users" : "No users found";
-        document.getElementById("admin-empty-description").textContent = users.length ? "Try a different name, email, or role." : "Create an account using Add User.";
         document.getElementById("admin-reset-filters").hidden = !query && roleFilter.value === "all";
         document.getElementById("admin-result-count").textContent = matched.length ? `Showing ${start + 1}\u2013${Math.min(start + state.pageSize, matched.length)} of ${matched.length} users` : "Showing 0 users";
         document.getElementById("admin-page-label").textContent = `Page ${state.page} of ${pages}`;

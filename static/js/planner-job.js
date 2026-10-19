@@ -13,11 +13,11 @@ async function updateJob() {
         }
         const job = await response.json();
         failures = 0;
-        progress.textContent = job.status === "queued" ? "Queued for planning" : job.phase;
         if (!["queued", "running"].includes(job.status)) {
             window.location.reload();
             return;
         }
+        progress.textContent = job.status === "queued" ? "Queued for planning" : job.phase;
         window.setTimeout(updateJob, 2000);
     } catch {
         failures += 1;

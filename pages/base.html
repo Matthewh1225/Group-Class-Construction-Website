@@ -12,10 +12,6 @@
         {% endblock %}
     </head>
     <body{% block body_attributes %}{% endblock %}>
-        {# pages can override this block to remove the construction image #}
-        {% block underConstruction %}
-            <img class="under-construction-image" src="{{ url_for('static', filename='images/under_construction.png') }}" alt="BuildBetter">
-        {% endblock %}
         {% block navbar %}
             <nav class="navbar" aria-label="Main navigation">
                 <a href="{{ url_for('home') }}" class="navbar-brand" {% if request.endpoint == 'home' %}aria-current="page"{% endif %}>
@@ -38,7 +34,7 @@
                 <div class="navbar-menu" id="navbar-menu">
                     <a href="{{ url_for('planner.planner') }}" {% if request.blueprint == 'planner' %}aria-current="page"{% endif %}>AI Planner</a>
                     <a href="{{ url_for('products.products') }}" {% if request.blueprint == 'products' %}aria-current="page"{% endif %}>Products</a>
-                    <a href="{{ url_for('crews.crews') }}" {% if request.blueprint == 'crews' %}aria-current="page"{% endif %}>Hire Crews</a>
+                    <a href="{{ url_for('crews.crews') }}" {% if request.blueprint == 'crews' %}aria-current="page"{% endif %}>Crew Costs</a>
                     <a href="{{ url_for('reviews') }}" {% if request.endpoint == 'reviews' %}aria-current="page"{% endif %}>Reviews</a>
                     <a href="{{ url_for('manufacturers') }}" {% if request.endpoint == 'manufacturers' %}aria-current="page"{% endif %}>Manufacturers</a>
                     <a class="nav-account" href="{{ url_for('dashboard.dashboard') }}" {% if request.blueprint in ['dashboard', 'subscription'] %}aria-current="page"{% endif %}>Dashboard</a>
@@ -64,7 +60,7 @@
             {# pages that show their own messages (the admin page) empty this block #}
             {% block flash_messages %}
                 {% for category, message in get_flashed_messages(with_categories=True) %}
-                    <p class="site-message" role="status">{{ message }}</p>
+                    <p class="site-message" role="{{ 'alert' if category == 'error' else 'status' }}">{{ message }}</p>
                 {% endfor %}
             {% endblock %}
             {% block content %}

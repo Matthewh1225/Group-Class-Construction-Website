@@ -33,7 +33,7 @@
                 <select name="status">
                     <option value="">All statuses</option>
                     {% for option in statuses %}
-                        <option value="{{ option }}" {% if option == status %}selected{% endif %}>{{ option }}</option>
+                        <option value="{{ option }}" {% if option == status %}selected{% endif %}>{{ 'Partial result' if option == 'Review Needed' else option }}</option>
                     {% endfor %}
                 </select>
             </label>
@@ -47,12 +47,12 @@
             <p class="dashboard-muted project-no-match">No projects match this search.</p>
         {% endif %}
     {% else %}
-        {% call empty_state('No saved projects yet', 'Plan a project with the AI Planner, then choose Save Project to keep its materials and crew here.') %}
+        {% call empty_state('No saved projects yet') %}
             <a class="dashboard-button dashboard-button-primary" href="{{ url_for('planner.planner') }}">Open the AI Planner</a>
         {% endcall %}
     {% endif %}
 
     <p class="project-history-link">
-        <a class="dashboard-text-link" href="{{ url_for('planner.planning_history') }}">Planning history: every AI plan, saved or not <span aria-hidden="true">&rarr;</span></a>
+        <a class="dashboard-text-link" href="{{ url_for('planner.planning_history') }}">Planning history <span aria-hidden="true">&rarr;</span></a>
     </p>
 {% endblock %}

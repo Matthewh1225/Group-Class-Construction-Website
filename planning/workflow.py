@@ -24,6 +24,7 @@ class InvalidOutput(ValueError):
     pass
 
 
+# Turns an error from an AI provider into (a short message, True if trying again might work).
 def stage_error(error):
     code = getattr(error, "status_code", None) or getattr(error, "code", None)
     if code == 429:
@@ -51,6 +52,7 @@ def stage_error(error):
     return f"Provider request failed or timed out ({type(error).__name__})", True
 
 
+# Checks the AI's answer finished normally and matches the expected shape (record_type). Returns the checked result.
 def validate_stage_response(response, record_type, validate):
     if response["status"] != "completed":
         raise InvalidOutput("Provider output was truncated, blocked or incomplete.")
@@ -64,6 +66,7 @@ def validate_stage_response(response, record_type, validate):
     return output
 
 
+# How many seconds to wait before trying again, or None if we should give up.
 def retry_delay(error, retryable, has_fallback):
     if has_fallback:
         # A configured fallback takes precedence over the failed provider's limits.
@@ -245,6 +248,8 @@ def finish_plan(job, estimate, estimates, checkpoint):
     return job
 
 
+# Runs the whole planning job in order: interpret the request, (maybe ask questions), plan, then review.
+# checkpoint(job) saves progress after each step.
 def run_workflow(job, checkpoint):
     if job["config_version"] != ai_config.WORKFLOW_VERSION:
         raise StageError("This job uses an older format. Start a new job; saved results remain available.")

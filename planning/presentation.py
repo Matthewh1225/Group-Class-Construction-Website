@@ -2,7 +2,6 @@
 
 from decimal import Decimal, InvalidOperation
 
-from .follow_up import unresolved_questions
 from .project_forms import PROJECT_TEMPLATES
 
 
@@ -51,27 +50,6 @@ def messages(*values):
     return result
 
 
-# Only whole generic notices are replaced by the single estimate disclaimer.
-# Never hide a warning just because it contains words such as "structural".
-GENERIC_NOTICES = {
-    "these are planning estimates",
-    "estimates are planning aids, not engineering approval",
-    "this estimate is for planning purposes only",
-    "this is a materials estimate, not engineering approval",
-    "verify quantities before purchasing",
-    "verify measurements and quantities before purchasing",
-}
-
-
-def project_notices(warnings):
-    # The warnings without the generic disclaimers (the page shows its own).
-    result = []
-    for warning in messages(warnings):
-        if same_text_key(warning).rstrip(".! ") not in GENERIC_NOTICES:
-            result.append(warning)
-    return result
-
-
 UNIT_LABELS = {
     "sq_ft": "sq ft", "sq_m": "sq m", "square feet": "sq ft",
     "square meters": "sq m", "feet": "ft", "inches": "in",
@@ -117,10 +95,7 @@ def display_quantity(value, unit="", manual=False):
             "original": str(value), "known": True}
 
 
-CHECKED_METHODS = {"rectangle_area", "wall_area", "coverage", "rectangle_coverage",
-                   "wall_coverage", "perimeter", "count"}
-
-
+# Builds one display row per material for the plan's materials table.
 def material_rows(estimate):
     rows = []
     for index, item in enumerate(records(mapping(estimate).get("materials"))):
@@ -128,25 +103,17 @@ def material_rows(estimate):
         method = text(calculation.get("method"))
         manual = method == "manual"
         quantity = display_quantity(item.get("quantity"), item.get("unit"), manual)
-        if not quantity["known"]:
-            verification = "Quantity not determined"
-        elif manual:
-            verification = "Manual estimate - not verified"
-        elif method in CHECKED_METHODS:
-            verification = "Arithmetic checked by Python"
-        else:
-            verification = "Calculation status unavailable"
         rows.append({
             "name": text(item.get("name")) or f"Material {index + 1}",
             "specification": text(item.get("specification")), "notes": text(item.get("notes")),
             "quantity": quantity, "method": method.replace("_", " ") or "Not provided",
-            "verification": verification, "manual": manual,
             "inputs": records(calculation.get("inputs")),
             "waste": display_quantity(item.get("waste_percent"), "%"),
         })
     return rows
 
 
+# Builds the "Project details" list shown on the plan: the user's own form values, or the AI's interpretation.
 def project_specs(project, specification, answers):
     specs = []
     if not answers:
@@ -192,52 +159,17 @@ STATUS_LABELS = {
     "needs_input": ("Details needed", "attention"),
     "failed": ("Processing stopped", "attention"),
     "cancelled": ("Cancelled", "neutral"),
-    "partial": ("Review needed", "attention"),
-    "complete": ("AI reviewed", "ready"),
+    "partial": ("Partial result", "neutral"),
+    "complete": ("Complete", "ready"),
 }
 
 
 def status_label(job):
     status = job.get("status")
-    # plans saved before every tier had a review step
-    if status == "complete" and not mapping(job.get("result")).get("audited"):
-        return "Estimate ready", "ready"
     return STATUS_LABELS.get(status, ("Status unavailable", "neutral"))
 
 
-def review_reason(job, rows, questions):
-    if job.get("status") != "partial":
-        return ""
-    unknown = 0
-    for row in rows:
-        if not row["quantity"]["known"]:
-            unknown = unknown + 1
-    if unknown == 1:
-        return "1 material quantity could not be determined from the details given."
-    if unknown > 1:
-        return f"{unknown} material quantities could not be determined from the details given."
-    if questions:
-        return "Some project details still need confirmation; see Assumptions & Unresolved Details."
-    return "This saved estimate was marked for review. Check its assumptions and details before using it."
-
-
-def plan_warnings(result, estimate, rows):
-    warnings = project_notices(messages(result.get("warnings"), estimate.get("warnings")))
-    # Older saved plans repeat the table's manual/unknown labels as warnings.
-    # Suppress those exact duplicates while keeping project-specific notices.
-    table_labels = set()
-    for row in rows:
-        if row["manual"]:
-            table_labels.add(f"{row['name']}: manual estimate; quantity arithmetic is unverified.")
-        if not row["quantity"]["known"]:
-            table_labels.add(f"{row['name']}: quantity is unknown.")
-    result = []
-    for warning in warnings:
-        if warning not in table_labels:
-            result.append(warning)
-    return result
-
-
+# Collects everything the plan page shows from a job into one dict.
 def plan_presentation(job):
     result = mapping(job.get("result"))
     estimate = mapping(result.get("estimate"))
@@ -248,25 +180,10 @@ def plan_presentation(job):
     project_type = text(project.get("project_type"))
     title = PROJECT_TEMPLATES.get(project_type, {}).get("title", "Your project") + " plan"
     answers = records(job.get("answers"))
-    # The final estimate decides which interpretation questions remain unresolved.
-    if estimate:
-        question_list = messages(estimate.get("questions"))
-    else:
-        asked = []
-        for question in records(job.get("questions")):
-            asked.append(question.get("question"))
-        question_list = messages(specification.get("questions"), asked)
-    questions = unresolved_questions(question_list, answers)
-
-    # the interpreter writes assumptions as "Assumption: ..." details; split them out
     details = []
-    assumption_details = []
     for detail in messages(specification.get("details")):
-        if detail.casefold().startswith("assumption:"):
-            assumption_details.append(detail.partition(":")[2].strip())
-        else:
+        if not detail.casefold().startswith("assumption:"):
             details.append(detail)
-    assumptions = messages(estimate.get("assumptions"), assumption_details)
 
     # the best short description available
     description = text(estimate.get("summary"))
@@ -278,8 +195,8 @@ def plan_presentation(job):
     label, tone = status_label(job)
     return {"title": title, "description": description,
             "status_label": label, "status_tone": tone,
-            "review_reason": review_reason(job, rows, questions), "materials": rows,
+            "materials": rows,
+            "material_details": [row for row in rows if row["specification"] or row["notes"]],
             "specs": project_specs(project, specification, job.get("answers")),
-            "warnings": plan_warnings(result, estimate, rows), "assumptions": assumptions,
-            "questions": questions, "details": details,
+            "details": details,
             "request": text(project.get("description")), "answers": answers}

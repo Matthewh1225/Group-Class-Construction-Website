@@ -193,14 +193,6 @@
     letter-spacing: -0.02em;
 }
 
-.method-description {
-    max-width: 36ch;
-    margin-top: 10px;
-    color: var(--muted);
-    font-size: 0.9rem;
-    line-height: 1.6;
-}
-
 .method-action {
     display: flex;
     justify-content: space-between;
@@ -579,6 +571,12 @@
     cursor: not-allowed;
 }
 
+/* The Subscribe link stays clickable even though the greyed-out option is not */
+.tier-locked a {
+    cursor: pointer;
+    text-decoration: underline;
+}
+
 .planner-tier input {
     flex-shrink: 0;
     margin: 4px 0 0;
@@ -603,17 +601,6 @@
 .tier-content small {
     color: var(--measure);
     font: 0.65rem/1.5 var(--font-mono);
-}
-
-.planner-page .planner-access-note {
-    margin-top: 12px;
-    color: var(--muted);
-    font-size: 0.75rem;
-}
-
-.planner-access-note a {
-    color: var(--amber);
-    text-underline-offset: 3px;
 }
 
 .planner-page .planner-generate {
@@ -714,11 +701,6 @@
         font-size: 1.3rem;
     }
 
-    .method-description {
-        max-width: none;
-        font-size: 0.82rem;
-    }
-
     .method-action {
         padding-top: 16px;
     }
@@ -817,8 +799,6 @@
 .plan-quantity { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-weight: 600; color: var(--amber-bright); }
 .plan-unit { color: var(--text); }
 .plan-material-spec { color: var(--plan-muted); font-size: 14px; max-width: 300px; }
-.plan-notice { display: flex; align-items: baseline; gap: 12px; margin-top: 16px; padding: 14px 16px; border: 1px solid var(--plan-border); border-left: 3px solid var(--measure); color: var(--plan-muted); font-size: 14px; }
-.plan-notice-icon { flex-shrink: 0; border: 1px solid var(--measure); color: var(--measure); border-radius: 50%; width: 18px; height: 18px; line-height: 17px; text-align: center; font-size: 12px; font-weight: 700; }
 .plan-alert { margin-top: 20px !important; padding: 18px 20px; border: 1px solid rgba(245, 151, 9, 0.35); border-left: 3px solid var(--plan-accent); background: var(--amber-tint); color: var(--text); }
 .planner-job .plan-alert h2 { font-size: 17px; }
 .plan-alert-success { border-color: var(--success-border); border-left-color: var(--success); background: var(--success-bg); }
@@ -843,15 +823,14 @@
 .plan-details-body { padding: 0 2px 24px; color: var(--text); }
 .plan-details-body > h3:not(:first-child), .plan-details-body > h4 { margin-top: 24px; }
 .plan-details-body p + p { margin-top: 8px; }
-.plan-details-body > a { display: inline-block; margin-top: 20px; font-size: 14px; }
 .plan-detail-item { padding: 18px 0; border-bottom: 1px solid var(--plan-border); }
 .plan-detail-item:last-of-type { border-bottom: 0; }
 .plan-detail-item h3 { color: var(--plan-text); margin-bottom: 6px; }
 .plan-detail-item h4 { margin-top: 12px; }
 .plan-calculation-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 24px; padding: 14px 0; }
-.plan-verification { color: var(--plan-accent); font-size: 14px; }
 .plan-muted { color: var(--plan-muted); font-size: 14px; }
 .plan-empty { padding: 24px; border: 1px dashed var(--line-strong); background: var(--plan-surface); }
+.plan-refresh { display: inline-block; margin-top: 16px; }
 .plan-questions { margin-top: 24px; }
 .planner-job form { display: grid; gap: 12px; margin: 16px 0; }
 .planner-job .question-answer { max-width: 100%; border: 1px solid var(--plan-border); box-shadow: none; font: inherit; height: 90px; }
@@ -874,8 +853,6 @@
     .plan-spec-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .plan-spec-grid > div { padding: 12px; }
     .plan-section-heading { align-items: flex-start; }
-    .plan-notice { align-items: flex-start; }
-    .plan-notice-icon { margin-top: 3px; }
     .planner-materials thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
     .planner-materials tbody { display: block; }
     .planner-materials tr { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); padding: 14px 16px; border-bottom: 1px solid var(--plan-border); gap: 10px 16px; }

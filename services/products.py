@@ -6,7 +6,7 @@ from utils.database import database_cursor
 PAGE_SIZE = 12
 
 
-def search_products(search=None, category_slug=None, page=1):
+def search_products(search=None, category_url_name=None, page=1):
     "Return (products, has_next_page) for one page of active products, sorted by name, with price and stock."
     sql = """
         SELECT p.product_id, p.product_name, p.specification, p.sku, p.unit,
@@ -29,9 +29,9 @@ def search_products(search=None, category_slug=None, page=1):
         sql = sql + " AND (p.product_name LIKE %s OR p.keywords LIKE %s OR p.sku LIKE %s OR p.specification LIKE %s)"
         values.extend([pattern, pattern, pattern, pattern])
 
-    if category_slug:
+    if category_url_name:
         sql = sql + " AND c.icon_key = %s"
-        values.append(category_slug)
+        values.append(category_url_name)
 
     # Ask for one more product than fits on the page: if it comes back, there is a next page.
     sql = sql + " ORDER BY p.product_name LIMIT %s OFFSET %s"
@@ -50,8 +50,8 @@ def get_categories():
     "Return active categories, each with its list of subcategories."
     pass
 
-def get_category_by_slug(slug):
-    "Return the category whose icon_key matches a page slug such as 'hvac', or None."
+def get_category_by_url_name(url_name):
+    "Return the category whose icon_key matches a page url_name such as 'hvac', or None."
     pass
 
 def get_product_stock(product_id):

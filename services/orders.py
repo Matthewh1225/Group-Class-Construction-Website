@@ -2,7 +2,8 @@
 
 
 def create_order(user_id, checkout_data):
-    "Place a TEST order for everything in the user's cart. Returns the order id. Raises ValueError if the cart cannot be bought."
+    "vlidate the cart and stock, Return the order ID, or raise ValueError if it cannot be placed."
+   
     pass
 
 def get_user_orders(user_id):

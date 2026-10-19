@@ -23,9 +23,10 @@ app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 # set SESSION_COOKIE_SECURE=true on an HTTPS server so the cookie is never sent over plain HTTP
 app.config["SESSION_COOKIE_SECURE"] = os.getenv("SESSION_COOKIE_SECURE", "").lower() == "true"
-
 app.before_request(check_csrf)
 app.before_request(check_logged_in_user)
+
+
 app.jinja_env.globals["csrf_token"] = csrf_token
 app.jinja_env.globals["password_digits"] = PASSWORD_DIGITS
 

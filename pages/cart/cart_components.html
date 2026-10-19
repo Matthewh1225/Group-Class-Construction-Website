@@ -72,16 +72,10 @@
                     <dd>{{ money(totals.get('total_cents')) }}</dd>
                 </div>
             </dl>
-            {% if totals.get('subtotal_cents') is not none %}
-                <p class="shopping-caption">Shipping, tax, and your final total will be confirmed at checkout.</p>
-            {% else %}
-                <p class="shopping-caption">Resolve unavailable products or quantities before checkout.</p>
-            {% endif %}
         {% endif %}
         {% if checkout %}
             {# form="checkout-form" connects this button to the form in checkout.html #}
-            <button class="shopping-button shopping-primary" type="submit" form="checkout-form" id="place-order" {% if not totals %}disabled{% endif %} aria-describedby="place-order-note">Place Order</button>
-            <p class="shopping-caption" id="place-order-note">{% if totals %}This is a test purchase. No card is charged.{% else %}Add available items to your cart to place an order.{% endif %}</p>
+            <button class="shopping-button shopping-primary" type="submit" form="checkout-form" id="place-order" {% if not totals or not items %}disabled{% endif %}>Place Order</button>
         {% elif items %}
             <a class="shopping-button shopping-primary" href="{{ url_for('checkout') }}">Proceed to Checkout {{ icon('arrow') }}</a>
             <a class="shopping-button shopping-secondary" href="{{ url_for('products.products') }}">Continue Shopping</a>

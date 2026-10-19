@@ -7,12 +7,10 @@
 {% endblock %}
 
 {% macro stat_value(value) -%}
-    {# a missing count means that part of the backend is not connected yet #}
     {% if value is not none %}
         <strong>{{ value }}</strong>
     {% else %}
         <strong aria-hidden="true">&mdash;</strong>
-        <span class="dashboard-stat-note">Not connected yet</span>
     {% endif %}
 {%- endmacro %}
 
@@ -26,7 +24,6 @@
     <section class="dashboard-hero" aria-labelledby="planner-cta-title">
         <div>
             <h2 id="planner-cta-title">Ready to draw up something new?</h2>
-            <p>Describe your project or pick a template, and the AI Planner drafts the materials list.</p>
             <a class="dashboard-button dashboard-button-primary" href="{{ url_for('planner.planner') }}">
                 Open the AI Planner
                 <svg class="dashboard-icon" aria-hidden="true">
@@ -41,8 +38,8 @@
         </svg>
     </section>
     <section class="dashboard-section" aria-label="Workspace summary">
-        <div class="dashboard-stat-grid">
-            <a class="dashboard-card dashboard-stat dashboard-stat-featured" href="{{ url_for('dashboard.projects') }}">
+        <div class="dashboard-stat-grid workspace-stats">
+            {% if project_count is not none %}<a class="dashboard-card dashboard-stat dashboard-stat-featured" href="{{ url_for('dashboard.projects') }}">
                 <span class="dashboard-stat-icon">
                     <svg class="dashboard-icon" aria-hidden="true">
                         <use href="#icon-folder"/>
@@ -50,7 +47,7 @@
                 </span>
                 <span class="dashboard-stat-label">My projects</span>
                 {{ stat_value(project_count) }}
-            </a>
+            </a>{% endif %}
             <a class="dashboard-card dashboard-stat" href="{{ url_for('planner.planning_history') }}">
                 <span class="dashboard-stat-icon">
                     <svg class="dashboard-icon" aria-hidden="true">
@@ -71,7 +68,7 @@
             </a>
         </div>
     </section>
-    <section class="dashboard-section" aria-labelledby="recent-projects-title">
+    {% if recent_projects is not none %}<section class="dashboard-section" aria-labelledby="recent-projects-title">
         <div class="dashboard-section-heading">
             <div>
                 <p class="dashboard-eyebrow">Pick up where you left off</p>
@@ -84,10 +81,10 @@
         {% if recent_projects %}
             {{ project_list(recent_projects, 'Recently updated projects') }}
         {% else %}
-            {% call empty_state('No saved projects yet', 'Plan a project with the AI Planner, then choose Save Project to keep it here.', 'h3') %}
+            {% call empty_state('No saved projects yet', 'h3') %}
                 <a class="dashboard-button dashboard-button-primary" href="{{ url_for('planner.planner') }}">Open the AI Planner</a>
                 <a class="dashboard-text-link" href="{{ url_for('planner.planning_history') }}">Planning history <span aria-hidden="true">&rarr;</span></a>
             {% endcall %}
         {% endif %}
-    </section>
+    </section>{% endif %}
 {% endblock %}

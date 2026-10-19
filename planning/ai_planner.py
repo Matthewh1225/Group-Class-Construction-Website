@@ -9,6 +9,7 @@ from openrouter import OpenRouter
 from .ai_config import AI_TIMEOUT, MODEL_CAPABILITIES, MODELS
 
 
+# Creates the connection to an AI provider
 def make_client(provider, key_name):
     api_key = os.getenv(key_name)
     if not api_key:
@@ -20,7 +21,6 @@ def make_client(provider, key_name):
     return OpenRouter(api_key=api_key)
 
 
-# A model ID set in .env always wins over the default in ai_config.
 AI_MODELS = {}
 for model_name, settings in MODELS.items():
     AI_MODELS[model_name] = {
@@ -30,12 +30,14 @@ for model_name, settings in MODELS.items():
     }
 
 
+# Reads a field from a dict or an object
 def get_value(item, name, default=None):
     if isinstance(item, dict):
         return item.get(name, default)
     return getattr(item, name, default)
 
 
+# Builds the chat message list: the instructions first, then the user's prompt.
 def make_messages(system_instruction, prompt):
     return [
         {"role": "system", "content": system_instruction},
@@ -43,6 +45,7 @@ def make_messages(system_instruction, prompt):
     ]
 
 
+# Sends the prompt to Gemini and returns its text plus token counts and why it stopped.
 def call_gemini(model, prompt, thinking_level, system_instruction, response_schema,
                 output_tokens):
     config = {
@@ -76,9 +79,9 @@ def call_gemini(model, prompt, thinking_level, system_instruction, response_sche
     }
 
 
+# Sends the prompt to Groq and returns its text plus token counts and why it stopped.
 def call_groq(model, prompt, thinking_level, system_instruction, response_schema,
               output_tokens):
-    # Groq can reject a full estimate during constrained generation with HTTP 400.
     # JSON object mode still gives parseable JSON; Pydantic and Python check it later.
     prompt += "\nReturn one JSON object matching this schema:\n" + json.dumps(response_schema)
     response = model["client"].with_options(max_retries=0).chat.completions.create(
@@ -104,9 +107,10 @@ def call_groq(model, prompt, thinking_level, system_instruction, response_schema
     }
 
 
+# Sends the prompt to OpenRouter and returns its text plus token counts and why it stopped.
 def call_openrouter(model, prompt, thinking_level, system_instruction, response_schema,
                     output_tokens):
-    # The OpenRouter model does not promise to follow a JSON schema, so the schema is sent in the prompt and Pydantic checks the JSON it returns.
+    # The model does not follow JSON  so the schema is sent in the prompt and Pydantic checks the JSON it returns.
     prompt += "\nReturn only one JSON object matching this schema:\n" + json.dumps(response_schema)
     options = {
         "model": model["model"],
@@ -135,6 +139,7 @@ def call_openrouter(model, prompt, thinking_level, system_instruction, response_
     }
 
 
+# Makes sure a model is set up (has a key and supports this reasoning level). Raises ValueError if not.
 def check_model(model_name, reasoning):
     model = AI_MODELS[model_name]
     if model["client"] is None or not model["model"]:
@@ -145,6 +150,7 @@ def check_model(model_name, reasoning):
     return model, capability
 
 
+# Sends a prompt to the right AI provider and returns the answer text, token counts, time taken, and a "status".
 def ask_model(model_name, prompt, reasoning, instructions, schema, output_tokens):
     # status is "completed" only when the model stopped normally; anything else (out of tokens, blocked) means the JSON may be cut off.
     model, capability = check_model(model_name, reasoning)

@@ -398,7 +398,6 @@ function showEstimate() {
 
     document.getElementById("estimate-empty").hidden = true;
     document.getElementById("estimate-result").hidden = false;
-    document.getElementById("quote-status").hidden = true;
 
     document.getElementById("path-scale").textContent = SCALE_NAMES[project.scale];
     document.getElementById("path-category").textContent = project.category;
@@ -568,10 +567,11 @@ if (saveCrewForm) {
         const status = document.getElementById("save-crew-status");
         if (crew.members.length === 0) {
             event.preventDefault();
-            status.textContent = "Add at least one worker before saving the crew.";
+            status.textContent = "Add at least one worker.";
             status.hidden = false;
             return;
         }
+        status.hidden = true;
         document.getElementById("crew-input").value = JSON.stringify(crew);
         saveCrewForm.querySelector("button[type=submit]").disabled = true;
     });
@@ -585,13 +585,6 @@ function loadSavedCustomCrew() {
     }
     customDays.value = saved.days[0];
 }
-
-document.getElementById("quote-button").addEventListener("click", function () {
-    // Sending needs services/rentals.request_crew, which is still a stub, so nothing leaves the browser.
-    const status = document.getElementById("quote-status");
-    status.textContent = "Quote requests are unavailable. Nothing was sent.";
-    status.hidden = false;
-});
 
 document.querySelectorAll('input[name="scale"]').forEach(function (radio) {
     radio.addEventListener("change", function () {

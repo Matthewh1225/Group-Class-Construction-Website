@@ -10,3 +10,4 @@ venv/
 .vscode/
 instance/
 data/
+planner_log.txt

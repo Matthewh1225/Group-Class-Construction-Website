@@ -642,15 +642,6 @@ textarea:focus {
     font-size: 0.85rem;
 }
 
-.under-construction-image {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    max-width: 60%;
-    height: auto;
-    transform: translate(-50%, -50%);
-}
-
 @media (prefers-reduced-motion: reduce) {
     *,
     *::before,

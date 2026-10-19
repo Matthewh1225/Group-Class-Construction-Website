@@ -504,12 +504,6 @@
     font-variant-numeric: tabular-nums;
 }
 
-.figure-note {
-    margin-top: 8px !important;
-    color: var(--muted);
-    font-size: 0.82rem;
-}
-
 .figure-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -534,11 +528,7 @@
     font: 700 1.02rem/1.3 var(--font-display);
 }
 
-.quote-button {
-    width: 100%;
-}
-
-.quote-status {
+.crew-error {
     padding: 12px 14px;
     border: 1px solid var(--line-strong);
     border-left: 3px solid var(--measure);
@@ -934,6 +924,6 @@
     background: var(--panel);
 }
 
-.crews-save .quote-status {
+.crews-save .crew-error {
     flex-basis: 100%;
 }

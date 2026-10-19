@@ -15,6 +15,7 @@ from utils.users import create_user, delete_user_completely, set_user_status
 dashboard_bp = Blueprint("dashboard", __name__)
 
 
+# only signed-in users can open it; everyone else goes to the login page.
 def dashboard_login_required(view):
     @wraps(view)
     def wrapped(*args, **kwargs):
@@ -24,9 +25,8 @@ def dashboard_login_required(view):
 
     return wrapped
 
-# The role in the session is reloaded from the database before every request, and deleted or disabled accounts are signed out: see check_logged_in_user in routes/auth.py.
-
-
+# The role in the session is reloaded from the database before every request.
+# Admins see the user list, Regular users see their overview page.
 @dashboard_bp.route("/dashboard", methods=["GET", "POST"])
 @dashboard_login_required
 def dashboard():
@@ -68,12 +68,15 @@ def dashboard():
 PROJECT_STATUSES = ["In Progress", "Review Needed", "Ready", "Completed"]
 
 
+# Lists the user's saved projects, narrowed by the search box and the status filter.
 @dashboard_bp.get("/dashboard/projects")
 @dashboard_login_required
 def projects():
     search = request.args.get("q", "").strip()
     status = request.args.get("status", "")
     all_projects = get_user_projects(session["user_id"])
+    if all_projects is None:
+        return render_template("unavailable.html", message="Projects unavailable."), 503
     shown = []
     for project in all_projects:
         if search and search.lower() not in project["name"].lower():
@@ -85,6 +88,7 @@ def projects():
                            search=search, status=status, statuses=PROJECT_STATUSES)
 
 
+# Returns the project if it belongs to the signed-in user, otherwise shows a 404 page.
 def owned_project(project_id):
     project = get_project(project_id, session["user_id"])
     if project is None:
@@ -99,7 +103,7 @@ def project_detail(project_id):
     crew = None
     if project["crew"]:
         crew = crew_estimate(project["crew"])
-    # the saved plan has the same fields as a planner job, so the plan page's helper reads it
+    # the saved plan has the same fields as a planner job
     return render_template("dashboard/project_detail.html", project=project,
                            plan=plan_presentation(project["plan"]), crew=crew)
 
@@ -129,6 +133,7 @@ def project_completed(project_id):
     return redirect(url_for("dashboard.project_detail", project_id=project_id))
 
 
+# Saves the crew chosen on the Crews page to this project.
 @dashboard_bp.post("/dashboard/projects/<int:project_id>/crew")
 @dashboard_login_required
 def project_crew(project_id):
@@ -162,19 +167,6 @@ def project_delete(project_id):
     return redirect(url_for("dashboard.projects"))
 
 
-# Material lists are now part of each project. The old addresses redirect there.
-@dashboard_bp.get("/dashboard/material-lists")
-@dashboard_login_required
-def material_lists():
-    return redirect(url_for("dashboard.projects"))
-
-
-@dashboard_bp.get("/dashboard/projects/<int:project_id>/materials")
-@dashboard_login_required
-def material_list_detail(project_id):
-    return redirect(url_for("dashboard.project_detail", project_id=project_id, _anchor="materials"))
-
-
 @dashboard_bp.get("/dashboard/orders")
 @dashboard_login_required
 def orders():
@@ -200,6 +192,7 @@ def settings():
     )
 
 
+# Admin only: disables or re-enables another user's account.
 @dashboard_bp.post("/dashboard/users/<int:user_id>/status")
 def change_user_status(user_id):
     if "user_id" not in session or session.get("permission_level") != "admin":
@@ -224,6 +217,7 @@ def change_user_status(user_id):
     return redirect(url_for("dashboard.dashboard"))
 
 
+# Admin only: permanently deletes another user's account (they must type DELETE to confirm).
 @dashboard_bp.post("/dashboard/users/<int:user_id>/delete")
 def delete_user(user_id):
     if "user_id" not in session or session.get("permission_level") != "admin":
@@ -239,7 +233,6 @@ def delete_user(user_id):
     try:
         deleted = delete_user_completely(user_id)
     except (Error, sqlite3.Error):
-        # kept: this tells the admin the delete was rolled back, so nothing was half-removed
         current_app.logger.exception("Deleting user %s failed", user_id)
         flash("Unable to delete user. Nothing was removed.", "error")
         return redirect(url_for("dashboard.dashboard"))

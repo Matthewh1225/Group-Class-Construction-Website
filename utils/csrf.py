@@ -3,6 +3,7 @@ import secrets
 from flask import abort, request, session
 
 
+# Gives the page the secret token that proves a form came from our site.
 def csrf_token():
     # made once per session; login clears the session
     if "csrf_token" not in session:

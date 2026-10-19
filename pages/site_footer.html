@@ -8,7 +8,7 @@
             <h2 id="footer-shop">Shop</h2>
             <ul>
                 <li><a href="{{ url_for('products.products') }}">Products</a></li>
-                <li><a href="{{ url_for('crews.crews') }}">Hire crews</a></li>
+                <li><a href="{{ url_for('crews.crews') }}">Crew costs</a></li>
                 <li><a href="{{ url_for('cart') }}">Cart</a></li>
             </ul>
         </nav>
@@ -41,6 +41,5 @@
     </div>
     <div class="wrap footer-base">
         <p>&copy; BuildBetter</p>
-        {% if not hide_estimate_disclaimer|default(false) %}<p>Estimates are planning aids, not engineering approval.</p>{% endif %}
     </div>
 </footer>

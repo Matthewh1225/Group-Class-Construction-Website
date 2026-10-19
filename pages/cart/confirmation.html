@@ -9,7 +9,6 @@
     {% if verified_order %}
         <header class="shopping-heading">
             <div>
-                <p class="shopping-eyebrow">TEST PURCHASE — NO REAL PAYMENT</p>
                 <h1>Order confirmed</h1>
                 <p>Order {{ verified_order.number }}</p>
             </div>
@@ -62,7 +61,6 @@
             <span class="shopping-empty-icon">{{ icon('box') }}</span>
             <p class="shopping-eyebrow">ORDER DETAILS</p>
             <h1 id="confirmation-title">No order to display</h1>
-            <p>Your confirmed order details will appear here after checkout.</p>
         </section>
     {% endif %}
     <nav class="shopping-confirmation-links" aria-label="Next steps">

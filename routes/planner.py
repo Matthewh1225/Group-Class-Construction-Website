@@ -12,6 +12,7 @@ from utils.rate_limits import limiter
 planner_bp = Blueprint("planner", __name__)
 
 
+# Draws the planner page. form_data refills the form, and popup_message shows an error.
 def show_planner(popup_message=None, form_data=None):
     form_data = form_data or {}
     return render_template(
@@ -24,6 +25,8 @@ def show_planner(popup_message=None, form_data=None):
     )
 
 
+# Turns the planner form into one project dict (from a template or a custom description).
+# Raises ValueError if something is missing or invalid.
 def build_project(form):
     project_mode = form.get("projectMode")
     project_size = form.get("projectSize")
@@ -60,6 +63,7 @@ def planner():
     return show_planner(form_data=request.args)
 
 
+# Takes the submitted planner form and queues a planning job, then shows that job's page.
 @planner_bp.post("/planner/jobs")
 @limiter.limit("4 per minute; 30 per hour", methods=["POST"])
 def submit_planning_job():
@@ -94,26 +98,33 @@ def planning_job_save(job_id):
     except ValueError as error:
         flash(str(error), "error")
         return redirect(url_for("planner.planning_job", job_id=job_id), code=303)
-    flash("Project saved to My Projects.", "success")
+    if project_id is None:
+        flash("Project could not be saved.", "error")
+        return redirect(url_for("planner.planning_job", job_id=job_id), code=303)
+    flash("Project saved.", "success")
     if request.form.get("return_to") == "project":
         return redirect(url_for("dashboard.project_detail", project_id=project_id), code=303)
     return redirect(url_for("planner.planning_job", job_id=job_id), code=303)
 
 
+# Small JSON answer the job page asks for again and again to see how far along the job is.
 @planner_bp.get("/planner/jobs/<job_id>/status")
 def planning_job_status(job_id):
     job = owned_job(job_id)
     status = {"id": job["id"], "status": job["status"], "phase": job["phase"],
-              "error": job["error"], "specification_version": job["specification_version"]}
+              "error": "Planning failed." if job["error"] else None,
+              "specification_version": job["specification_version"]}
     return status, 200, {"Cache-Control": "no-store"}
 
 
+# Returns the finished plan as JSON.
 @planner_bp.get("/planner/jobs/<job_id>/result")
 def planning_job_result(job_id):
     job = owned_job(job_id)
     return {"id": job["id"], "status": job["status"], "result": job["result"]}, 200, {"Cache-Control": "no-store"}
 
 
+# Saves the user's answers to the planner's follow-up questions and puts the job back in the queue.
 @planner_bp.post("/planner/jobs/<job_id>/answers")
 @limiter.limit("4 per minute; 30 per hour", methods=["POST"])
 def planning_job_answers(job_id):
@@ -126,6 +137,7 @@ def planning_job_answers(job_id):
     return redirect(url_for("planner.planning_job", job_id=job_id), code=303)
 
 
+# Stops a job that is waiting or running.
 @planner_bp.post("/planner/jobs/<job_id>/cancel")
 def planning_job_cancel(job_id):
     owned_job(job_id)
@@ -133,6 +145,7 @@ def planning_job_cancel(job_id):
     return redirect(url_for("planner.planning_job", job_id=job_id), code=303)
 
 
+# Puts a failed job back in the queue to try again.
 @planner_bp.post("/planner/jobs/<job_id>/retry")
 @limiter.limit("4 per minute; 30 per hour", methods=["POST"])
 def planning_job_retry(job_id):
@@ -144,6 +157,7 @@ def planning_job_retry(job_id):
     return redirect(url_for("planner.planning_job", job_id=job_id), code=303)
 
 
+# Shows the user's past planning jobs, 20 per page.
 @planner_bp.get("/planner/history")
 def planning_history():
     if "user_id" not in session:

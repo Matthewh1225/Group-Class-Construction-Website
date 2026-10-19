@@ -18,11 +18,11 @@ def start_session(user_id, username, permission_level):
 
 
 def check_logged_in_user():
-    # Signs out an account that has been deleted or disabled, even if its session is still open, and refreshes the username and role so an admin's changes apply at once.
+    # Signs out an account that has been deleted or disabled, and refreshes the username and role so changes apply 
     if "user_id" not in session or request.endpoint == "static":
         return None
 
-    # (if the database is down, app.py shows the "Service unavailable" page)
+    #if the database is down,shows the "Service unavailable" page)
     with database_cursor() as cursor:
         cursor.execute(
             "SELECT username, permission_level, status FROM users WHERE id = %s",
@@ -39,8 +39,8 @@ def check_logged_in_user():
     return None
 
 
+# GET shows the login page. POST checks the username/email and password and logs the user in.
 @auth_bp.route("/login", methods=["GET", "POST"])
-# slows down password guessing; only POST (a login attempt) is counted
 @limiter.limit("10 per minute; 50 per hour", methods=["POST"])
 def login():
     if request.method == "GET":
@@ -80,6 +80,7 @@ def login():
     return {"redirect_url": url_for("dashboard.dashboard")}
 
 
+# GET shows the sign-up page. POST creates the account and logs the new user in.
 @auth_bp.route("/register", methods=["GET", "POST"])
 @limiter.limit("5 per minute; 20 per hour", methods=["POST"])
 def register():

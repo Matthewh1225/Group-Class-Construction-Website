@@ -24,14 +24,15 @@
         {% else %}
             <p class="dashboard-muted">No subscription is active.</p>
         {% endif %}
-        {% set has_pro = subscription and subscription.plan_name in ['Pro', tiers.pro.label] and subscription.status != 'expired' %}
+        {# no subscription, or one that is not active: offer the subscribe page #}
+        {% if not subscription or subscription.status != 'active' %}
+            <div class="sub-actions">
+                <a class="dashboard-button dashboard-button-primary" href="{{ url_for('subscription.checkout') }}">Subscribe</a>
+            </div>
+        {% endif %}
         {% if subscription and subscription.management_url %}
             <div class="sub-actions">
                 <a class="dashboard-button dashboard-button-primary" href="{{ subscription.management_url }}">Manage plan</a>
-            </div>
-        {% elif not has_pro %}
-            <div class="sub-actions">
-                <a class="dashboard-button dashboard-button-primary" href="{{ url_for('subscription.checkout') }}">Subscribe now</a>
             </div>
         {% endif %}
     </section>

@@ -8,17 +8,18 @@
                 <input type="radio" name="planType" value="{{ tier_id }}" {% if form_data.get('planType', 'fast') == tier_id %}checked{% endif %} {% if tier_id == 'pro' and not pro_allowed %}disabled{% endif %} required>
                 <span class="tier-content">
                     <strong>{{ tier.label }}</strong>
+                    {% if tier_id == 'pro' and not pro_allowed %}
+                        <small class="tier-locked">Pro subscription needed. <a href="{{ url_for('subscription.checkout') }}">Subscribe</a></small>
+                    {% endif %}
                     {% if tier_id == 'fast' %}
                         <span>Quick estimate + review</span>
                     {% elif tier_id == 'standard' %}
                         <span>Detailed estimate + review</span>
                     {% endif %}
-                    {% if tier_id == 'pro' and not pro_allowed %}<small>Needs {{ tier.label }} access</small>{% endif %}
                 </span>
             </label>
         {% endfor %}
     </div>
-    {% if not pro_allowed %}<p class="planner-access-note"><a href="{{ url_for('subscription.checkout') }}">About {{ workflow_tiers.pro.label }}</a></p>{% endif %}
 </fieldset>
 <button class="planner-generate" type="submit">Generate estimate <span aria-hidden="true">&rarr;</span></button>
 <p class="plan-status" role="status" aria-live="polite" hidden></p>

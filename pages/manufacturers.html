@@ -3,3 +3,10 @@
 {% block title %}
     Manufacturers - BuildBetter
 {% endblock %}
+{% block content %}
+<section class="wrap unavailable-page">
+    <h1>Manufacturers</h1>
+    <p>No manufacturers listed.</p>
+    <a class="text-link" href="{{ url_for('products.products') }}">Browse products</a>
+</section>
+{% endblock %}

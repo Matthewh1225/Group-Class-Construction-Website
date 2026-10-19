@@ -1,7 +1,6 @@
 {% extends "base.html" %}
 
 {% block title %}AI Planner - BuildBetter{% endblock %}
-{% block underConstruction %}{% endblock %}
 {% block styles %}
     <meta name="description" content="Start a guided or custom construction project and generate an AI materials estimate.">
     <link rel="stylesheet" href="{{ url_for('static', filename='planner.css') }}">
@@ -32,15 +31,13 @@
         <div>
             <p class="sheet-tag"><span>B-01</span>Project workspace</p>
             <h1>What are you building?</h1>
-            <p>Start with a template or draw up a project of your own.</p>
         </div>
         <a class="planner-history" href="{{ url_for('dashboard.projects') }}">My Projects <span aria-hidden="true">&rarr;</span></a>
     </header>
 
     {% if not session.get("user_id") %}
-        {# submitting while logged out sends people to the login page, so warn them first #}
         <p class="planner-signin-note">
-            <a href="{{ url_for('auth.login') }}">Log in</a> or <a href="{{ url_for('auth.register') }}">create an account</a> before you generate an estimate. Your plans are saved to your account.
+            <a href="{{ url_for('auth.login') }}">Log in</a> to generate a plan.
         </p>
     {% endif %}
 
@@ -62,7 +59,6 @@
                         <path class="drawing-guide" d="M120 12V120M25 109H214"/>
                     </svg>
                     <strong>Use a template</strong>
-                    <span class="method-description">Birdhouses to commercial buildings. Guided questions get the details right.</span>
                     <span class="method-action">Choose a template <span aria-hidden="true">&rarr;</span></span>
                 </button>
                 <button id="choose-custom" class="planner-method" type="button">
@@ -73,7 +69,6 @@
                         <path class="drawing-guide" d="M143 104H198M170 75V116M191 87V116"/>
                     </svg>
                     <strong>Custom project</strong>
-                    <span class="method-description">Your dimensions, materials and ideas. Tell the planner what you have in mind.</span>
                     <span class="method-action">Start your brief <span aria-hidden="true">&rarr;</span></span>
                 </button>
             </div>

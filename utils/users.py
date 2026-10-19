@@ -6,11 +6,14 @@ MAX_USERNAME_LENGTH = 50
 MAX_EMAIL_LENGTH = 254
 
 
+# A simple check that the text has a name, one "@", and a "." in the domain.
 def looks_like_email(email):
     name, at, domain = email.partition("@")
     return bool(name) and at == "@" and "." in domain and "@" not in domain and " " not in email
 
 
+# Checks the sign-up form, saves a new user with a hashed password, and returns the new user id.
+# Raises ValueError with a message the user can read if something is wrong.
 def create_user(data, permission_level="user"):
     username = data.get("username", "")
     email = data.get("email", "")
@@ -48,6 +51,7 @@ def create_user(data, permission_level="user"):
         # ADD send the welcome notification after the account transaction commits.
     return user_id
 
+# Admin tool: turns an account "active" or "disabled". Returns False if the user does not exist.
 def set_user_status(user_id, status):
     if status not in {"active", "disabled"}:
         raise ValueError("Choose active or disabled.")

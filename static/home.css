@@ -71,6 +71,55 @@
     background: radial-gradient(55% 60% at 75% 42%, rgba(245, 151, 9, 0.1), transparent 70%);
 }
 
+.pro-wrap {
+    margin-bottom: clamp(28px, 5vw, 64px);
+}
+
+.pro-banner {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 12px 24px;
+    padding: 14px 20px;
+    border: 1px solid rgba(245, 151, 9, 0.45);
+    background: linear-gradient(120deg, rgba(245, 151, 9, 0.1), rgba(245, 151, 9, 0.02) 60%);
+}
+
+.pro-banner > .btn {
+    justify-self: start;
+    padding: 0.7rem 1rem;
+    font-size: 0.88rem;
+}
+
+.pro-tag {
+    display: inline-block;
+    margin-bottom: 0.35rem;
+    padding: 0.2rem 0.45rem;
+    background: var(--amber);
+    color: var(--on-accent);
+    font: 700 0.65rem/1 var(--font-mono);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.pro-name {
+    margin-bottom: 0;
+    font: 700 clamp(1.2rem, 2.4vw, 1.65rem)/1.15 var(--font-display);
+    letter-spacing: -0.02em;
+}
+
+.pro-teaser {
+    margin: 0.3rem 0 0;
+    font-size: 0.95rem;
+}
+
+@media (max-width: 600px) {
+    .pro-banner {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 10px;
+    }
+}
+
 .hero-grid {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
@@ -113,21 +162,6 @@
 
 .hero .lede {
     margin-bottom: 2.2rem;
-}
-
-.hero-note {
-    margin-top: 1.4rem;
-    color: var(--muted);
-    font-size: 0.95rem;
-}
-
-.hero-note a {
-    color: var(--amber);
-    text-underline-offset: 4px;
-}
-
-.hero-note a:hover {
-    color: var(--amber-bright);
 }
 
 .spec-line {
@@ -500,49 +534,7 @@
     }
 }
 
-.pro-wrap {
-    margin-bottom: clamp(28px, 5vw, 64px);
-}
 
-.pro-banner {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    align-items: center;
-    gap: 12px 24px;
-    padding: 14px 20px;
-    border: 1px solid rgba(245, 151, 9, 0.45);
-    background: linear-gradient(120deg, rgba(245, 151, 9, 0.1), rgba(245, 151, 9, 0.02) 60%);
-}
-
-.pro-banner > .btn {
-    justify-self: start;
-    padding: 0.7rem 1rem;
-    font-size: 0.88rem;
-}
-
-@media (max-width: 600px) {
-    .pro-banner {
-        grid-template-columns: minmax(0, 1fr);
-        gap: 10px;
-    }
-}
-
-.pro-tag {
-    display: inline-block;
-    margin-bottom: 0.35rem;
-    padding: 0.2rem 0.45rem;
-    background: var(--amber);
-    color: var(--on-accent);
-    font: 700 0.65rem/1 var(--font-mono);
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-}
-
-.pro-name {
-    margin-bottom: 0;
-    font: 700 clamp(1.2rem, 2.4vw, 1.65rem)/1.15 var(--font-display);
-    letter-spacing: -0.02em;
-}
 
 .console {
     position: relative;

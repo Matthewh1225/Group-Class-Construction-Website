@@ -25,7 +25,7 @@
             <p class="dashboard-eyebrow">{{ project.type }}</p>
             <h1>{{ project.name }}</h1>
             <p class="project-heading-meta">
-                <span class="status-tag status-{{ project.status_tone }}">{{ project.status }}</span>
+                <span class="status-tag status-{{ project.status_tone }}">{{ 'Partial result' if project.status == 'Review Needed' else project.status }}</span>
                 <span>Updated <time data-timestamp="{{ project.updated }}"></time></span>
             </p>
         </div>
@@ -35,13 +35,12 @@
     {% endfor %}
 
     {% if project.job_running %}
-        <p class="project-notice">The AI Planner is revising this plan. Your saved estimate below stays the same until you update the project.</p>
+        <p class="project-update" role="status">Updating plan&hellip;</p>
     {% elif project.update_available %}
-        <form class="project-notice" method="post" action="{{ url_for('planner.planning_job_save', job_id=project.job_id) }}">
+        <form class="project-update" method="post" action="{{ url_for('planner.planning_job_save', job_id=project.job_id) }}">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="hidden" name="name" value="{{ project.name }}">
             <input type="hidden" name="return_to" value="project">
-            <span>A revised AI plan is ready for this project.</span>
             <button class="dashboard-button dashboard-button-primary" type="submit">Update Project</button>
         </form>
     {% endif %}
@@ -50,7 +49,7 @@
         <h2 id="overview-title">Project overview</h2>
         <dl class="dashboard-detail-list project-facts">
             <div><dt>Type</dt><dd>{{ project.type }}</dd></div>
-            <div><dt>Status</dt><dd>{{ project.status }}</dd></div>
+            <div><dt>Status</dt><dd>{{ 'Partial result' if project.status == 'Review Needed' else project.status }}</dd></div>
             <div><dt>Created</dt><dd><time data-timestamp="{{ project.created }}"></time></dd></div>
             <div><dt>Last updated</dt><dd><time data-timestamp="{{ project.updated }}"></time></dd></div>
         </dl>
@@ -77,16 +76,6 @@
                 {% endfor %}
             </dl>
         {% endif %}
-        {% if plan.review_reason or plan.warnings or plan.questions %}
-            <div class="project-warnings">
-                <h3>Review notes</h3>
-                <ul>
-                    {% if plan.review_reason %}<li>{{ plan.review_reason }}</li>{% endif %}
-                    {% for warning in plan.warnings %}<li>{{ warning }}</li>{% endfor %}
-                    {% for question in plan.questions %}<li>Needs confirmation: {{ question }}</li>{% endfor %}
-                </ul>
-            </div>
-        {% endif %}
     </section>
 
     <section class="dashboard-card dashboard-detail-card project-section" id="materials" aria-labelledby="materials-title">
@@ -109,7 +98,7 @@
                     <tbody>
                         {% for item in plan.materials %}
                             <tr>
-                                <th scope="row">{{ item.name }}<small>{{ item.verification }}</small></th>
+                                <th scope="row">{{ item.name }}</th>
                                 <td>{{ amount(item.quantity) }}</td>
                                 <td>{{ item.quantity.unit or '—' }}</td>
                                 <td>{% if item.waste.known %}{{ amount(item.waste) }}%{% else %}—{% endif %}</td>
@@ -123,15 +112,8 @@
                 </table>
             </div>
         {% else %}
-            <p class="dashboard-muted">Material quantities could not be determined from the project details.</p>
+            <p class="dashboard-muted">No materials returned.</p>
         {% endif %}
-        {% if plan.assumptions %}
-            <details class="project-more">
-                <summary>Planner assumptions ({{ plan.assumptions|length }})</summary>
-                <ul>{% for item in plan.assumptions %}<li>{{ item }}</li>{% endfor %}</ul>
-            </details>
-        {% endif %}
-        <p class="dashboard-muted project-footnote">Planning estimate, not engineering approval. Verify measurements and quantities before purchasing.</p>
     </section>
 
     {% if project.crew and project.crew.source == 'preset' %}
@@ -179,7 +161,6 @@
                     </tbody>
                 </table>
             </div>
-            <p class="dashboard-muted project-footnote">Estimated labor only, using illustrative rates and 8-hour days. Not a booking or confirmed quote; materials, equipment, permits and taxes are not included.</p>
             <div class="project-actions">
                 <a class="dashboard-button dashboard-button-secondary" href="{{ crew_url }}">Edit crew</a>
                 <form method="post" action="{{ url_for('dashboard.project_crew_remove', project_id=project.id) }}">
@@ -188,7 +169,7 @@
                 </form>
             </div>
         {% else %}
-            <p class="dashboard-muted">No crew selected. Choose a recommended crew or build your own to estimate labor costs.</p>
+            <p class="dashboard-muted">No crew selected.</p>
             <div class="project-actions">
                 <a class="dashboard-button dashboard-button-secondary" href="{{ crew_url }}">Add a crew</a>
             </div>

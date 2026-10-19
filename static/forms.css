@@ -56,13 +56,6 @@
     text-wrap: balance;
 }
 
-.auth-lede {
-    max-width: 30rem;
-    margin: 0;
-    color: var(--muted);
-    font-size: 1.05rem;
-}
-
 .auth-drawing {
     display: block;
     width: min(100%, 360px);
@@ -252,10 +245,6 @@
     margin: 0;
     color: var(--muted);
     font-size: 0.85rem;
-}
-
-.field-note.is-good {
-    color: var(--success);
 }
 
 .form-message {

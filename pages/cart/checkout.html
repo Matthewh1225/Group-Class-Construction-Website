@@ -26,12 +26,6 @@
                 <div class="shopping-field"><label for="country">Country</label><select id="country" name="country"><option value="US">United States</option></select></div>
             </div>
         </section>
-        <section class="shopping-panel" aria-labelledby="payment-title">
-            <h2 id="payment-title">Payment method</h2>
-            <div class="shopping-payment-placeholder" id="payment-provider-container">
-                <p><strong>Test payment.</strong> No card number is needed and nothing is charged. Placing the order saves a fake payment so you can test the rest of the site.</p>
-            </div>
-        </section>
     </form>
     {{ order_summary(cart_items, checkout=True, totals=totals) }}
 </div>

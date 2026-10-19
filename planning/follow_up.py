@@ -4,9 +4,13 @@ MAX_QUESTIONS = 3
 
 def question_key(question):
     # Ignore case and punctuation, keeping measurements and object names.
-    return " ".join(re.findall(r"\w+", question.casefold()))
+    lowercase_question = question.casefold()
+    words = re.findall(r"\w+", lowercase_question)
+    normalized_question = " ".join(words)
+    return normalized_question
 
 
+# The questions that have not been asked or answered yet, with repeats removed.
 def pending_questions(questions, answers):
     seen = set()
     for answer in answers:

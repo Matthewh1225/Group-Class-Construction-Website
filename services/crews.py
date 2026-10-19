@@ -26,7 +26,7 @@ MAX_DAYS = 1000
 
 def read_days(value):
     # Days are sent as [shortest, longest], for example [7, 10].
-    # A custom crew uses the same number twice, for example [5, 5].
+    # A custom crew uses the same number twice,  [5, 5].
     if not isinstance(value, list) or len(value) != 2:
         raise ValueError("The crew's working days are missing.")
     low = value[0]
@@ -38,8 +38,9 @@ def read_days(value):
     return [low, high]
 
 
+# Reads the crew the page sent as JSON then returns a clean crew dict.
+# Raises ValueError with a readable message if anything is wrong.
 def clean_crew(crew_json):
-    # The page sends specialties, worker counts and days. 
     try:
         data = json.loads(crew_json or "")
     except ValueError:
@@ -77,10 +78,12 @@ def clean_crew(crew_json):
     return crew
 
 
+# Whole dollars as text, like 1234 becomes "$1,234".
 def money(value):
     return "${:,.0f}".format(value)
 
 
+# Shows a low-high range as text,one number if low and high match.
 def show_range(low, high, before="", after=""):
     text = before + "{:,}".format(low)
     if high != low:
@@ -88,12 +91,14 @@ def show_range(low, high, before="", after=""):
     return text + after
 
 
+# Rounds to a whole dollar, or to the nearest $100 for a preset crew 
 def round_cost(value, crew):
     if crew["source"] == "preset":
         return int(value / 100 + 0.5) * 100
     return int(value + 0.5)
 
 
+# Works out the pay rows and the total cost range for a saved crew, ready to show on the page.
 def crew_estimate(crew):
     # Each specialty works a range of days, so each cost is a low-high range.
     rows = []

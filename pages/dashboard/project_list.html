@@ -16,7 +16,7 @@
                     </span>
                     <span class="plan-row-meta">
                         <span class="plan-row-tier">{{ project.material_count }} material{{ '' if project.material_count == 1 else 's' }}</span>
-                        <span class="status-tag status-{{ project.status_tone }}">{{ project.status }}</span>
+                        <span class="status-tag status-{{ project.status_tone }}">{{ 'Partial result' if project.status == 'Review Needed' else project.status }}</span>
                         <time class="plan-row-date" data-timestamp="{{ project.updated }}"></time>
                     </span>
                     <span class="plan-row-arrow" aria-hidden="true">&rarr;</span>

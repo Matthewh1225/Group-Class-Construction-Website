@@ -22,9 +22,8 @@ function checkMatch() {
     if (!confirmPassword.value) {
         matchMessage.textContent = "";
     } else {
-        matchMessage.textContent = matches ? "Passwords match." : "Passwords do not match.";
+        matchMessage.textContent = matches ? "" : "Passwords do not match.";
     }
-    matchMessage.classList.toggle("is-good", matches && confirmPassword.value !== "");
     return matches;
 }
 

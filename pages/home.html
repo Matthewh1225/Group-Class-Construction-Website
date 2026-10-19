@@ -5,12 +5,10 @@
 {% endblock %}
 
 {% block styles %}
-    <meta name="description" content="Describe your project and BuildBetter's AI planner drafts a materials estimate with its assumptions in view.">
+    <meta name="description" content="Plan your project and find materials with BuildBetter.">
     <link rel="stylesheet" href="{{ url_for('static', filename='home.css') }}">
 {% endblock %}
 
-{% block underConstruction %}
-{% endblock %}
 
 {% block content %}
 <div class="home">
@@ -35,20 +33,22 @@
     </svg>
 
     <section class="hero grid-bg" aria-labelledby="hero-title">
+        {# Short promo for the Pro tier. The full description lives on the About page. #}
         <div class="wrap pro-wrap">
             <aside class="pro-banner" aria-labelledby="pro-title">
                 <div class="pro-copy">
                     <p class="pro-tag">Top planning tier</p>
                     <p class="pro-name" id="pro-title">Pro Deep Quantum Ultra Max</p>
+                    <p class="pro-teaser">Two planners, one reviewed estimate.</p>
                 </div>
-                <a class="btn btn-primary" href="{{ url_for('subscription.checkout') }}">Explore plan <span class="arrow" aria-hidden="true">&rarr;</span></a>
+                <a class="btn btn-primary" href="{{ url_for('subscription.about_pro') }}">Learn About Pro <span class="arrow" aria-hidden="true">&rarr;</span></a>
             </aside>
         </div>
         <div class="wrap hero-grid">
             <div class="hero-copy">
                 <p class="sheet-tag" style="--i:0"><span>A-01</span>The brief</p>
                 <h1 id="hero-title" style="--i:1">Descriptions<br><span class="dim-underline">come to life</span></h1>
-                <p class="lede" style="--i:2">Describe your project. Get a materials estimate with assumptions you can review.</p>
+                <p class="lede" style="--i:2">Describe your project. Get a materials list.</p>
                 <div class="actions" style="--i:3">
                     <a class="btn btn-primary" href="{{ url_for('planner.planner') }}">Start with the AI Planner <span class="arrow" aria-hidden="true">&rarr;</span></a>
                     <a class="btn btn-ghost" href="{{ url_for('products.products') }}">Browse materials</a>
@@ -60,13 +60,9 @@
                     </svg>
                     <div>
                         <h2 id="crew-promo-title">Need a crew?</h2>
-                        <p>Find the right crew and a labor estimate for your project.</p>
-                        <a class="crew-promo-button" href="{{ url_for('crews.crews') }}">Find a Crew <span aria-hidden="true">&rarr;</span></a>
+                        <a class="crew-promo-button" href="{{ url_for('crews.crews') }}">Calculate crew costs <span aria-hidden="true">&rarr;</span></a>
                     </div>
                 </aside>
-                {% if not session.get("user_id") %}
-                    <p class="hero-note" style="--i:5">New here? <a href="{{ url_for('auth.register') }}">Create an account</a> to keep your plans.</p>
-                {% endif %}
                 <ul class="spec-line" style="--i:6" aria-label="The planner at a glance">
                     <li>5 project templates</li>
                     <li>Custom projects</li>
@@ -332,7 +328,7 @@
                 {# the same categories as the Products page (PRODUCT_CATEGORIES in routes/products.py);
                    rows of two fade in together, so --i is the row number #}
                 {% for category in categories %}
-                    <li data-reveal style="--i:{{ loop.index0 // 2 }}"><a class="legend-row" href="{{ url_for('products.products', category=category.slug, _anchor='catalog-results') }}"><span class="legend-code" aria-hidden="true">{{ category.code }}</span><span class="legend-name">{{ category.name }}</span><span class="legend-note">{{ category.note }}</span><span class="arrow" aria-hidden="true">&rarr;</span></a></li>
+                    <li data-reveal style="--i:{{ loop.index0 // 2 }}"><a class="legend-row" href="{{ url_for('products.products', category=category.url_name, _anchor='catalog-results') }}"><span class="legend-code" aria-hidden="true">{{ category.code }}</span><span class="legend-name">{{ category.name }}</span><span class="legend-note">{{ category.note }}</span><span class="arrow" aria-hidden="true">&rarr;</span></a></li>
                 {% endfor %}
             </ul>
         </div>

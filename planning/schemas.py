@@ -45,6 +45,7 @@ class Estimate(Record):
     warnings: list[str]
 
 
+# Makes unit names consistent, for example "Feet" and "foot" both become "ft".
 def normalize_unit(unit):
     aliases = {"feet": "ft", "foot": "ft", "inches": "in", "inch": "in",
                "meters": "m", "metres": "m", "square feet": "sq_ft", "sq ft": "sq_ft",
@@ -56,6 +57,7 @@ def normalize_unit(unit):
     return aliases.get(text, text)
 
 
+# Converts a length from one unit to another (ft, in, m, cm), for example 12 in to ft.
 def length_in(value, unit, target):
     factors = {"ft": Decimal("0.3048"), "in": Decimal("0.0254"),
                "m": Decimal("1"), "cm": Decimal("0.01")}
@@ -64,6 +66,7 @@ def length_in(value, unit, target):
     return value * factors[unit] / factors[target]
 
 
+# Converts an area from one unit to another (sq_ft or sq_m).
 def area_in(value, unit, target):
     factors = {"sq_ft": Decimal("0.09290304"), "sq_m": Decimal("1")}
     if unit not in factors or target not in factors:
@@ -85,14 +88,13 @@ REQUIRED_INPUTS = {
 COVERAGE_METHODS = {"coverage", "rectangle_coverage", "wall_coverage"}
 
 
+# Checks a material has exactly the inputs its calculation method needs. Returns them as {name: (value, unit)}.
 def validated_inputs(material):
     method = material.calculation.method
-    # name -> (value as an exact Decimal, normalized unit)
     inputs = {}
     for item in material.calculation.inputs:
         inputs[item.name] = (Decimal(str(item.value)), normalize_unit(item.unit))
     required = REQUIRED_INPUTS[method]
-    # a name listed twice makes the dictionary shorter than the list
     if len(inputs) != len(material.calculation.inputs) or set(inputs) != required:
         raise ValueError(f"{material.name}: {method} requires exactly {sorted(required)}.")
     if method != "manual":
@@ -104,7 +106,6 @@ def validated_inputs(material):
 
 def net_quantity(material, inputs):
     # inputs maps each input name to (Decimal value, unit).
-    # Decimal keeps the arithmetic exact, so rounding up never adds an extra item by mistake.
     method = material.calculation.method
     unit = normalize_unit(material.unit)
 
@@ -157,7 +158,6 @@ def net_quantity(material, inputs):
         if area < 0:
             raise ValueError("Openings exceed the wall area.")
 
-    # layers (such as two coats of paint) multiply the area; wall_area has none
     if "layers" in inputs:
         layers, layers_unit = inputs["layers"]
         if layers_unit != "count":
@@ -170,7 +170,7 @@ def net_quantity(material, inputs):
 
 
 def calculate_quantity(material):
-    # Return the final quantity; never execute a model-supplied expression.
+    # Return the final quantity
     inputs = validated_inputs(material)
     if material.calculation.method == "manual":
         if not material.notes.strip():
@@ -188,6 +188,7 @@ def calculate_quantity(material):
     return result
 
 
+# Checks the AI's estimate and replaces each material's quantity with the one Python calculates.
 def check_estimate(estimate):
     if not estimate.materials and not estimate.questions:
         raise ValueError("An estimate needs materials or a clarification question.")

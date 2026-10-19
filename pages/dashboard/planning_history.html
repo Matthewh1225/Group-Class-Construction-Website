@@ -13,7 +13,6 @@
         <div>
             <p class="sheet-tag"><span>D-02</span>Plan register</p>
             <h1>Planning history</h1>
-            <p>Every AI Planner run. Open a plan and choose Save Project to add it to My Projects.</p>
         </div>
         <a class="dashboard-button dashboard-button-primary" href="{{ url_for('planner.planner') }}">Start a new plan <span aria-hidden="true">&rarr;</span></a>
     </div>
@@ -52,7 +51,7 @@
             {% endif %}
         </nav>
     {% else %}
-        {% call empty_state('No AI plans yet', 'Describe a project or pick a template, and the AI Planner will draft a materials estimate. Every plan is listed here.') %}
+        {% call empty_state('No AI plans yet') %}
             <a class="dashboard-button dashboard-button-primary" href="{{ url_for('planner.planner') }}">Open the AI Planner</a>
         {% endcall %}
     {% endif %}
