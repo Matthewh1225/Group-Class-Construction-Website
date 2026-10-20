@@ -3,9 +3,9 @@ import secrets
 from flask import Blueprint, abort, flash, redirect, render_template, request, session, url_for
 
 from planning.ai_config import WORKFLOW_TIERS
-from planning.jobs import answer_job, cancel_job, count_jobs, get_job, list_jobs, pro_access_allowed, retry_job, submit_job
+from planning.jobs import answer_job, cancel_job, count_jobs, get_job, list_jobs, pro_access_allowed, restart_job, submit_job
 from planning.project_forms import PROJECT_TEMPLATES, build_custom_project
-from planning.presentation import plan_presentation, status_label
+from planning.presentation import add_store_details, interpretation_details, status_label
 from services.projects import can_save, default_project_name, get_project_for_job, save_project
 from utils.rate_limits import limiter
 
@@ -78,11 +78,23 @@ def submit_planning_job():
     return redirect(url_for("planner.planning_job", job_id=job["id"]), code=303)
 
 
+# The job page: progress while it runs, the questions, the error, or the finished plan.
 @planner_bp.get("/planner/jobs/<job_id>")
 def planning_job(job_id):
     job = owned_job(job_id)
-    return render_template("planner_job.html", job=job,
-                           plan=plan_presentation(job),
+    materials = []
+    if job["result"]:
+        materials = add_store_details(job["result"].get("materials", []))
+    label, tone = status_label(job)
+    template = PROJECT_TEMPLATES.get(job["project"].get("project_type"), {})
+    title = template.get("title", "Your project")
+    # get_project_for_job, can_save and default_project_name are unfinished teammate
+    # functions in services/projects.py; until they are written they return None,
+    # so the "Save this project" box stays hidden.
+    return render_template("planner_job.html", job=job, materials=materials,
+                           interpretation_details=interpretation_details(job.get("specification"), job["result"]),
+                           title=title,
+                           status_label=label, status_tone=tone,
                            tier_label=WORKFLOW_TIERS[job["tier"]]["label"],
                            saved_project=get_project_for_job(job_id, session["user_id"]),
                            can_save=can_save(job), default_name=default_project_name(job))
@@ -111,27 +123,24 @@ def planning_job_save(job_id):
 @planner_bp.get("/planner/jobs/<job_id>/status")
 def planning_job_status(job_id):
     job = owned_job(job_id)
-    status = {"id": job["id"], "status": job["status"], "phase": job["phase"],
-              "error": "Planning failed." if job["error"] else None,
-              "specification_version": job["specification_version"]}
+    status = {"id": job["id"], "status": job["status"], "phase": job["phase"], "error": job["error"]}
     return status, 200, {"Cache-Control": "no-store"}
 
 
-# Returns the finished plan as JSON.
+# Returns the finished plan as JSON, in the format described in planning/schemas.py.
 @planner_bp.get("/planner/jobs/<job_id>/result")
 def planning_job_result(job_id):
     job = owned_job(job_id)
     return {"id": job["id"], "status": job["status"], "result": job["result"]}, 200, {"Cache-Control": "no-store"}
 
 
-# Saves the user's answers to the planner's follow-up questions and puts the job back in the queue.
+# Saves the user's answers to the planner's follow-up questions (one round only) and puts the job back in the queue.
 @planner_bp.post("/planner/jobs/<job_id>/answers")
 @limiter.limit("4 per minute; 30 per hour", methods=["POST"])
 def planning_job_answers(job_id):
     owned_job(job_id)
     try:
-        version = request.form.get("specificationVersion", type=int)
-        answer_job(job_id, session["user_id"], request.form.getlist("answers"), version)
+        answer_job(job_id, session["user_id"], request.form.getlist("answers"))
     except ValueError as error:
         flash(str(error), "error")
     return redirect(url_for("planner.planning_job", job_id=job_id), code=303)
@@ -145,16 +154,17 @@ def planning_job_cancel(job_id):
     return redirect(url_for("planner.planning_job", job_id=job_id), code=303)
 
 
-# Puts a failed job back in the queue to try again.
-@planner_bp.post("/planner/jobs/<job_id>/retry")
+# Starts a failed job again from the beginning with the same inputs and answers, as a new job.
+@planner_bp.post("/planner/jobs/<job_id>/restart")
 @limiter.limit("4 per minute; 30 per hour", methods=["POST"])
-def planning_job_retry(job_id):
+def planning_job_restart(job_id):
     owned_job(job_id)
     try:
-        retry_job(job_id, session["user_id"])
+        new_job = restart_job(job_id, session["user_id"])
     except ValueError as error:
         flash(str(error), "error")
-    return redirect(url_for("planner.planning_job", job_id=job_id), code=303)
+        return redirect(url_for("planner.planning_job", job_id=job_id), code=303)
+    return redirect(url_for("planner.planning_job", job_id=new_job["id"]), code=303)
 
 
 # Shows the user's past planning jobs, 20 per page.

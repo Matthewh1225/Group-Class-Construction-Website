@@ -83,6 +83,7 @@ def build_deck(form):
 def build_residential_building(form):
     return {
         "project_type": "residential_building",
+        "footprint_sq_ft": read_number(form, "footprintSqFt", "footprint area", 1),
         "floors": read_number(form, "floors", "floors", 1, whole=True),
         "bedrooms": read_number(form, "bedrooms", "bedrooms", 0, whole=True),
         "bathrooms": read_number(form, "bathrooms", "bathrooms", 0, whole=True),
@@ -93,6 +94,7 @@ def build_residential_building(form):
 def build_commercial_building(form):
     return {
         "project_type": "commercial_building",
+        "footprint_sq_ft": read_number(form, "footprintSqFt", "footprint area", 1),
         "floors": read_number(form, "floors", "floors", 1, whole=True),
         "rooms": read_number(form, "rooms", "rooms", 1, whole=True),
         "elevator": read_choice(form, "elevator", "elevator", ("yes", "no")) == "yes",

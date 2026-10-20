@@ -1,7 +1,10 @@
 {% extends "dashboard/layout.html" %}
+{% from "planner_components.html" import amount, project_specs %}
 
-{# project comes from read_project (services/projects.py), plan from plan_presentation
-   (planning/presentation.py) and crew from crew_estimate (services/crews.py). #}
+{# project comes from read_project (services/projects.py) and crew from crew_estimate (services/crews.py).
+   plan is the saved copy of the planner job: plan.project (form inputs), plan.answers and plan.result
+   (format in planning/schemas.py). materials is plan.result.materials, with two keys added to each
+   material by planning/presentation.py add_store_details: product (the database product or none) and buy_quantity. #}
 
 {% block title %}
     {{ project.name }} - BuildBetter
@@ -9,10 +12,6 @@
 
 {% block flash_messages %}
 {% endblock %}
-
-{% macro amount(quantity) -%}
-    {% if quantity.approximate %}<span aria-hidden="true">&asymp; </span><span class="sr-only">Approximately </span>{% endif %}{{ quantity.value }}
-{%- endmacro %}
 
 {% block dashboard_content %}
     <nav class="dashboard-breadcrumb" aria-label="Breadcrumb">
@@ -34,17 +33,6 @@
         <p class="dashboard-message {{ category }} project-message" role="{{ 'alert' if category == 'error' else 'status' }}">{{ message }}</p>
     {% endfor %}
 
-    {% if project.job_running %}
-        <p class="project-update" role="status">Updating plan&hellip;</p>
-    {% elif project.update_available %}
-        <form class="project-update" method="post" action="{{ url_for('planner.planning_job_save', job_id=project.job_id) }}">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <input type="hidden" name="name" value="{{ project.name }}">
-            <input type="hidden" name="return_to" value="project">
-            <button class="dashboard-button dashboard-button-primary" type="submit">Update Project</button>
-        </form>
-    {% endif %}
-
     <section class="dashboard-card dashboard-detail-card project-section" id="overview" aria-labelledby="overview-title">
         <h2 id="overview-title">Project overview</h2>
         <dl class="dashboard-detail-list project-facts">
@@ -53,21 +41,17 @@
             <div><dt>Created</dt><dd><time data-timestamp="{{ project.created }}"></time></dd></div>
             <div><dt>Last updated</dt><dd><time data-timestamp="{{ project.updated }}"></time></dd></div>
         </dl>
-        {% if plan.description %}
+        {% if plan.result and plan.result.summary %}
             <h3>AI summary</h3>
-            <p>{{ plan.description }}</p>
+            <p>{{ plan.result.summary }}</p>
         {% endif %}
-        {% if plan.request %}
+        {% if plan.project.description %}
             <h3>Original request</h3>
-            <p>{{ plan.request }}</p>
+            <p>{{ plan.project.description }}</p>
         {% endif %}
-        {% if plan.specs %}
-            <dl class="dashboard-detail-list project-specs">
-                {% for spec in plan.specs %}
-                    <div><dt>{{ spec.label }}</dt><dd>{{ spec.value }}</dd></div>
-                {% endfor %}
-            </dl>
-        {% endif %}
+        <dl class="dashboard-detail-list project-specs">
+            {{ project_specs(plan.project or {}) }}
+        </dl>
         {% if plan.answers %}
             <h3>Your answers to the planner</h3>
             <dl class="project-answers">
@@ -81,30 +65,43 @@
     <section class="dashboard-card dashboard-detail-card project-section" id="materials" aria-labelledby="materials-title">
         <div class="dashboard-section-heading">
             <h2 id="materials-title">Materials list</h2>
-            <span class="dashboard-muted">{{ plan.materials|length }} material{{ '' if plan.materials|length == 1 else 's' }}</span>
+            <span class="dashboard-muted">{{ materials|length }} material{{ '' if materials|length == 1 else 's' }}</span>
         </div>
-        {% if plan.materials %}
+        {% if materials %}
             <div class="dashboard-table-wrap">
                 <table class="dashboard-data-table project-materials">
                     <thead>
                         <tr>
                             <th scope="col">Material</th>
-                            <th scope="col">Quantity</th>
+                            <th scope="col">Needed</th>
                             <th scope="col">Unit</th>
                             <th scope="col">Waste</th>
                             <th scope="col">Specification &amp; notes</th>
+                            <th scope="col">Store product</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {% for item in plan.materials %}
+                        {% for item in materials %}
+                            {% set product = item.product %}
+                            {% set buy = item.buy_quantity %}
                             <tr>
-                                <th scope="row">{{ item.name }}</th>
+                                <th scope="row">{{ item.material_name }}</th>
                                 <td>{{ amount(item.quantity) }}</td>
-                                <td>{{ item.quantity.unit or '—' }}</td>
-                                <td>{% if item.waste.known %}{{ amount(item.waste) }}%{% else %}—{% endif %}</td>
+                                <td>{{ item.unit }}</td>
+                                <td>{{ amount(item.waste_percent) }}%</td>
                                 <td class="project-material-notes">
                                     {{ item.specification or '—' }}
                                     {% if item.notes %}<small>{{ item.notes }}</small>{% endif %}
+                                </td>
+                                <td class="project-material-notes">
+                                    {% if product %}
+                                        {{ product.product_name }}
+                                        <small>{% if product.unit_price is not none %}${{ '{:,.2f}'.format(product.unit_price|float) }} per {{ product.unit }}{% else %}Price not listed{% endif %}{% if buy is not none %} &middot; buy {{ amount(buy) }}{% endif %}</small>
+                                    {% elif item.product_id is not none %}
+                                        Product details unavailable
+                                    {% else %}
+                                        No catalog match
+                                    {% endif %}
                                 </td>
                             </tr>
                         {% endfor %}

@@ -29,12 +29,13 @@
                     type="password"
                     autocomplete="new-password"
                     minlength="3"
+                    maxlength="{{ password_max_length }}"
                     required
                     aria-describedby="admin-password-help admin-password-error"
                 >
                 <button type="button" data-toggle-password="admin-password" aria-controls="admin-password" aria-label="Show password" aria-pressed="false">Show</button>
             </div>
-            <small id="admin-password-help">At least 3 characters and one number. Maximum 72 UTF-8 bytes.</small>
+            <small id="admin-password-help">At least 3 characters and one number. At most {{ password_max_length }} characters.</small>
             <span class="admin-field-error" id="admin-password-error" aria-live="polite"></span>
         </div>
         <div class="admin-form-field">
@@ -45,6 +46,7 @@
                     name="confirm_password"
                     type="password"
                     autocomplete="new-password"
+                    maxlength="{{ password_max_length }}"
                     required
                     aria-describedby="admin-confirm-password-error"
                 >

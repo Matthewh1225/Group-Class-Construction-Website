@@ -1,355 +1,96 @@
+# BuildBetter database
 
-erDiagram
-    users {
-        int id PK
-        varchar username
-        varchar email
-        enum status
-        datetime created_at
-    }
-    account_tokens {
-        int token_id PK
-        int user_id FK
-        enum purpose
-        datetime created_at
-    }
-    auth_identities {
-        int identity_id PK
-        int user_id FK
-        enum provider
-    }
-    user_addresses {
-        int address_id PK
-        int user_id FK
-        varchar label
-        datetime created_at
-    }
-    notification_preferences {
-        int user_id PK
-    }
-    notification_outbox {
-        int notification_id PK
-        int user_id FK
-        int project_id FK
-        varchar template_key
-        enum status
-    }
-    saved_payment_methods {
-        int method_id PK
-        int user_id FK
-        varchar provider
-    }
-    subscriptions {
-        int subscription_id PK
-        int user_id FK
-        varchar plan_name
-        enum status
-        varchar provider
-        datetime created_at
-    }
-    subscription_invoices {
-        int invoice_id PK
-        int subscription_id FK
-        decimal amount
-        enum status
-    }
-    projects {
-        int project_id PK
-    }
-    users ||..o{ account_tokens : "user_id"
-    users ||..o{ auth_identities : "user_id"
-    users ||..o{ notification_outbox : "user_id"
-    projects o|..o{ notification_outbox : "project_id, user_id"
-    users ||--o| notification_preferences : "user_id"
-    users ||..o{ saved_payment_methods : "user_id"
-    subscriptions ||..o{ subscription_invoices : "subscription_id"
-    users ||..o{ subscriptions : "user_id"
-    users ||..o{ user_addresses : "user_id"
-```
+## MySQL tables (team ERD)
 
-## Product catalog
 
 ```mermaid
 erDiagram
-    categories {
-        int category_id PK
-        varchar category_name
+    User {
+        int Id PK
+        varchar firstName
+        varchar lastName
+        varchar email "unique"
+        varchar password "Argon2 hash (older accounts: bcrypt)"
+        date dob
+        varchar username "added, unique"
+        enum status "added: active or disabled"
+        datetime date_created "added"
+        date proUntil "added: last day of Pro, NULL = no Pro"
     }
-    subcategories {
-        int subcategory_id PK
-        int category_id FK
-        varchar subcategory_name
+    Administrator {
+        int user_Id PK, FK
+        int permissions
+        text notes
     }
-    manufacturers {
-        int manufacturer_id PK
-        varchar manufacturer_name
+    Customer {
+        int user_Id PK, FK
+        varchar address
     }
-    suppliers {
-        int supplier_id PK
-        varchar supplier_name
-    }
-    products {
-        int product_id PK
-        int category_id FK
-        int subcategory_id FK
-        int manufacturer_id FK
-        varchar product_name
-        varchar sku
-        datetime created_at
-    }
-    product_inventory {
-        int product_id PK
-        decimal unit_price
-    }
-    product_images {
-        int image_id PK
-        int product_id FK
-    }
-    product_suppliers {
-        int product_id PK
-        int supplier_id PK
-    }
-    product_reviews {
-        int review_id PK
-        int user_id FK
-        int product_id FK
-        tinyint rating
-        enum status
-        datetime created_at
-    }
-    users {
-        int id PK
-    }
-    products ||..o{ product_images : "product_id"
-    products ||--o| product_inventory : "product_id"
-    users ||..o{ product_reviews : "user_id"
-    products ||..o{ product_reviews : "product_id"
-    products ||--o{ product_suppliers : "product_id"
-    suppliers ||--o{ product_suppliers : "supplier_id"
-    categories ||..o{ products : "category_id"
-    subcategories o|..o{ products : "subcategory_id, category_id"
-    manufacturers o|..o{ products : "manufacturer_id"
-    categories ||..o{ subcategories : "category_id"
-```
-
-## Cart, orders, and payments
-
-```mermaid
-erDiagram
-    carts {
-        int cart_id PK
-        int user_id FK
-        datetime created_at
-    }
-    cart_items {
-        int cart_item_id PK
-        int cart_id FK
-        int product_id FK
-        decimal quantity
-    }
-    orders {
-        int order_id PK
-        int user_id FK
-        enum status
-        decimal total_amount
-        datetime created_at
-    }
-    order_items {
-        int order_item_id PK
-        int order_id FK
-        int product_id FK
-        decimal quantity
-        decimal unit_price
-    }
-    payments {
-        int payment_id PK
-        int order_id FK
-        varchar provider
-        enum status
-        decimal amount
-        datetime created_at
-    }
-    payment_refunds {
-        int refund_id PK
-        int payment_id FK
-        decimal amount
-        enum status
-        datetime created_at
-    }
-    discount_codes {
-        int discount_id PK
-        varchar code
-        decimal amount
-    }
-    discount_redemptions {
-        int redemption_id PK
-        int discount_id FK
-        int order_id FK
-    }
-    inventory_reservations {
-        int reservation_id PK
-        int product_id FK
-        int order_id FK
-        decimal quantity
-        enum status
-        datetime created_at
-    }
-    product_inventory {
-        int product_id PK
-    }
-    products {
-        int product_id PK
-    }
-    users {
-        int id PK
-    }
-    carts ||..o{ cart_items : "cart_id"
-    products ||..o{ cart_items : "product_id"
-    users ||..o| carts : "user_id"
-    discount_codes ||..o{ discount_redemptions : "discount_id"
-    orders ||..o{ discount_redemptions : "order_id"
-    product_inventory ||..o{ inventory_reservations : "product_id"
-    orders ||..o{ inventory_reservations : "order_id"
-    orders ||..o{ order_items : "order_id"
-    products o|..o{ order_items : "product_id"
-    users ||..o{ orders : "user_id"
-    payments ||..o{ payment_refunds : "payment_id"
-    orders ||..o{ payments : "order_id"
-```
-
-## Projects and materials
-
-```mermaid
-erDiagram
-    projects {
-        int project_id PK
-        int user_id FK
-        varchar title
-        varchar project_type
-        enum status
-        datetime created_at
-    }
-    planner_results {
-        int result_id PK
-        int project_id FK
-        int user_id FK
-        enum tier
-        enum status
-        datetime created_at
-    }
-    project_crews {
-        int crew_id PK
-        int project_id FK
-        int user_id FK
-        varchar label
-        enum source
-        datetime created_at
-    }
-    project_crew_members {
-        int member_id PK
-        int crew_id FK
-        varchar specialty
-    }
-    material_lists {
-        int material_list_id PK
-        int project_id FK
-        int user_id FK
-        varchar title
-        enum source
-        enum tier
-        datetime created_at
-    }
-    material_list_items {
-        int material_item_id PK
-        int material_list_id FK
-        int product_id FK
-        varchar purpose
-        decimal quantity
-        datetime created_at
-    }
-    material_acquisitions {
-        int acquisition_id PK
-        int material_item_id FK
-        int order_item_id FK
-        decimal quantity
-        enum source
-    }
-    project_showcases {
-        int showcase_id PK
-        int project_id FK
-        varchar title
-        enum status
-    }
-    showcase_images {
-        int image_id PK
-        int showcase_id FK
-    }
-    order_items {
-        int order_item_id PK
-    }
-    products {
-        int product_id PK
-    }
-    users {
-        int id PK
-    }
-    material_list_items ||..o{ material_acquisitions : "material_item_id"
-    order_items o|..o{ material_acquisitions : "order_item_id"
-    material_lists ||..o{ material_list_items : "material_list_id"
-    products o|..o{ material_list_items : "product_id"
-    projects ||..o{ material_lists : "project_id, user_id"
-    projects ||..o{ planner_results : "project_id, user_id"
-    project_crews ||..o{ project_crew_members : "crew_id"
-    projects ||..o{ project_crews : "project_id, user_id"
-    projects ||..o| project_showcases : "project_id"
-    users ||..o{ projects : "user_id"
-    project_showcases ||..o{ showcase_images : "showcase_id"
-```
-
-## Service bookings
-
-```mermaid
-erDiagram
-    service_providers {
-        int provider_id PK
+    Manufacturer {
+        int Id PK
         varchar name
     }
-    service_offerings {
-        int offering_id PK
-        int provider_id FK
-        int product_id FK
-        varchar title
-        enum offering_type
-        varchar specialty
-        decimal unit_price
+    Manufacturer_products {
+        int manId PK, FK
+        int productId PK, FK
     }
-    service_bookings {
-        int booking_id PK
+    Product {
+        int Id PK
+        varchar name
+        varchar subCategory
+        text details
+        decimal price
+        varchar dimensions
+        varchar materials
+        int itemQty "stock on hand"
+        varchar manufacturer "red on the ERD"
+        varchar category "added"
+        varchar sku "added, unique"
+        varchar keywords "added"
+        varchar unit "added"
+        decimal packQuantity "added"
+        decimal purchaseIncrement "added"
+        boolean isActive "added"
+    }
+    Order {
+        int Id PK
+        int user_Id FK
+        date date_created
+        date date_completed
+        decimal totalCost
+        enum status "added"
+        varchar shippingAddress "added"
+    }
+    Order_item {
+        int order_id PK, FK
+        int product_id PK, FK
+        decimal quantity "added"
+        decimal unitPrice "added"
+    }
+    Payments {
+        int Id PK
+        int transType
+        char cardLast4 "was cardNumber"
+        date date_charged
         int user_id FK
-        int project_id FK
-        int offering_id FK
-        int quantity
-        enum status
+        int order_id FK "added"
+        decimal amount "added"
+        enum status "added"
     }
-    products {
-        int product_id PK
-    }
-    projects {
-        int project_id PK
-    }
-    users {
-        int id PK
-    }
-    users ||..o{ service_bookings : "user_id"
-    projects o|..o{ service_bookings : "project_id, user_id"
-    service_offerings ||..o{ service_bookings : "offering_id"
-    service_providers ||..o{ service_offerings : "provider_id"
-    products o|..o{ service_offerings : "product_id"
+    User ||--o| Administrator : "user_Id"
+    User ||--o| Customer : "user_Id"
+    User ||--o{ Order : "user_Id"
+    User ||--o{ Payments : "user_id"
+    Order ||--o{ Order_item : "order_id"
+    Product ||--o{ Order_item : "product_id"
+    Order |o--o{ Payments : "order_id"
+    Manufacturer ||--o{ Manufacturer_products : "manId"
+    Product ||--o{ Manufacturer_products : "productId"
 ```
 
 ## Planner job store (SQLite)
 
-The application creates these two tables in `planning/jobs.py`. Their `owner` values contain a MySQL user ID as text, and `saved_projects.job_id` identifies a planner job. SQLite does not declare foreign keys for either link, so the dashed connections below show application-level references only. `saved_projects.plan` and `crew`, and `planner_jobs.data`, contain JSON text.
+The application creates these two tables in `planning/jobs.py`. Their `owner` values contain a MySQL `User.Id` as text, and `saved_projects.job_id` identifies a planner job. SQLite does not declare foreign keys for either link, so the dashed connections below show application-level references only. `saved_projects.plan` and `crew`, and `planner_jobs.data`, contain JSON text.
 
 ```mermaid
 erDiagram
@@ -373,18 +114,75 @@ erDiagram
         TEXT job_id
         TEXT name
         TEXT plan
-        INTEGER plan_version
         TEXT crew
         INTEGER completed
         REAL created
         REAL updated
     }
-    mysql_users {
-        int id PK
+    mysql_User {
+        int Id PK
     }
-    mysql_users ||..o{ planner_jobs : "owner (application link)"
-    mysql_users ||..o{ saved_projects : "owner (application link)"
+    mysql_User ||..o{ planner_jobs : "owner (application link)"
+    mysql_User ||..o{ saved_projects : "owner (application link)"
     planner_jobs ||..o| saved_projects : "job_id (application link)"
 ```
 
-SQLite enforces `UNIQUE(owner, submission_key)` on `planner_jobs` and `UNIQUE(owner, job_id)` on `saved_projects`. The MySQL `projects.source_job_id`, `planner_results.source_job_id`, and `material_lists.source_job_id` also refer to planner jobs by value without cross-database foreign keys.
+SQLite enforces `UNIQUE(owner, submission_key)` on `planner_jobs` and `UNIQUE(owner, job_id)` on `saved_projects`. The ERD has no MySQL tables for projects or material lists, so AI plans and saved projects live only in this SQLite file.
+
+## Planner result JSON
+
+`planner_jobs.data` stores each job's inputs and its result as JSON. `saved_projects.plan` stores a copy of the job's `tier`, `project`, `answers` and `result`. A job keeps one result, with no versions or stage snapshots. A failed job is never resumed: **Start again** creates a new job from the same `project` and `answers`.
+
+The result uses the same shape at every step: each AI estimate stage returns it, `run_stage` validates it once on arrival (Pydantic models in `planning/schemas.py`), and after that it is a plain dictionary in storage and in the templates.
+
+```json
+{
+  "planning_status": "partial",
+  "summary": "12 x 16 ft pressure-treated deck, 3 ft above ground.",
+  "materials": [
+    {
+      "material_name": "Pressure-treated deck board",
+      "specification": "5/4 x 6 in x 16 ft",
+      "quantity": 36,
+      "unit": "piece",
+      "waste_percent": 10,
+      "round_up": true,
+      "calculation": {"method": "count", "inputs": [{"name": "count", "value": 32, "unit": "piece"}]},
+      "notes": "Boards run the 16 ft length; 32 rows plus waste.",
+      "product_id": 1003
+    },
+    {
+      "material_name": "Footing concrete",
+      "specification": "Design-dependent",
+      "quantity": null,
+      "unit": "cu_ft",
+      "waste_percent": 0,
+      "round_up": false,
+      "calculation": {"method": "manual", "inputs": []},
+      "notes": "Unknown: footing size and count need a local design.",
+      "product_id": null
+    }
+  ],
+  "assumptions": ["Joists 16 in on center"],
+  "warnings": ["Footings, beams and posts need local design approval."]
+}
+```
+
+- `quantity` is the amount the project **needs**, in `unit`, with waste included. It is `null` when the details given are not enough to calculate it; `notes` then says what is missing. A quantity is never invented.
+- Python recalculates `quantity` from `calculation` for every method except `manual` (`check_estimate`).
+- `product_id` is `Product.Id`. It is `null` unless the ID belongs to an active product in the catalog the planner was given; any other ID is removed before the result is saved.
+- `planning_status` is added by Python: `partial` when any quantity is `null`, otherwise `complete`.
+- The purchase quantity is kept separate from the required quantity. It is never stored; the plan page works it out from database product data (`planning/presentation.py`). The page shows it only when the material's unit matches `Product.unit`, rounded up to `Product.purchaseIncrement`. When the units differ (for example `sq_ft` of decking and a `piece` of board), the page leaves the choice to the user.
+
+### Product fields
+
+The JSON stores only `product_id`. Everything else about a product is read from MySQL whenever a plan is shown (`services/products.py` `get_products_by_ids`). The queries rename the columns with `AS`, so the code can tell a product's name and price apart from a material's:
+
+| Name in the code and pages | `Product` column |
+| --- | --- |
+| `product_id` | `Id` |
+| `product_name` | `name` |
+| `unit_price` | `price` |
+| `available_quantity` | `itemQty` |
+| `unit` | `unit` |
+| `purchase_increment` | `purchaseIncrement` |

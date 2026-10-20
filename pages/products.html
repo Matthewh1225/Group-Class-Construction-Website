@@ -88,18 +88,18 @@
                             </dl>
                             <footer class="product-footer">
                                 {% if product.unit_price is not none %}
-                                    <p class="product-price">{% if product.currency == 'USD' %}${% else %}{{ product.currency }} {% endif %}{{ '%.2f'|format(product.unit_price) }} <span>/ {{ product.unit }}</span></p>
+                                    <p class="product-price">${{ '%.2f'|format(product.unit_price) }} <span>/ {{ product.unit }}</span></p>
                                 {% else %}
                                     <p class="product-price product-price-unknown">Price unavailable</p>
                                 {% endif %}
-                                {% if product.unit_price is none or not product.is_available %}
+                                {% if product.unit_price is none %}
                                     <span class="product-status">Currently unavailable</span>
                                 {% elif not product.available_quantity or product.available_quantity <= 0 %}
                                     <span class="product-status">Out of stock</span>
                                 {% else %}
                                     <span class="product-status product-status-available">In stock</span>
                                 {% endif %}
-                                {% if product.unit_price is not none and product.is_available and product.available_quantity and product.available_quantity >= product.purchase_increment and product.currency == 'USD' %}
+                                {% if product.unit_price is not none and product.available_quantity and product.available_quantity >= product.purchase_increment %}
                                     <form class="product-cart-form" method="post" action="{{ url_for('cart_add') }}">
                                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                         <input type="hidden" name="product_id" value="{{ product.product_id }}">

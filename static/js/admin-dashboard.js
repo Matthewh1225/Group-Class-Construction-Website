@@ -240,7 +240,6 @@ import {passwordChecks} from "./account-forms.js";
         else if (input.name === "password") {
             const checks = passwordChecks(input.value, addForm.dataset.passwordDigits);
             if (!checks.length) error = "Use at least 3 characters.";
-            else if (!checks.bytes) error = "Use no more than 72 UTF-8 bytes.";
             else if (!checks.number) error = "Include at least one number.";
         } else if (input.name === "confirm_password" && input.value !== addForm.elements.password.value) error = "Passwords do not match.";
         input.setAttribute("aria-invalid", String(Boolean(error)));

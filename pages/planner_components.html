@@ -1,0 +1,20 @@
+{# Shared pieces of the AI plan pages: pages/planner_job.html and pages/dashboard/project_detail.html. #}
+
+{# Shows a number with at most 2 decimals and no trailing zeros, or "Unknown" for None. #}
+{% macro amount(value) -%}
+    {%- if value is none -%}Unknown{%- else -%}{{ '{:,.2f}'.format(value|float).rstrip('0').rstrip('.') }}{%- endif -%}
+{%- endmacro %}
+
+{# The form fields the user filled in for a project (routes/planner.py build_project), dimensions first.
+   Gives one <div><dt><dd> row per field; the page puts them inside its own <dl>.
+   note, when given, is shown under every value (the plan page shows "From your request"). #}
+{% macro project_specs(project, note=none) -%}
+    {% for name, value in (project.dimensions or {}).items() %}
+        <div><dt>{{ name|replace('_', ' ')|capitalize }}</dt>
+            <dd>{{ amount(value) }}{% if note %}<small>{{ note }}</small>{% endif %}</dd></div>
+    {% endfor %}
+    {% for name, value in project.items() if name not in ['dimensions', 'description', 'project_type', 'project_mode', 'project_size', 'project_template'] and value is not none %}
+        <div><dt>{{ name|replace('_', ' ')|capitalize }}</dt>
+            <dd>{% if value is sameas true %}Yes{% elif value is sameas false %}No{% elif value is number %}{{ amount(value) }}{% else %}{{ value }}{% endif %}{% if note %}<small>{{ note }}</small>{% endif %}</dd></div>
+    {% endfor %}
+{%- endmacro %}

@@ -3,7 +3,6 @@ export function passwordChecks(value, digits) {
     return {
         length: characters.length >= 3,
         number: characters.some((character) => digits.includes(character)),
-        bytes: new TextEncoder().encode(value).length <= 72,
     };
 }
 

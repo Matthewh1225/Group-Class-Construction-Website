@@ -15,7 +15,7 @@ from routes.products import PRODUCT_CATEGORIES, products_bp
 from routes.subscription import subscription_bp
 from utils.csrf import check_csrf, csrf_token
 from utils.rate_limits import limiter
-from utils.passwords import PASSWORD_DIGITS
+from utils.passwords import MAX_PASSWORD_LENGTH, PASSWORD_DIGITS
 
 app = Flask(__name__, template_folder="pages")
 app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")
@@ -29,6 +29,7 @@ app.before_request(check_logged_in_user)
 
 app.jinja_env.globals["csrf_token"] = csrf_token
 app.jinja_env.globals["password_digits"] = PASSWORD_DIGITS
+app.jinja_env.globals["password_max_length"] = MAX_PASSWORD_LENGTH
 
 limiter.init_app(app)
 

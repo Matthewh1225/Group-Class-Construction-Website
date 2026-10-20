@@ -50,4 +50,6 @@ def worker_exit(server, worker):
     # Idle workers stop immediately
     worker.planner_thread.join(timeout=5)
     if worker.planner_thread.is_alive():
-        worker.log.info("Planner is still finishing a call; interrupted jobs recover after lease expiry.")
+        # The job is marked failed ("interrupted") when its lease runs out (planning/jobs.py LEASE_SECONDS),
+        # and the user can start it again from the job page.
+        worker.log.info("Planner is still finishing a call; an unfinished job is marked failed when its lease runs out.")

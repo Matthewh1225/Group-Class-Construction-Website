@@ -12,14 +12,14 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from .jobs import LeaseLost, claim_job, database_path, save_job
-from .workflow import StageError, run_workflow
+from .workflow import PlanningError, run_workflow
 
 logger = logging.getLogger(__name__)
 
 ERROR_DELAY = 10
 
 
-# Saves the job as "failed" with an error message.
+# Saves the job as "failed" with a short error message the user will see.
 def mark_failed(job, worker, message):
     job["status"] = "failed"
     job["error"] = message
@@ -30,7 +30,8 @@ def mark_failed(job, worker, message):
         logger.info("Planner job %s was cancelled before its failure could be saved.", job["id"])
 
 
-# Takes one queued job. Job failures are saved
+# Takes one queued job and runs the whole workflow on it. A failure is saved on the job;
+# the user can then start it again from the job page.
 def process_one(worker=None, stop_event=None):
     worker = worker or uuid.uuid4().hex
     try:
@@ -38,22 +39,22 @@ def process_one(worker=None, stop_event=None):
         if job is None:
             return None
 
-        def checkpoint(value):
+        def save_progress(value):
             save_job(value, worker)
 
         try:
-            run_workflow(job, checkpoint)
+            run_workflow(job, save_progress)
         except LeaseLost:
             # Cancellation or an expired lease prevents this worker from saving.
             logger.info("Planner job %s was cancelled or reclaimed; stopping work on it.", job["id"])
-        except StageError as error:
+        except PlanningError as error:
             mark_failed(job, worker, str(error))
         except sqlite3.Error:
-            # The lease will expire so a later claim can resume the job.
+            # The job cannot be saved; when its lease runs out it is marked as interrupted (jobs.claim_job).
             raise
         except Exception:
             logger.exception("Planner job %s stopped with an unexpected error.", job["id"])
-            mark_failed(job, worker, "The worker could not finish this job. Completed stages were preserved.")
+            mark_failed(job, worker, "Planning stopped because of an unexpected error.")
         return job["id"]
     except Exception:
         logger.exception("Planner worker error. Trying again in %s seconds.", ERROR_DELAY)

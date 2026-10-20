@@ -12,6 +12,13 @@
             <legend>Layout</legend>
             <div class="field-row">
                 <div class="form-field">
+                    <label for="commercial-footprint">Footprint <span class="sr-only">in square feet</span></label>
+                    <div class="unit-input">
+                        <input id="commercial-footprint" name="footprintSqFt" type="number" inputmode="numeric" min="1" step="1" value="{{ form_data.get('footprintSqFt', '') }}" required>
+                        <span aria-hidden="true">sq ft</span>
+                    </div>
+                </div>
+                <div class="form-field">
                     <label for="commercial-floors">Floors</label>
                     <input id="commercial-floors" name="floors" type="number" inputmode="numeric" min="1" step="1" value="{{ form_data.get('floors', '') }}" required>
                 </div>
@@ -30,7 +37,7 @@
         </fieldset>
         <div class="form-field">
             <label for="commercial-description">Additional description <span class="optional">(optional)</span></label>
-            <textarea id="commercial-description" class="planner-input" name="userInput" placeholder="Use, square footage, number of tenants...">{{ form_data.get('userInput', '') }}</textarea>
+            <textarea id="commercial-description" class="planner-input" name="userInput" placeholder="Use, number of tenants, finishes...">{{ form_data.get('userInput', '') }}</textarea>
         </div>
         {% include "project_forms/plan_buttons.html" %}
     </form>

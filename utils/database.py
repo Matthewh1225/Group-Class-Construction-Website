@@ -7,7 +7,7 @@ from dotenv import dotenv_values
 from flask import current_app, has_app_context
 
 
-# Picks which MySQL database to connect to: the test database (from .env.test) when testing, otherwise the real one (from .env).
+# Picks which MySQL database to connect to: the test database from .env.test or real one (from .env).
 def database_settings():
     testing = os.getenv("DATABASE_ENV") == "test"
     if has_app_context() and current_app.testing:

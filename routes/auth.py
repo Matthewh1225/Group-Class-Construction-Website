@@ -2,7 +2,7 @@ from flask import Blueprint, current_app, g, redirect, render_template, request,
 from mysql.connector import Error, IntegrityError
 
 from utils.database import database_cursor
-from utils.passwords import verify_password_hash
+from utils.passwords import MAX_PASSWORD_LENGTH, check_password, hash_password, needs_new_hash
 from utils.rate_limits import limiter
 from utils.users import create_user
 
@@ -23,9 +23,14 @@ def check_logged_in_user():
         return None
 
     #if the database is down,shows the "Service unavailable" page)
+    # A user is an admin when they have a row in the Administrator table.
     with database_cursor() as cursor:
         cursor.execute(
-            "SELECT username, permission_level, status FROM users WHERE id = %s",
+            """SELECT u.username, u.status,
+                      CASE WHEN a.user_Id IS NULL THEN 'user' ELSE 'admin' END AS permission_level
+               FROM `User` u
+               LEFT JOIN Administrator a ON a.user_Id = u.Id
+               WHERE u.Id = %s""",
             (session["user_id"],),
         )
         user = cursor.fetchone()
@@ -56,12 +61,20 @@ def login():
     if not isinstance(username, str) or not isinstance(password, str):
         return {"error": "Invalid form data."}, 400
     username = username.strip()
+    # No account can have a longer password, so don't spend time hashing it.
+    if len(password) > MAX_PASSWORD_LENGTH:
+        return {"error": "Invalid username or password."}, 401
 
     try:
         with database_cursor() as cursor:
+            # User.password holds the password hash (Argon2, or bcrypt for accounts made before the switch).
+            # A user is an admin when they have a row in Administrator.
             cursor.execute(
-                """SELECT id, username, password_hash, permission_level, status
-                   FROM users WHERE username = %s OR email = %s LIMIT 1""",
+                """SELECT u.Id, u.username, u.password, u.status,
+                          CASE WHEN a.user_Id IS NULL THEN 'user' ELSE 'admin' END AS permission_level
+                   FROM `User` u
+                   LEFT JOIN Administrator a ON a.user_Id = u.Id
+                   WHERE u.username = %s OR u.email = %s LIMIT 1""",
                 (username, username),
             )
             user = cursor.fetchone()
@@ -70,13 +83,23 @@ def login():
         current_app.logger.exception("Login database query failed")
         return {"error": "Login unavailable."}, 503
 
-    if user is None or not verify_password_hash(password, user["password_hash"]):
+    if user is None or not check_password(user["password"], password):
         return {"error": "Invalid username or password."}, 401
     # Show account status only after the password has been verified.
     if user["status"] == "disabled":
         return {"error": "This account is disabled."}, 403
 
-    start_session(user["id"], user["username"], user["permission_level"])
+    # The password is known to be right now, so an old bcrypt hash can be replaced with an Argon2 one.
+    if needs_new_hash(user["password"]):
+        try:
+            with database_cursor() as cursor:
+                cursor.execute("UPDATE `User` SET password = %s WHERE Id = %s",
+                               (hash_password(password), user["Id"]))
+        except Error:
+            # Signing in still works; the hash is replaced at a later login instead.
+            current_app.logger.exception("Could not update the password hash for user %s", user["Id"])
+
+    start_session(user["Id"], user["username"], user["permission_level"])
     return {"redirect_url": url_for("dashboard.dashboard")}
 
 

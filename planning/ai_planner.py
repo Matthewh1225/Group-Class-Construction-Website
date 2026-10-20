@@ -1,12 +1,12 @@
 import json
 import os
-from time import monotonic
 
 from google import genai
 from groq import Groq
 from openrouter import OpenRouter
 
 from .ai_config import AI_TIMEOUT, MODEL_CAPABILITIES, MODELS
+from .schemas import BadAnswer
 
 
 # Creates the connection to an AI provider
@@ -37,7 +37,6 @@ def get_value(item, name, default=None):
     return getattr(item, name, default)
 
 
-# Builds the chat message list: the instructions first, then the user's prompt.
 def make_messages(system_instruction, prompt):
     return [
         {"role": "system", "content": system_instruction},
@@ -45,7 +44,7 @@ def make_messages(system_instruction, prompt):
     ]
 
 
-# Sends the prompt to Gemini and returns its text plus token counts and why it stopped.
+# Sends the prompt to Gemini and returns its text and why it stopped.
 def call_gemini(model, prompt, thinking_level, system_instruction, response_schema,
                 output_tokens):
     config = {
@@ -64,53 +63,43 @@ def call_gemini(model, prompt, thinking_level, system_instruction, response_sche
         contents=prompt,
         config=config,
     )
-    usage = get_value(response, "usage_metadata")
     candidates = get_value(response, "candidates", []) or []
     finish_reason = None
     if isinstance(candidates, list) and candidates:
         finish_reason = str(get_value(candidates[0], "finish_reason", ""))
-    return {
-        "text": get_value(response, "text", "") or "",
-        "thinking_tokens": get_value(usage, "thoughts_token_count"),
-        "input_tokens": get_value(usage, "prompt_token_count"),
-        "output_tokens": get_value(usage, "candidates_token_count"),
-        "total_tokens": get_value(usage, "total_token_count"),
-        "finish_reason": finish_reason,
-    }
+    return {"text": get_value(response, "text", "") or "", "finish_reason": finish_reason}
 
 
-# Sends the prompt to Groq and returns its text plus token counts and why it stopped.
+# Sends the prompt to Groq and returns its text and why it stopped.
 def call_groq(model, prompt, thinking_level, system_instruction, response_schema,
               output_tokens):
-    # JSON object mode still gives parseable JSON; Pydantic and Python check it later.
-    prompt += "\nReturn one JSON object matching this schema:\n" + json.dumps(response_schema)
+    # GPT-OSS supports strict JSON schemas. Pydantic and Python still check the answer.
     response = model["client"].with_options(max_retries=0).chat.completions.create(
         model=model["model"],
         messages=make_messages(system_instruction, prompt),
         temperature=0.5,
         max_completion_tokens=output_tokens,
         reasoning_effort=thinking_level,
-        response_format={"type": "json_object"},
+        response_format={
+            "type": "json_schema",
+            "json_schema": {
+                "name": response_schema["title"],
+                "strict": True,
+                "schema": response_schema,
+            },
+        },
         timeout=AI_TIMEOUT,
     )
-    usage = response.usage
-    token_details = get_value(usage, "completion_tokens_details")
+    if not response.choices:
+        raise BadAnswer("the AI provider returned an empty answer")
     choice = response.choices[0]
-    message = choice.message
-    return {
-        "text": message.content or "",
-        "thinking_tokens": get_value(token_details, "reasoning_tokens"),
-        "input_tokens": get_value(usage, "prompt_tokens"),
-        "output_tokens": get_value(usage, "completion_tokens"),
-        "total_tokens": get_value(usage, "total_tokens"),
-        "finish_reason": get_value(choice, "finish_reason"),
-    }
+    return {"text": choice.message.content or "", "finish_reason": get_value(choice, "finish_reason")}
 
 
-# Sends the prompt to OpenRouter and returns its text plus token counts and why it stopped.
+# Sends the prompt to OpenRouter and returns its text and why it stopped.
 def call_openrouter(model, prompt, thinking_level, system_instruction, response_schema,
                     output_tokens):
-    # The model does not follow JSON  so the schema is sent in the prompt and Pydantic checks the JSON it returns.
+    #  Nemotron does not follow json format, so the schema goes in the prompt and Pydantic checks 
     prompt += "\nReturn only one JSON object matching this schema:\n" + json.dumps(response_schema)
     options = {
         "model": model["model"],
@@ -124,41 +113,30 @@ def call_openrouter(model, prompt, thinking_level, system_instruction, response_
     }
 
     response = model["client"].chat.send(**options)
-    usage = get_value(response, "usage")
-    token_details = get_value(usage, "completion_tokens_details")
-    choices = get_value(response, "choices", [])
+    choices = get_value(response, "choices", []) or []
+    if not choices:
+        raise BadAnswer("the AI provider returned an empty answer")
     choice = choices[0]
     message = get_value(choice, "message")
-    return {
-        "text": get_value(message, "content", "") or "",
-        "thinking_tokens": get_value(token_details, "reasoning_tokens"),
-        "input_tokens": get_value(usage, "prompt_tokens"),
-        "output_tokens": get_value(usage, "completion_tokens"),
-        "total_tokens": get_value(usage, "total_tokens"),
-        "finish_reason": get_value(choice, "finish_reason"),
-    }
+    return {"text": get_value(message, "content", "") or "", "finish_reason": get_value(choice, "finish_reason")}
 
 
-# Makes sure a model is set up (has a key and supports this reasoning level). Raises ValueError if not.
-def check_model(model_name, reasoning):
+# Makes sure a model can be used with these settings: it has an API key, and the reasoning
+def check_model(model_name, reasoning, output_tokens):
     model = AI_MODELS[model_name]
     if model["client"] is None or not model["model"]:
         raise ValueError(f"{model_name} is not configured.")
     capability = MODEL_CAPABILITIES.get(model["model"])
     if capability is None or reasoning not in capability["levels"]:
         raise ValueError(f"{model_name} has no verified {reasoning} reasoning configuration.")
-    return model, capability
-
-
-# Sends a prompt to the right AI provider and returns the answer text, token counts, time taken, and a "status".
-def ask_model(model_name, prompt, reasoning, instructions, schema, output_tokens):
-    # status is "completed" only when the model stopped normally; anything else (out of tokens, blocked) means the JSON may be cut off.
-    model, capability = check_model(model_name, reasoning)
     if output_tokens > capability["output_limit"]:
-        raise ValueError("The requested output size exceeds this model's documented limit.")
+        raise ValueError(f"{model_name} cannot return {output_tokens} output tokens.")
 
-    # monotonic measures elapsed time even if the system clock changes
-    started_at = monotonic()
+
+# Sends a prompt to the model's AI provider and returns the answer text.
+# Raises BadAnswer when the answer was cut off,out of tokens or blocked
+def ask_model(model_name, prompt, reasoning, instructions, schema, output_tokens):
+    model = AI_MODELS[model_name]
     if model["provider"] == "gemini":
         result = call_gemini(model, prompt, reasoning, instructions, schema, output_tokens)
     elif model["provider"] == "groq":
@@ -167,11 +145,8 @@ def ask_model(model_name, prompt, reasoning, instructions, schema, output_tokens
         result = call_openrouter(model, prompt, reasoning, instructions, schema, output_tokens)
     else:
         raise ValueError(f"Unsupported AI provider: {model['provider']}")
-    result["elapsed_seconds"] = round(monotonic() - started_at, 2)
 
-    if result["finish_reason"] in {"stop", "STOP", "FinishReason.STOP"}:
-        result["status"] = "completed"
-    else:
-        result["status"] = "incomplete"
-    return result
+    if result["finish_reason"] not in {"stop", "STOP", "FinishReason.STOP"}:
+        raise BadAnswer("the AI answer was cut off before it finished")
+    return result["text"]
 

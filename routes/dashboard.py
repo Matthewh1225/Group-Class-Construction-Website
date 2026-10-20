@@ -4,9 +4,9 @@ from functools import wraps
 from flask import Blueprint, abort, current_app, flash, g, redirect, render_template, request, session, url_for
 from mysql.connector import Error, IntegrityError
 
-from planning.presentation import plan_presentation
+from planning.presentation import add_store_details
 from services.orders import get_order_by_id, get_order_items, get_user_orders
-from services.crews import clean_crew, crew_estimate
+from services.crews import parse_crew, crew_estimate
 from services.projects import (delete_project, get_project, get_project_count, get_user_projects,
                                rename_project, save_project_crew, set_project_completed)
 from utils.database import database_cursor
@@ -55,7 +55,14 @@ def dashboard():
         users_error = False
         try:
             with database_cursor() as cursor:
-                cursor.execute("SELECT id, username, email, permission_level, status, created_at FROM users ORDER BY id")
+                # The names after AS are the ones pages/admin_dashboard.html uses.
+                cursor.execute(
+                    """SELECT u.Id AS id, u.username, u.email, u.status, u.date_created AS created_at,
+                              CASE WHEN a.user_Id IS NULL THEN 'user' ELSE 'admin' END AS permission_level
+                       FROM `User` u
+                       LEFT JOIN Administrator a ON a.user_Id = u.Id
+                       ORDER BY u.Id"""
+                )
                 users = cursor.fetchall()
         except Error:
             current_app.logger.exception("Unable to load the admin user list")
@@ -114,9 +121,14 @@ def project_detail(project_id):
     crew = None
     if project["crew"]:
         crew = crew_estimate(project["crew"])
-    # the saved plan has the same fields as a planner job
-    return render_template("dashboard/project_detail.html", project=project,
-                           plan=plan_presentation(project["plan"]), crew=crew)
+    # The saved plan is a copy of the planner job's tier, project, answers and result
+    # (the result format is in planning/schemas.py).
+    plan = project["plan"]
+    materials = []
+    if plan.get("result"):
+        materials = add_store_details(plan["result"].get("materials", []))
+    return render_template("dashboard/project_detail.html", project=project, plan=plan,
+                           materials=materials, crew=crew)
 
 
 @dashboard_bp.post("/dashboard/projects/<int:project_id>/rename")
@@ -150,7 +162,7 @@ def project_completed(project_id):
 def project_crew(project_id):
     owned_project(project_id)
     try:
-        crew = clean_crew(request.form.get("crew"))
+        crew = parse_crew(request.form.get("crew"))
     except ValueError as error:
         flash(str(error), "error")
         return redirect(url_for("crews.crews", project_id=project_id))

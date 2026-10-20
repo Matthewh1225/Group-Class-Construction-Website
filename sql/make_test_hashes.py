@@ -17,7 +17,7 @@ TEST_TOKENS = [
     "test-reset-dana-expired",
 ]
 
-print("Password hashes (bcrypt):")
+print("Password hashes (Argon2):")
 for password in TEST_PASSWORDS:
     print(f"  {password}: {hash_password(password)}")
 

@@ -11,6 +11,27 @@
     <h1>Start your first set of plans.</h1>
 {% endblock %}
 
+{% block google_login %}
+<html>
+  <body>
+    <script src="https://accounts.google.com/gsi/client" async></script>
+    <div id="g_id_onload"
+        data-client_id="YOUR_GOOGLE_CLIENT_ID"
+        data-login_uri="https://your.domain/your_login_endpoint"
+        data-auto_prompt="false">
+    </div>
+    <div class="g_id_signin"
+        data-type="standard"
+        data-size="large"
+        data-theme="outline"
+        data-text="sign_in_with"
+        data-shape="rectangular"
+        data-logo_alignment="left">
+    </div>
+  </body>
+</html>
+{% endblock %}
+
 {% block auth_form %}
     <form id="register-form" class="account-form" method="post" action="{{ url_for('auth.register') }}" data-password-digits="{{ password_digits }}">
         <h2>Create an account</h2>
@@ -25,19 +46,19 @@
         <div class="form-field">
             <label for="password">Password</label>
             <div class="password-field">
-                <input type="password" id="password" name="password" autocomplete="new-password" aria-describedby="password-rules" required>
+                <input type="password" id="password" name="password" autocomplete="new-password" maxlength="{{ password_max_length }}" aria-describedby="password-rules" required>
                 <button class="password-toggle" type="button" aria-controls="password" aria-pressed="false" hidden>Show</button>
             </div>
             {# Browser feedback; the server validates the password independently. #}
             <ul class="password-rules" id="password-rules">
                 <li data-rule="length">At least 3 characters</li>
                 <li data-rule="number">Includes a number</li>
-                <li data-rule="bytes">At most 72 UTF-8 bytes</li>
+                <li>At most {{ password_max_length }} characters</li>
             </ul>
         </div>
         <div class="form-field">
             <label for="confirm_password">Confirm password</label>
-            <input type="password" id="confirm_password" name="confirm_password" autocomplete="new-password" aria-describedby="match-message" required>
+            <input type="password" id="confirm_password" name="confirm_password" autocomplete="new-password" maxlength="{{ password_max_length }}" aria-describedby="match-message" required>
             <p class="field-note" id="match-message" aria-live="polite"></p>
         </div>
         <p id="register-message" class="form-message" role="alert"></p>

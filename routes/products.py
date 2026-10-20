@@ -89,6 +89,12 @@ def products():
         current_app.logger.exception("Product search failed")
         catalog_error = True
 
+    # Product.category holds a url_name such as "lumber"; the card shows the category's full name.
+    for product in product_list:
+        category = find_category(product["category"])
+        if category is not None:
+            product["category_name"] = category["name"]
+
     return render_template(
         "products.html", categories=PRODUCT_CATEGORIES, selected=selected,
         products=product_list, search=search, page=page, has_next=has_next,
