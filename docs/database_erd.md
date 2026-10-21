@@ -67,6 +67,11 @@ erDiagram
         decimal quantity "added"
         decimal unitPrice "added"
     }
+    Cart_item {
+        int user_id PK, FK
+        int product_id PK, FK
+        int quantity
+    }
     Payments {
         int Id PK
         int transType
@@ -83,10 +88,22 @@ erDiagram
     User ||--o{ Payments : "user_id"
     Order ||--o{ Order_item : "order_id"
     Product ||--o{ Order_item : "product_id"
+    User ||--o{ Cart_item : "user_id"
+    Product ||--o{ Cart_item : "product_id"
     Order |o--o{ Payments : "order_id"
     Manufacturer ||--o{ Manufacturer_products : "manId"
     Product ||--o{ Manufacturer_products : "productId"
 ```
+
+## Shopping cart
+
+Run `sql/create_cart_table.sql` in the database used by the website to add the cart without resetting existing data. New databases also get this table from `sql/erd_schema.sql`.
+
+Each user/product pair has one row. Quantities are positive whole numbers. Adding the same product increases its quantity; updating replaces it. Product prices, purchase increments and stock are read from `Product` each time. Adding to a cart does not reserve or reduce stock.
+
+`services/cart.py` checks stock and purchase increments before saving. Unavailable items remain visible with an explanation and can be removed. The cart shows current prices and totals in cents, calculated with `Decimal`. Shipping and estimated tax are zero for this demo because delivery and tax rules are not configured. Checkout and order persistence helpers remain unfinished.
+
+To include the cart database tests in PowerShell, set `$env:RUN_CART_DB_TESTS="1"` and run `.venv\Scripts\python.exe -B -m unittest discover -s tests`. These tests require `localhost / Construction_db_test`, create temporary test records, and remove those records afterward. They expect the cart table to exist already.
 
 ## Planner job store (SQLite)
 

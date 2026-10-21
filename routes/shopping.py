@@ -20,14 +20,12 @@ def cart_add():
     product_id = request.form.get("product_id", type=int)
     try:
         product_name = add_cart_item(session["user_id"], product_id, request.form.get("quantity"))
-        if product_name == None:
-            product_name="no name for Product"
-        else:
-            flash("Added " + product_name + " to your cart.", "success")
+        flash("Added " + product_name + " to your cart.", "success")
     except ValueError as error:
         flash(str(error), "error")
     endpoint = "products.heavy_machinery" if request.form.get("category") == "heavy-machinery" else "products.products"
     return redirect(url_for(endpoint, category=request.form.get("category") or None,
+                            manufacturer=request.form.get("manufacturer", type=int),
                             q=request.form.get("q") or None, page=request.form.get("page", type=int),
                             _anchor="catalog-results"), code=303)
 
@@ -46,8 +44,10 @@ def cart_update():
 @dashboard_login_required
 def cart_remove():
     product_id = request.form.get("product_id", type=int)
-    remove_cart_item(session["user_id"], product_id)
-    flash("Item removed.", "success")
+    if remove_cart_item(session["user_id"], product_id):
+        flash("Item removed.", "success")
+    else:
+        flash("This product is not in your cart.", "error")
     return redirect(url_for("cart"), code=303)
 
 
@@ -62,6 +62,8 @@ def checkout():
         try:
             checkout_data = validate_checkout_data(request.form)
             order_id = create_order(user_id, checkout_data)
+            if order_id is None:
+                raise ValueError("Placing orders is not available yet.")
             return redirect(url_for("order_confirmation", order_id=order_id), code=303)
         except ValueError as problem:
             error = str(problem)

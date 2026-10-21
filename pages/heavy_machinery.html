@@ -15,11 +15,17 @@
     </header>
     <div class="wrap">
         <form class="catalog-search" action="{{ url_for('products.heavy_machinery') }}" method="get" role="search">
+            {% if manufacturer_id %}<input type="hidden" name="manufacturer" value="{{ manufacturer_id }}">{% endif %}
+            {% if manufacturer %}
+                <p>Manufacturer: <strong>{{ manufacturer.name }}</strong> &middot;
+                    <a class="text-link" href="{{ url_for('products.heavy_machinery', q=search or None) }}">Clear manufacturer</a>
+                </p>
+            {% endif %}
             <label for="machine-search">Search heavy machinery</label>
             <div class="catalog-search-controls">
                 <span class="catalog-search-field"><input id="machine-search" type="search" name="q" value="{{ search }}" maxlength="200" placeholder="Try excavator, crane, or a SKU"></span>
                 <button class="btn btn-primary" type="submit">Search</button>
-                {% if search %}<a class="text-link" href="{{ url_for('products.heavy_machinery') }}">Clear</a>{% endif %}
+                {% if search %}<a class="text-link" href="{{ url_for('products.heavy_machinery', manufacturer=manufacturer_id) }}">Clear</a>{% endif %}
             </div>
         </form>
         <section class="catalog-results" id="catalog-results" aria-labelledby="results-title">
@@ -34,9 +40,9 @@
             {% endif %}
             {% if not catalog_error and (page > 1 or has_next) %}
                 <nav class="catalog-pagination" aria-label="Machinery pages">
-                    {% if page > 1 %}<a class="btn btn-ghost" href="{{ url_for('products.heavy_machinery', q=search, page=page-1) }}">&larr; Previous</a>{% endif %}
+                    {% if page > 1 %}<a class="btn btn-ghost" href="{{ url_for('products.heavy_machinery', q=search, manufacturer=manufacturer_id, page=page-1) }}">&larr; Previous</a>{% endif %}
                     <span>Page {{ page }}</span>
-                    {% if has_next %}<a class="btn btn-ghost" href="{{ url_for('products.heavy_machinery', q=search, page=page+1) }}">Next &rarr;</a>{% endif %}
+                    {% if has_next %}<a class="btn btn-ghost" href="{{ url_for('products.heavy_machinery', q=search, manufacturer=manufacturer_id, page=page+1) }}">Next &rarr;</a>{% endif %}
                 </nav>
             {% endif %}
         </section>

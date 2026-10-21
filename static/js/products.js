@@ -54,11 +54,10 @@ async function filterCategory(url, addHistory = true) {
         const y = window.scrollY;
         document.querySelector(".catalog-results").replaceWith(results);
         document.querySelector(".catalog-search").replaceWith(search);
-        for (const link of document.querySelectorAll(".category-nav a")) {
-            const selected = Array.from(page.querySelectorAll(".category-nav a")).some(function (item) {
-                return item.getAttribute("href") === link.getAttribute("href") && item.hasAttribute("aria-current");
-            });
-            if (selected) link.setAttribute("aria-current", "page");
+        const categoryLinks = page.querySelectorAll(".category-nav a");
+        for (const [index, link] of document.querySelectorAll(".category-nav a").entries()) {
+            link.href = categoryLinks[index].href;
+            if (categoryLinks[index].hasAttribute("aria-current")) link.setAttribute("aria-current", "page");
             else link.removeAttribute("aria-current");
         }
         moreButton.classList.toggle("is-current", page.querySelector(".category-more-button").classList.contains("is-current"));

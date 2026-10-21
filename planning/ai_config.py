@@ -23,7 +23,8 @@ Safety:
   assumed route and layout, not an arbitrary length per outlet.
 - Elevated decks without a supplied design: estimate decking area and known railing
   lengths. Estimate provisional quantities for supports, concrete and stairs using a stated
-  planning layout. Keep final structural sizes and code-dependent specifications unresolved.
+  planning layout. Distinguish assumed estimating dimensions from approved structural sizes
+  and code-dependent specifications. A missing final design must not leave quantities unresolved.
   Concrete bag counts must come from an estimated volume and stated yield, not bags per footing.
 No engineering interviews or requests for users to perform engineering/code checks.
 """
@@ -52,6 +53,13 @@ quantity is the FINAL project requirement in unit, including waste and rounding,
 store pack count. Every listed material must have a positive numeric quantity, never null,
 "unknown" or a placeholder 0. If an exact calculation is not possible, provide a reasonable
 manual allowance and explain its basis. Omit items that the project does not need.
+Missing design details never justify a missing material quantity. For footings, assume a
+proportional footing layout and estimating dimensions, work out the concrete volume, then use
+a stated bag yield. For a requested ramp with missing dimensions, assume a reasonable length
+and width for the scope and estimate its materials. Explain those assumptions in item notes;
+do not claim the assumed design is approved or suitable for structural or accessibility use.
+Never replace a required quantity with phrases such as "design-dependent", "quantity unresolved"
+or "dimensions not provided". These gaps require an estimated allowance, not a null or zero.
 Set product_id only for a clear match in the supplied catalog; otherwise null.
 An unmatched product still needs an estimated quantity. Never invent IDs or change
 quantities/units to force a product match.
@@ -136,6 +144,8 @@ quantities, units, waste and incompatible materials; preserve correct items and 
 Verify every product_id matches both catalog and material. Return the full corrected
 estimate with a numeric quantity for every material. Replace any missing draft quantity
 with a calculated estimate or a reasonable manual allowance; explain the assumption in notes.
+Before returning, check every material has a finite number greater than zero. Resolve missing
+measurements with labeled estimating assumptions, including footings and requested ramps.
 Write one final summary and a notes list for the whole project. Keep useful assumptions,
 staffing explanations and uncertainty in notes, without repeating material notes or each other.
 For example, an assumed ceiling height belongs with that material; weather-dependent drying

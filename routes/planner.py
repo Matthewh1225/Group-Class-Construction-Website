@@ -126,11 +126,7 @@ def planning_job_add_to_cart(job_id):
         except ValueError as error:
             failed.append(f"{product['product_name']} ({error})")
             continue
-        # The cart helper is still a stub; None means nothing was added.
-        if product_name is None:
-            failed.append(product["product_name"])
-        else:
-            added.append(product_name)
+        added.append(product_name)
 
     skipped = 0
     for row in chosen:
@@ -145,10 +141,10 @@ def planning_job_add_to_cart(job_id):
         flash("Could not add to your cart: " + "; ".join(failed) + ".", "error")
     if skipped == 1:
         flash("1 material was not added: the store does not sell it, has none in stock, "
-              "or the amount is unknown.", "info")
+              "or its units do not match the store product.", "info")
     elif skipped > 1:
         flash(f"{skipped} materials were not added: the store does not sell them, has none in stock, "
-              "or the amount is unknown.", "info")
+              "or their units do not match the store products.", "info")
     if not chosen:
         flash("There was nothing to add to your cart.", "error")
     return redirect(url_for("planner.planning_job", job_id=job_id, _anchor="plan-messages"), code=303)

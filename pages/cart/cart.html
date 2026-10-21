@@ -28,7 +28,7 @@
             </div>
             <div class="shopping-cart-controls">
                 <label for="cart-quantity-{{ item.product_id }}">Quantity</label>
-                <input id="cart-quantity-{{ item.product_id }}" name="quantity" type="number" min="{{ item.purchase_increment }}" step="{{ item.purchase_increment }}" value="{{ item.quantity }}" form="update-{{ item.product_id }}" required class="shopping-cart-quantity">
+                <input id="cart-quantity-{{ item.product_id }}" name="quantity" type="number" min="1" step="1" value="{{ item.quantity }}" form="update-{{ item.product_id }}" required class="shopping-cart-quantity">
                 <button class="shopping-button shopping-secondary" type="submit" form="update-{{ item.product_id }}">Update</button>
             </div>
             <div class="shopping-cart-line-total">

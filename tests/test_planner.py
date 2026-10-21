@@ -138,6 +138,39 @@ class PlannerTests(unittest.TestCase):
             self.assertEqual(output["crew"]["label"], "AI-estimated crew")
             self.assertEqual(len(output["notes"]), 2)
 
+    def test_all_tiers_retry_null_quantities_with_specific_feedback(self):
+        for tier in ai_config.WORKFLOW_TIERS:
+            for role, record_type in (("planner", DraftEstimate), ("auditor", AuditedEstimate)):
+                good = deepcopy(RESULT) if role == "auditor" else {"materials": [dict(MATERIAL)]}
+                bad = deepcopy(good)
+                bad["materials"][0].update(quantity=None, notes="Footing volume is design-dependent.")
+                with self.subTest(tier=tier, role=role), patch.object(
+                        workflow, "ask_model", side_effect=[json.dumps(bad), json.dumps(good)]) as ask:
+                    output = workflow.run_stage(tier, role, record_type, {}, "", {123})
+                    self.assertGreater(output["materials"][0]["quantity"], 0)
+                    feedback = json.loads(ask.call_args.args[1])["problem_with_last_answer"]
+                    self.assertIn("materials.0.quantity", feedback)
+                    self.assertIn("assumptions", feedback)
+        with self.assertRaises(workflow.PlanningError):
+            self.stage(bad)
+
+    def test_incomplete_plan_recalculation_keeps_project_and_answers(self):
+        with tempfile.TemporaryDirectory() as folder, \
+                patch.object(jobs, "database_path", return_value=Path(folder) / "jobs.sqlite3"):
+            project = {"description": "Deck with ramp"}
+            answers = [{"question": "Size?", "answer": "12 by 16 feet"}]
+            old = jobs.submit_job("test", "incomplete-plan", project, answers=answers)
+            old = jobs.claim_job("test-worker")
+            old.update(status="partial", phase="Review needed", result={"materials": [{**MATERIAL, "quantity": None}]})
+            jobs.save_job(old, "test-worker")
+            new = jobs.restart_job(old["id"], "test")
+            self.assertNotEqual(old["id"], new["id"])
+            self.assertEqual(new["project"], project)
+            self.assertEqual(new["answers"], answers)
+            self.assertEqual(new["status"], "queued")
+            self.assertIsNone(new["result"])
+            self.assertEqual(jobs.restart_job(old["id"], "test")["id"], new["id"])
+
     def test_invalid_crews_are_rejected(self):
         for field, value in (("role", "invented"), ("workers", 0), ("workers", 100),
                              ("workers", True), ("days", [3, 2]), ("days", [1, 6])):
@@ -208,6 +241,13 @@ class PlannerTests(unittest.TestCase):
             self.assertIn("Planning notes", html)
             self.assertIn("AI-estimated crew", html)
             self.assertIn("job_id=test", html)
+            html = render_template("planner_job.html", job={**job, "status": "partial"},
+                                   title="Room", materials=[{**materials[0], "quantity": None}],
+                                   cart=[], cart_total=0, saved_project=None, can_save=False,
+                                   crew_rates=CREW_RATES, hours_per_day=HOURS_PER_DAY)
+            self.assertIn('action="/planner/jobs/test/restart"', html)
+            self.assertIn("Recalculate plan", html)
+            self.assertNotIn("Start a new plan to estimate this quantity", html)
             for crew in (None, crew_estimate(result["crew"])):
                 html = render_template("dashboard/project_detail.html", project=project, plan=job,
                                        materials=materials, crew=crew, crew_rates=CREW_RATES,

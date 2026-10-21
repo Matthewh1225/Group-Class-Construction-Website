@@ -23,7 +23,10 @@ class Specification(Record):
 class Material(Record):
     material_name: str = Field(min_length=1)
     specification: str
-    quantity: float = Field(gt=0)
+    quantity: float = Field(
+        gt=0, description="Positive estimated amount, including waste and rounding. "
+        "Use labeled assumptions when measurements are missing; never null or zero."
+    )
     unit: str = Field(min_length=1)
     notes: str
     product_id: int | None

@@ -10,7 +10,28 @@ logger = logging.getLogger(__name__)
 PAGE_SIZE = 12
 
 
-def search_products(search=None, category_url_name=None, page=1):
+def get_manufacturers():
+    with database_cursor() as cursor:
+        cursor.execute("""
+            SELECT m.Id AS manufacturer_id, m.name,
+                   EXISTS (SELECT 1 FROM Manufacturer_products mp
+                           JOIN Product p ON p.Id = mp.productId
+                           WHERE mp.manId = m.Id AND p.isActive = 1
+                             AND p.category = 'heavy-machinery') AS has_machinery
+            FROM Manufacturer m
+            ORDER BY m.name
+        """)
+        return cursor.fetchall()
+
+
+def get_manufacturer(manufacturer_id):
+    with database_cursor() as cursor:
+        cursor.execute("SELECT Id AS manufacturer_id, name FROM Manufacturer WHERE Id = %s",
+                       (manufacturer_id,))
+        return cursor.fetchone()
+
+
+def search_products(search=None, category_url_name=None, page=1, manufacturer_id=None):
     "Return (products, has_next_page), sorted by name."
     sql = """
         SELECT p.Id AS product_id, p.name AS product_name, p.details AS specification,
@@ -26,6 +47,10 @@ def search_products(search=None, category_url_name=None, page=1):
     """
     # Keep user input in SQL parameters.
     values = []
+
+    if manufacturer_id is not None:
+        sql += " AND EXISTS (SELECT 1 FROM Manufacturer_products mp WHERE mp.productId = p.Id AND mp.manId = %s)"
+        values.append(manufacturer_id)
 
     if search:
         pattern = "%" + search + "%"

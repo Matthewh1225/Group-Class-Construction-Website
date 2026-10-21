@@ -262,8 +262,8 @@ def answer_job(job_id, owner, answers):
 # A fixed key stops repeated clicks from creating extra jobs.
 def restart_job(job_id, owner):
     job = get_job(job_id, owner)
-    if job is None or job["status"] != "failed":
-        raise ValueError("Only a failed plan can be started again.")
+    if job is None or job["status"] not in ("failed", "partial"):
+        raise ValueError("Only failed or incomplete plans can be started again.")
     return submit_job(owner, "restart-" + job_id, job["project"], job["tier"], job["answers"])
 
 

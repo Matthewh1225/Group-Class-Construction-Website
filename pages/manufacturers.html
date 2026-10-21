@@ -3,9 +3,31 @@
 {% block title %}
     Manufacturers - BuildBetter
 {% endblock %}
+{% block styles %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='manufacturers.css') }}">
+{% endblock %}
+
 {% block content %}
-<section class="wrap unavailable-page">
-    <h1>Manufacturers</h1>
-    <p>No manufacturers listed.</p>
+<section class="wrap manufacturers-page" aria-labelledby="manufacturers-title">
+    <header>
+        <p class="sheet-tag"><span>C-03</span>Shop by manufacturer</p>
+        <h1 id="manufacturers-title">Manufacturers</h1>
+        <p>Choose a manufacturer to explore their materials, tools and equipment.</p>
+    </header>
+    {% if manufacturers %}
+        <ul class="manufacturer-grid">
+            {% for manufacturer in manufacturers %}
+                <li>
+                    <a class="manufacturer-panel" href="{{ url_for('products.heavy_machinery' if manufacturer.has_machinery else 'products.products', manufacturer=manufacturer.manufacturer_id) }}">
+                        <span>{{ manufacturer.name }}</span>
+                    </a>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p class="manufacturer-empty">No manufacturers listed yet.</p>
+    {% endif %}
 </section>
 {% endblock %}
+
+{% block footer %}{% include "site_footer.html" %}{% endblock %}

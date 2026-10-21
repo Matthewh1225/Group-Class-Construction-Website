@@ -1,18 +1,18 @@
 import json
 
 CREW_RATES = {
-    "general": {"name": "General labor", "rate": 28},
-    "carpenter": {"name": "Carpenters", "rate": 42},
-    "mason": {"name": "Concrete & masonry", "rate": 45},
-    "roofer": {"name": "Roofers", "rate": 38},
-    "electrician": {"name": "Electricians", "rate": 55},
-    "plumber": {"name": "Plumbers", "rate": 52},
-    "hvac": {"name": "HVAC technicians", "rate": 52},
-    "drywall": {"name": "Drywall installers", "rate": 36},
-    "painter": {"name": "Painters", "rate": 34},
-    "operator": {"name": "Equipment operators", "rate": 58},
-    "ironworker": {"name": "Steel & ironworkers", "rate": 50},
-    "supervisor": {"name": "Site supervisor", "rate": 65},
+    "general": {"name": "General labor", "rate": 40},
+    "carpenter": {"name": "Carpenters", "rate": 55},
+    "mason": {"name": "Concrete & masonry", "rate": 55},
+    "roofer": {"name": "Roofers", "rate": 50},
+    "electrician": {"name": "Electricians", "rate": 80},
+    "plumber": {"name": "Plumbers", "rate": 85},
+    "hvac": {"name": "HVAC technicians", "rate": 80},
+    "drywall": {"name": "Drywall installers", "rate": 50},
+    "painter": {"name": "Painters", "rate": 45},
+    "operator": {"name": "Equipment operators", "rate": 70},
+    "ironworker": {"name": "Steel & ironworkers", "rate": 70},
+    "supervisor": {"name": "Site supervisor", "rate": 90},
 }
 
 HOURS_PER_DAY = 8

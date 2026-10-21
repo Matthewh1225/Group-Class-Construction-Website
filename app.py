@@ -16,6 +16,7 @@ from routes.subscription import subscription_bp
 from utils.csrf import check_csrf, csrf_token
 from utils.rate_limits import limiter
 from utils.passwords import MAX_PASSWORD_LENGTH, PASSWORD_DIGITS
+from services.products import get_manufacturers
 
 app = Flask(__name__, template_folder="pages")
 app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")
@@ -64,7 +65,7 @@ def reviews():
 
 @app.route("/manufacturers")
 def manufacturers():
-    return render_template("manufacturers.html")
+    return render_template("manufacturers.html", manufacturers=get_manufacturers())
 
 
 from routes import shopping

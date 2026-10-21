@@ -1,7 +1,7 @@
-from flask import Blueprint, current_app, render_template, request
+from flask import Blueprint, abort, current_app, render_template, request
 from mysql.connector import Error
 
-from services.products import search_products
+from services.products import get_manufacturer, search_products
 
 products_bp = Blueprint("products", __name__)
 
@@ -31,6 +31,10 @@ def find_category(url_name):
 
 @products_bp.get("/products")
 def products():
+    manufacturer_id = request.args.get("manufacturer", type=int)
+    if "manufacturer" in request.args and (manufacturer_id is None or manufacturer_id < 1):
+        abort(404)
+    manufacturer = None
     selected = find_category(request.args.get("category", ""))
     search = request.args.get("q", "").strip()[:200]
     page = request.args.get("page", 1, type=int)
@@ -46,7 +50,12 @@ def products():
     product_list = []
     has_next = False
     try:
-        product_list, has_next = search_products(search=search, category_url_name=category_url_name, page=page)
+        if manufacturer_id is not None:
+            manufacturer = get_manufacturer(manufacturer_id)
+            if manufacturer is None:
+                abort(404)
+        product_list, has_next = search_products(search=search, category_url_name=category_url_name,
+                                                page=page, manufacturer_id=manufacturer_id)
     except Error:
         current_app.logger.exception("Product search failed")
         catalog_error = True
@@ -60,22 +69,33 @@ def products():
         "products.html", categories=PRODUCT_CATEGORIES, selected=selected,
         products=product_list, search=search, page=page, has_next=has_next,
         catalog_error=catalog_error,
+        manufacturer=manufacturer, manufacturer_id=manufacturer_id,
     )
 
 
 @products_bp.get("/heavy-machinery")
 def heavy_machinery():
+    manufacturer_id = request.args.get("manufacturer", type=int)
+    if "manufacturer" in request.args and (manufacturer_id is None or manufacturer_id < 1):
+        abort(404)
+    manufacturer = None
     search = request.args.get("q", "").strip()[:200]
     page = max(1, request.args.get("page", 1, type=int))
     catalog_error = False
     machines = []
     has_next = False
     try:
-        machines, has_next = search_products(search=search, category_url_name="heavy-machinery", page=page)
+        if manufacturer_id is not None:
+            manufacturer = get_manufacturer(manufacturer_id)
+            if manufacturer is None:
+                abort(404)
+        machines, has_next = search_products(search=search, category_url_name="heavy-machinery",
+                                             page=page, manufacturer_id=manufacturer_id)
     except Error:
         current_app.logger.exception("Heavy machinery search failed")
         catalog_error = True
     for machine in machines:
         machine["category_name"] = "Heavy Machinery"
     return render_template("heavy_machinery.html", products=machines, search=search,
-                           page=page, has_next=has_next, catalog_error=catalog_error)
+                           page=page, has_next=has_next, catalog_error=catalog_error,
+                           manufacturer=manufacturer, manufacturer_id=manufacturer_id)

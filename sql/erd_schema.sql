@@ -53,6 +53,16 @@ CREATE TABLE Product (
     isActive BOOLEAN NOT NULL DEFAULT TRUE                           -- Hide a product without deleting its order history
 );
 
+CREATE TABLE Cart_item (
+    user_id INT NOT NULL,
+    product_id INT NOT NULL,
+    quantity INT NOT NULL,
+    PRIMARY KEY (user_id, product_id),
+    CHECK (quantity > 0),
+    FOREIGN KEY (user_id) REFERENCES `User` (Id) ON DELETE CASCADE,
+    FOREIGN KEY (product_id) REFERENCES Product (Id) ON DELETE CASCADE
+);
+
 CREATE TABLE Manufacturer_products (
     manId INT,
     productId INT,

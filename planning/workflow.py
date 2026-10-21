@@ -124,9 +124,16 @@ def run_stage(tier, role, record_type, inputs, instructions, catalog_ids):
                         "members": [{"role": "general", "workers": 1, "days": [1, 2]}],
                     }
                 output = record_type.model_validate(data).model_dump()
-            except (ValidationError, json.JSONDecodeError) as error:
-                # Keep bad AI output separate from errors in the API request.
-                raise BadAnswer("the AI answer did not match the required format") from error
+            except ValidationError as error:
+                problems = []
+                for problem in error.errors(include_url=False, include_input=False)[:8]:
+                    field = ".".join(str(part) for part in problem["loc"])
+                    problems.append(f"{field}: {problem['msg']}")
+                raise BadAnswer("Fix these fields: " + "; ".join(problems) +
+                                ". Every material needs a positive numeric quantity; "
+                                "use labeled assumptions for missing dimensions.") from error
+            except json.JSONDecodeError as error:
+                raise BadAnswer("Return valid JSON matching the required format.") from error
             if issubclass(record_type, DraftEstimate):
                 check_estimate(output, catalog_ids)
             if record_type is AuditedEstimate:

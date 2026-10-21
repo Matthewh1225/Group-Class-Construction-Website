@@ -9,7 +9,7 @@
     <header class="crews-header">
         <p class="sheet-tag"><span>C-01</span>Crews</p>
         <h1 id="crew-title">Build your crew</h1>
-        <p class="crews-lede">Set the days on site, then choose workers for each role. Estimates use an {{ hours_per_day }}-hour working day.</p>
+        <p class="crews-lede">Choose workers and a project duration for the whole crew. All roles use these days, based on an {{ hours_per_day }}-hour working day.</p>
         {% if project %}
             <p class="crews-project">Saving to <strong>{{ project.name }}</strong> &middot; <a href="{{ url_for('dashboard.project_detail', project_id=project.id, _anchor='crew') }}">Back to project</a></p>
         {% endif %}
@@ -26,7 +26,7 @@
         <div class="crew-table-wrap" tabindex="0" role="region" aria-label="Crew workers by role">
             <table class="crew-table">
                 <caption class="sr-only">Workers and estimated labor costs by role</caption>
-                <thead><tr><th scope="col">Role</th><th scope="col">Rate / hour</th><th scope="col">Workers</th><th scope="col">Days (min)</th><th scope="col">Days (max)</th><th scope="col">Labor cost</th></tr></thead>
+                <thead><tr><th scope="col">Role</th><th scope="col">Rate / hour</th><th scope="col">Workers</th><th scope="col">Labor cost</th></tr></thead>
                 <tbody>
                     {% for role, info in crew_rates.items() %}
                     <tr data-role="{{ role }}">
@@ -39,8 +39,6 @@
                                 <button type="button" data-worker-step="1" aria-label="Increase {{ info.name }} workers" disabled>+</button>
                             </div>
                         </td>
-                        <td><input data-field="days-min" type="number" min="1" max="{{ max_days }}" step="1" value="1" required aria-label="{{ info.name }} minimum days"></td>
-                        <td><input data-field="days-max" type="number" min="1" max="{{ max_days }}" step="1" value="1" required aria-label="{{ info.name }} maximum days"></td>
                         <td data-cost>$0</td>
                     </tr>
                     {% endfor %}

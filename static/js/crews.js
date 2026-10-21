@@ -14,7 +14,7 @@ const crew = {
     days: saved ? [...saved.days] : [1, 1],
     members: Object.keys(pageData.rates).map(function (role) {
         const member = saved && saved.members.find((item) => item.role === role);
-        return { role: role, workers: member ? member.workers : 0, days: member ? [...member.days] : [1, 1] };
+        return { role: role, workers: member ? member.workers : 0, days: saved ? [...saved.days] : [1, 1] };
     }),
 };
 
@@ -45,12 +45,6 @@ function updateEstimate() {
         const workers = row.querySelector('[data-field="workers"]');
         row.querySelector('[data-worker-step="-1"]').disabled = member.workers <= Number(workers.min);
         row.querySelector('[data-worker-step="1"]').disabled = member.workers >= Number(workers.max);
-        const daysMin = row.querySelector('[data-field="days-min"]');
-        const daysMax = row.querySelector('[data-field="days-max"]');
-        daysMin.disabled = member.workers === 0;
-        daysMax.disabled = member.workers === 0;
-        const invalidDays = member.days[1] < member.days[0] || member.days[1] > crew.days[1];
-        daysMax.setCustomValidity(invalidDays ? "Role days must be ordered and within the project's maximum days." : "");
         row.classList.toggle("in-crew", member.workers > 0);
     }
     const valid = form.checkValidity();
@@ -67,7 +61,7 @@ function updateEstimate() {
     document.getElementById("total-cost").textContent = result ? costText(result.low, result.high) : "—";
     document.getElementById("total-workers").textContent = result ? result.workers : "—";
     document.getElementById("total-hourly").textContent = result ? currency.format(result.hourly) : "—";
-    error.textContent = !valid ? "Enter valid worker counts and duration ranges." : selected.members.length === 0 ? "Add at least one worker to save a crew." : "";
+    error.textContent = !valid ? "Enter valid worker counts and a project duration range." : selected.members.length === 0 ? "Add at least one worker to save a crew." : "";
     error.hidden = error.textContent === "";
     if (saveButton) saveButton.disabled = !valid || selected.members.length === 0;
     document.getElementById("crew-input").value = valid ? JSON.stringify(selected) : "";
@@ -80,8 +74,6 @@ projectMax.value = crew.days[1];
 for (const row of rows) {
     const member = crew.members.find((item) => item.role === row.dataset.role);
     row.querySelector('[data-field="workers"]').value = member.workers;
-    row.querySelector('[data-field="days-min"]').value = member.days[0];
-    row.querySelector('[data-field="days-max"]').value = member.days[1];
 }
 
 form.addEventListener("input", function (event) {
@@ -90,11 +82,10 @@ form.addEventListener("input", function (event) {
     if (row) {
         const member = crew.members.find((item) => item.role === row.dataset.role);
         member.workers = row.querySelector('[data-field="workers"]').valueAsNumber;
-        member.days = [row.querySelector('[data-field="days-min"]').valueAsNumber,
-            row.querySelector('[data-field="days-max"]').valueAsNumber];
     } else {
         crew.label = labelInput.value;
         crew.days = [projectMin.valueAsNumber, projectMax.valueAsNumber];
+        for (const member of crew.members) member.days = [...crew.days];
     }
     updateEstimate();
 });

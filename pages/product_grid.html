@@ -11,7 +11,7 @@
                             </dl>
                             <footer class="product-footer">
                                 {% if product.unit_price is not none %}
-                                    <p class="product-price">${{ '%.2f'|format(product.unit_price) }} <span>/ {{ product.unit }}</span></p>
+                                    <p class="product-price">${{ '{:,.2f}'.format(product.unit_price) }} <span>/ {{ product.unit }}</span></p>
                                 {% else %}
                                     <p class="product-price product-price-unknown">Price unavailable</p>
                                 {% endif %}
@@ -27,6 +27,7 @@
                                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                         <input type="hidden" name="product_id" value="{{ product.product_id }}">
                                         <input type="hidden" name="category" value="{{ selected_url_name }}">
+                                        {% if manufacturer_id %}<input type="hidden" name="manufacturer" value="{{ manufacturer_id }}">{% endif %}
                                         <input type="hidden" name="q" value="{{ search }}">
                                         <input type="hidden" name="page" value="{{ page }}">
                                         <label for="quantity-{{ product.product_id }}">Quantity ({{ product.unit }})</label>

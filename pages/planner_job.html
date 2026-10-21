@@ -84,7 +84,13 @@
             </div>
 
             {% if job.status == 'partial' %}
-                <p class="plan-alert plan-alert-info">This older plan has missing quantities. Start a new plan to estimate every material.</p>
+                <div class="plan-alert plan-alert-info" id="recalculate-plan">
+                    <p>This older plan has missing quantities. Recalculate it using your saved details and answers.</p>
+                    <form method="post" action="{{ url_for('planner.planning_job_restart', job_id=job.id) }}" data-submit-once>
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button class="plan-button" type="submit">Recalculate plan</button>
+                    </form>
+                </div>
             {% endif %}
 
             {% if materials %}
@@ -114,7 +120,7 @@
                                 </th>
                                 <td data-label="You need">
                                     {% if item.quantity is none or item.quantity <= 0 %}
-                                        <a href="{{ url_for('planner.planner') }}">Start a new plan to estimate this quantity</a>
+                                        <a href="#recalculate-plan">Recalculate plan for this quantity</a>
                                     {% else %}
                                         <span class="plan-number">{{ amount(item.quantity) }}</span> {{ item.unit }}
                                     {% endif %}
