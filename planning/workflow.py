@@ -171,15 +171,13 @@ def run_stage(tier, role, record_type, inputs, instructions, catalog_ids):
     raise PlanningError(f"The {role.replace('_', ' ')} step failed: {problem}.")
 
 
-# Pro runs both planners at once. One usable estimate is enough.
+# Pro runs both planners at once. 
 def run_two_planners(tier, inputs, catalog_ids):
     estimates = []
     problems = []
     with ThreadPoolExecutor(max_workers=2) as executor:
-        first = executor.submit(run_stage, tier, "planner", DraftEstimate, inputs,
-                                ai_config.PLANNER_PROMPT, catalog_ids)
-        second = executor.submit(run_stage, tier, "second_planner", DraftEstimate, inputs,
-                                 ai_config.PLANNER_PROMPT, catalog_ids)
+        first = executor.submit(run_stage, tier, "planner", DraftEstimate, inputs,ai_config.PLANNER_PROMPT, catalog_ids)
+        second = executor.submit(run_stage, tier, "second_planner", DraftEstimate, inputs,ai_config.PLANNER_PROMPT, catalog_ids)
         for planner in [first, second]:
             try:
                 estimates.append(planner.result())

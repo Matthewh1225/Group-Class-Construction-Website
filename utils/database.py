@@ -7,18 +7,20 @@ from dotenv import dotenv_values
 from flask import current_app, has_app_context
 
 
-# Test mode reads .env.test; other runs use .env.
+# Test mode reads .env.test by default; other runs use .env.
 def database_settings():
     testing = os.getenv("DATABASE_ENV") == "test"
     if has_app_context() and current_app.testing:
         testing = True
 
     if testing:
-        test_file = Path(__file__).resolve().parents[1] / ".env.test"
+        test_file = Path(os.getenv("TEST_DB_ENV_FILE", ".env.test"))
+        if not test_file.is_absolute():
+            test_file = Path(__file__).resolve().parents[1] / test_file
         values = dotenv_values(test_file)
         names = ("TEST_DB_HOST", "TEST_DB_PORT", "TEST_DB_NAME", "TEST_DB_USER", "TEST_DB_PASSWORD")
         if any(not values.get(name) for name in names):
-            raise RuntimeError("Complete TEST_DB_* settings are required in .env.test.")
+            raise RuntimeError(f"Complete TEST_DB_* settings are required in {test_file}.")
         return {
             "host": values["TEST_DB_HOST"],
             "port": values["TEST_DB_PORT"],
