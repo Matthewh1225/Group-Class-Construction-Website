@@ -10,16 +10,3 @@
 {% else %}
 <p>A crew could not be estimated from the supplied project details.</p>
 {% endif %}
-{% if plan_result.assumptions or plan_result.warnings %}
-<details>
-    <summary>Planning assumptions and uncertainty</summary>
-    {% if plan_result.assumptions %}
-        <h4>Assumptions</h4>
-        <ul>{% for assumption in plan_result.assumptions %}<li>{{ assumption }}</li>{% endfor %}</ul>
-    {% endif %}
-    {% if plan_result.warnings %}
-        <h4>Uncertainty and warnings</h4>
-        <ul>{% for warning in plan_result.warnings %}<li>{{ warning }}</li>{% endfor %}</ul>
-    {% endif %}
-</details>
-{% endif %}

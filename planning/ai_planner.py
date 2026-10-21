@@ -105,7 +105,6 @@ def call_openrouter(model, prompt, thinking_level, system_instruction, response_
     if not response.choices:
         raise BadAnswer("the AI provider returned an empty answer")
     choice = response.choices[0]
-    # Missing content may be None or the SDK's UNSET value.
     return {"text": choice.message.content or "", "finish_reason": choice.finish_reason}
 
 
@@ -120,7 +119,6 @@ def check_model(model_name, reasoning, output_tokens):
         raise ValueError(f"{model_name} cannot return {output_tokens} output tokens.")
 
 
-# Gemini uses STOP; the other providers use stop.
 def ask_model(model_name, prompt, reasoning, instructions, schema, output_tokens):
     model = AI_MODELS[model_name]
     if model["provider"] == "gemini":
@@ -131,7 +129,7 @@ def ask_model(model_name, prompt, reasoning, instructions, schema, output_tokens
         result = call_openrouter(model, prompt, reasoning, instructions, schema, output_tokens)
     else:
         raise ValueError(f"Unsupported AI provider: {model['provider']}")
-
+# Gemini uses STOP; the other providers use stop.
     if result["finish_reason"] not in ("stop", "STOP"):
         raise BadAnswer("the AI answer was cut off before it finished")
     return result["text"]

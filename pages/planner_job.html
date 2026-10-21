@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "planner_components.html" import amount, money, project_specs %}
+{% from "planner_components.html" import amount, money, project_specs, planning_notes %}
 {% block title %}{{ title }} plan - BuildBetter{% endblock %}
 {% block flash_messages %}{% endblock %}
 {% block styles %}<link rel="stylesheet" href="{{ url_for('static', filename='planner.css') }}">{% endblock %}
@@ -48,20 +48,21 @@
     {% if job.status == 'needs_input' %}
         <section class="plan-questions" aria-labelledby="questions-title">
             <h2 id="questions-title">Complete your project details</h2>
-            <p class="plan-muted">This is the only round of questions. Anything left blank becomes an unknown quantity instead of a guess.</p>
+            <p class="plan-muted">This is the only round of questions. The planner uses reasonable assumptions for missing details and estimates a quantity for every material.</p>
             <form method="post" action="{{ url_for('planner.planning_job_answers', job_id=job.id) }}">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 {% for question in job.questions %}
                     <label for="answer-{{ loop.index }}">{{ question }}</label>
                     <textarea id="answer-{{ loop.index }}" name="answers" class="planner-input question-answer" aria-describedby="answer-help" maxlength="2000"></textarea>
                 {% endfor %}
-                <p id="answer-help" class="plan-muted">Include units. Unknown details can be left blank.</p>
+                <p id="answer-help" class="plan-muted">Include units where you can. Leave a detail blank to let the planner estimate it.</p>
                 <button class="plan-button" type="submit">Continue planning</button>
             </form>
         </section>
     {% endif %}
 
     {% if job.result %}
+        {{ planning_notes(job.result) }}
         <section class="plan-materials" aria-labelledby="materials-title">
             <div class="plan-materials-heading">
                 <div>
@@ -83,7 +84,7 @@
             </div>
 
             {% if job.status == 'partial' %}
-                <p class="plan-alert plan-alert-info">Some amounts could not be worked out from the details given. Each one says what is missing.</p>
+                <p class="plan-alert plan-alert-info">This older plan has missing quantities. Start a new plan to estimate every material.</p>
             {% endif %}
 
             {% if materials %}
@@ -112,12 +113,12 @@
                                     {% if item.specification %}<small>{{ item.specification|truncate(120, true) }}</small>{% endif %}
                                 </th>
                                 <td data-label="You need">
-                                    {% if item.quantity is none %}
-                                        <span class="plan-unknown">Amount unknown</span>
-                                        <small>{{ item.notes }}</small>
+                                    {% if item.quantity is none or item.quantity <= 0 %}
+                                        <a href="{{ url_for('planner.planner') }}">Start a new plan to estimate this quantity</a>
                                     {% else %}
                                         <span class="plan-number">{{ amount(item.quantity) }}</span> {{ item.unit }}
                                     {% endif %}
+                                    {% if item.notes %}<small>{{ item.notes }}</small>{% endif %}
                                 </td>
                                 <td data-label="Store product">
                                     {% if product %}
@@ -169,7 +170,7 @@
 
     {% if job.result %}
         <section class="plan-crew" aria-label="AI-estimated crew">
-            {% with recommendation=job.result.crew, plan_result=job.result, crew_url=url_for('crews.crews', project_id=saved_project.id) if saved_project else url_for('crews.crews', job_id=job.id) %}
+            {% with recommendation=job.result.crew, crew_url=url_for('crews.crews', project_id=saved_project.id) if saved_project else url_for('crews.crews', job_id=job.id) %}
                 {% include "crew_recommendation.html" %}
             {% endwith %}
         </section>

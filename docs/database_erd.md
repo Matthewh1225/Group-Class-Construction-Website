@@ -133,11 +133,11 @@ SQLite enforces `UNIQUE(owner, submission_key)` on `planner_jobs` and `UNIQUE(ow
 
 `planner_jobs.data` stores each job's inputs and its result as JSON. `saved_projects.plan` stores a copy of the job's `tier`, `project`, `answers` and `result`. A job keeps one result, with no versions or stage snapshots. A failed job is never resumed: **Start again** creates a new job from the same `project` and `answers`.
 
-The result uses the same shape at every step: each AI estimate stage returns it, `run_stage` validates it once on arrival (Pydantic models in `planning/schemas.py`), and after that it is a plain dictionary in storage and in the templates.
+Every stage receives `project`, `answers` and `details`. The interpreter returns details and questions, and planners return materials only. The auditor receives `estimates`: one draft for Fast/Standard, two for Pro (or one if a Pro planner fails). It returns the final summary, materials, project notes and crew. Python adds the crew label and completion status. `run_stage` checks required fields, positive finite quantities, catalog IDs and crew data before storing a plain dictionary.
 
 ```json
 {
-  "planning_status": "partial",
+  "planning_status": "complete",
   "summary": "12 x 16 ft pressure-treated deck, 3 ft above ground.",
   "materials": [
     {
@@ -145,33 +145,31 @@ The result uses the same shape at every step: each AI estimate stage returns it,
       "specification": "5/4 x 6 in x 16 ft",
       "quantity": 36,
       "unit": "piece",
-      "waste_percent": 10,
-      "round_up": true,
-      "calculation": {"method": "count", "inputs": [{"name": "count", "value": 32, "unit": "piece"}]},
-      "notes": "Boards run the 16 ft length; 32 rows plus waste.",
+      "notes": "Boards run the 16 ft length; 32 rows plus 10% waste, rounded up to 36.",
       "product_id": 1003
     },
     {
-      "material_name": "Footing concrete",
-      "specification": "Design-dependent",
-      "quantity": null,
-      "unit": "cu_ft",
-      "waste_percent": 0,
-      "round_up": false,
-      "calculation": {"method": "manual", "inputs": []},
-      "notes": "Unknown: footing size and count need a local design.",
+      "material_name": "Exterior wood finish",
+      "specification": "Finish for the deck surface",
+      "quantity": 1,
+      "unit": "gallon",
+      "notes": "Assume one coat over 192 sq ft at 350 sq ft per gallon: 192 / 350 x 1.1, rounded up to 1 gallon.",
       "product_id": null
     }
   ],
-  "assumptions": ["Joists 16 in on center"],
-  "warnings": ["Footings, beams and posts need local design approval."]
+  "notes": ["Drying time depends on weather."],
+  "crew": {
+    "label": "AI-estimated crew",
+    "days": [3, 5],
+    "members": [{"role": "carpenter", "workers": 2, "days": [3, 5]}]
+  }
 }
 ```
 
-- `quantity` is the amount the project **needs**, in `unit`, with waste included. It is `null` when the details given are not enough to calculate it; `notes` then says what is missing. A quantity is never invented.
-- Python recalculates `quantity` from `calculation` for every method except `manual` (`check_estimate`).
+- `quantity` is the amount the project **needs**, in `unit`, with waste included. Every listed material must have a finite number greater than zero. Missing details use reasonable assumptions explained in `notes`; zero, missing, and null quantities are rejected.
+- The auditor reviews arithmetic, waste, rounding and suitability. Python does not recalculate material quantities. Material notes explain each amount; project notes cover shared assumptions and uncertainty. Older saved assumptions/warnings are displayed together as notes.
 - `product_id` is `Product.Id`. It is `null` unless the ID belongs to an active product in the catalog the planner was given; any other ID is removed before the result is saved.
-- `planning_status` is added by Python: `partial` when any quantity is `null`, otherwise `complete`.
+- `planning_status` is `complete` after validation succeeds. Invalid answers use the existing retry; if validation still fails, the job fails instead of saving an incomplete estimate. Older stored plans may still have `partial` status and need to be generated again.
 - The purchase quantity is kept separate from the required quantity. It is never stored; the plan page works it out from database product data (`planning/presentation.py`). The page shows it only when the material's unit matches `Product.unit`, rounded up to `Product.purchaseIncrement`. When the units differ (for example `sq_ft` of decking and a `piece` of board), the page leaves the choice to the user.
 
 ### Product fields

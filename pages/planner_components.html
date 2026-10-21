@@ -1,10 +1,23 @@
 
 {% macro amount(value) -%}
-    {%- if value is none -%}Unknown{%- else -%}{{ '{:,.2f}'.format(value|float).rstrip('0').rstrip('.') }}{%- endif -%}
+    {%- if value is none -%}Unknown
+    {%- elif 0 < value|float < 0.01 -%}{{ '{:g}'.format(value|float) }}
+    {%- else -%}{{ '{:,.2f}'.format(value|float).rstrip('0').rstrip('.') }}{%- endif -%}
 {%- endmacro %}
 
 {% macro money(value) -%}
     ${{ '{:,.2f}'.format(value|float) }}
+{%- endmacro %}
+
+{% macro planning_notes(result) -%}
+    {# Older saved plans kept these in two lists. #}
+    {% set notes = result.notes if result.notes is defined else (result.assumptions|default([]) + result.warnings|default([])) %}
+    {% if notes %}
+        <details>
+            <summary>Planning notes</summary>
+            <ul>{% for note in notes|unique %}<li>{{ note }}</li>{% endfor %}</ul>
+        </details>
+    {% endif %}
 {%- endmacro %}
 
 {% macro project_specs(project) -%}

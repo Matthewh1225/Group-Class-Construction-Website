@@ -120,7 +120,7 @@ def run_stage(tier, role, record_type, inputs, instructions, catalog_ids):
                                 and data.get("crew") is None)
                 if crew_missing:
                     data["crew"] = {
-                        "label": "AI-estimated crew", "days": [1, 2],
+                        "days": [1, 2],
                         "members": [{"role": "general", "workers": 1, "days": [1, 2]}],
                     }
                 output = record_type.model_validate(data).model_dump()
@@ -130,12 +130,13 @@ def run_stage(tier, role, record_type, inputs, instructions, catalog_ids):
             if issubclass(record_type, DraftEstimate):
                 check_estimate(output, catalog_ids)
             if record_type is AuditedEstimate:
+                output["crew"]["label"] = "AI-estimated crew"
                 try:
                     output["crew"] = parse_crew(json.dumps(output["crew"]))
                 except ValueError as error:
                     raise BadAnswer(str(error)) from error
                 if crew_missing:
-                    output["assumptions"].append(
+                    output["notes"].append(
                         "Crew details were not returned, so 1 general laborer for 1-2 working days "
                         "is a provisional starting allowance. Review the crew and completion days "
                         "for this project's scope; larger or specialized jobs will need more."
@@ -192,12 +193,13 @@ def run_workflow(job, save_progress):
     # The interpreter does not choose products.
     job["phase"] = "Interpreting"
     save_progress(job)
+    context = {"project": job["project"], "answers": job["answers"], "details": []}
     specification = run_stage(tier, "interpreter", Specification,
-                              {"original_request": job["project"], "answers": job["answers"]},
+                              context,
                               ai_config.INTERPRETER_PROMPT, set())
     job["specification"] = specification
 
-    # Ask questions once. After that, missing details stay unknown.
+    # Ask questions once, then estimate missing details using reasonable assumptions.
     questions = []
     for question in specification["questions"]:
         if question.strip():
@@ -213,21 +215,17 @@ def run_workflow(job, save_progress):
     catalog_ids = set()
     for product in catalog:
         catalog_ids.add(product["product_id"])
-    # Pass the answers, not the interpreter's old questions.
-    interpretation = {"summary": specification["summary"], "details": specification["details"]}
-    inputs = {"original_request": job["project"], "answers": job["answers"],
-              "interpretation": interpretation, "catalog": catalog}
+    context["details"] = specification["details"]
+    inputs = {**context, "catalog": catalog}
     review_inputs = dict(inputs)
 
     job["phase"] = "Planning"
     save_progress(job)
     if tier == "pro":
         review_inputs["estimates"] = run_two_planners(tier, inputs, catalog_ids)
-        review_prompt = ai_config.RECONCILER_PROMPT
     else:
-        review_inputs["estimate"] = run_stage(tier, "planner", DraftEstimate, inputs,
-                                              ai_config.PLANNER_PROMPT, catalog_ids)
-        review_prompt = ai_config.AUDITOR_PROMPT
+        review_inputs["estimates"] = [run_stage(tier, "planner", DraftEstimate, inputs,
+                                               ai_config.PLANNER_PROMPT, catalog_ids)]
 
     job["phase"] = "Reviewing"
     save_progress(job)
@@ -235,19 +233,12 @@ def run_workflow(job, save_progress):
     review_inputs["hours_per_day"] = HOURS_PER_DAY
     review_inputs["max_workers_per_role"] = MAX_WORKERS
     review_inputs["max_working_days"] = MAX_DAYS
-    result = run_stage(tier, "auditor", AuditedEstimate, review_inputs, review_prompt, catalog_ids)
+    result = run_stage(tier, "auditor", AuditedEstimate, review_inputs,
+                       ai_config.AUDITOR_PROMPT, catalog_ids)
 
-    planning_status = "complete"
-    for material in result["materials"]:
-        if material["quantity"] is None:
-            planning_status = "partial"
-    result["planning_status"] = planning_status
-
+    result["planning_status"] = "complete"
     job["result"] = result
-    job["status"] = planning_status
-    if planning_status == "partial":
-        job["phase"] = "Review needed"
-    else:
-        job["phase"] = "Complete"
+    job["status"] = "complete"
+    job["phase"] = "Complete"
     save_progress(job)
     return job

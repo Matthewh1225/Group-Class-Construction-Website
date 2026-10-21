@@ -1,5 +1,5 @@
 {% extends "dashboard/layout.html" %}
-{% from "planner_components.html" import amount, project_specs %}
+{% from "planner_components.html" import amount, project_specs, planning_notes %}
 
 
 {% block title %}
@@ -41,6 +41,7 @@
             <h3>AI summary</h3>
             <p>{{ plan.result.summary }}</p>
         {% endif %}
+        {% if plan.result %}{{ planning_notes(plan.result) }}{% endif %}
         {% if plan.project.description %}
             <h3>Original request</h3>
             <p>{{ plan.project.description }}</p>
@@ -71,7 +72,6 @@
                             <th scope="col">Material</th>
                             <th scope="col">Needed</th>
                             <th scope="col">Unit</th>
-                            <th scope="col">Waste</th>
                             <th scope="col">Specification &amp; notes</th>
                             <th scope="col">Store product</th>
                         </tr>
@@ -84,7 +84,6 @@
                                 <th scope="row">{{ item.material_name }}</th>
                                 <td>{{ amount(item.quantity) }}</td>
                                 <td>{{ item.unit }}</td>
-                                <td>{{ amount(item.waste_percent) }}%</td>
                                 <td class="project-material-notes">
                                     {{ item.specification or '—' }}
                                     {% if item.notes %}<small>{{ item.notes }}</small>{% endif %}
@@ -156,7 +155,7 @@
                 </form>
             </div>
         {% elif plan.result and 'crew' in plan.result %}
-            {% with recommendation=plan.result.crew, plan_result=plan.result %}
+            {% with recommendation=plan.result.crew %}
                 {% include "crew_recommendation.html" %}
             {% endwith %}
         {% else %}

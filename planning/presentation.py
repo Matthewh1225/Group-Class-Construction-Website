@@ -30,7 +30,7 @@ def round_up_to_step(needed, product):
 
 
 def buy_quantity(material, product):
-    if product is None or material["quantity"] is None:
+    if product is None or material["quantity"] is None or material["quantity"] <= 0:
         return None
     if normalize_unit(material["unit"]) != normalize_unit(product["unit"]):
         return None
