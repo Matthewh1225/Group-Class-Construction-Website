@@ -97,7 +97,7 @@ erDiagram
 
 ## Shopping cart
 
-Run `sql/create_cart_table.sql` in the database used by the website to add the cart without resetting existing data. New databases also get this table from `sql/erd_schema.sql`.
+Run `sql/erd_schema.sql` to create `Construction_db` and all of its MySQL tables, including the cart. The script uses `IF NOT EXISTS`, so running it again keeps existing tables and data.
 
 Each user/product pair has one row. Quantities are positive whole numbers. Adding the same product increases its quantity; updating replaces it. Product prices, purchase increments and stock are read from `Product` each time. Adding to a cart does not reserve or reduce stock.
 

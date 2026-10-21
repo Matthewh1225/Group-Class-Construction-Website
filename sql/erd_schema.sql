@@ -1,8 +1,15 @@
--- Runs in the current database. Use setup_test_database.py for a confirmed test reset.
+-- Complete BuildBetter MySQL setup.
+-- Change Construction_db in both statements below if a different database name is needed.
 -- Keep table name casing exact: Linux can treat User and user differently.
 -- An Administrator row gives a user admin access.
 
-CREATE TABLE `User` (
+CREATE DATABASE IF NOT EXISTS Construction_db
+    CHARACTER SET utf8mb4
+    COLLATE utf8mb4_unicode_ci;
+
+USE Construction_db;
+
+CREATE TABLE IF NOT EXISTS `User` (
     Id INT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(50) NOT NULL UNIQUE,
     firstName VARCHAR(50),
@@ -15,26 +22,26 @@ CREATE TABLE `User` (
     proUntil DATE                                                    -- Last day of Pro access; NULL means none
 );
 
-CREATE TABLE Administrator (
+CREATE TABLE IF NOT EXISTS Administrator (
     user_Id INT PRIMARY KEY,
     permissions INT,
     notes TEXT,
     FOREIGN KEY (user_Id) REFERENCES `User` (Id) ON DELETE CASCADE
 );
 
-CREATE TABLE Customer (
+CREATE TABLE IF NOT EXISTS Customer (
     user_Id INT PRIMARY KEY,
     address VARCHAR(100),
     FOREIGN KEY (user_Id) REFERENCES `User` (Id) ON DELETE CASCADE
 );
 
-CREATE TABLE Manufacturer (
+CREATE TABLE IF NOT EXISTS Manufacturer (
     Id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(50)
 );
 
 -- Manufacturer_products links products to their manufacturers.
-CREATE TABLE Product (
+CREATE TABLE IF NOT EXISTS Product (
     Id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(100),
     category VARCHAR(50),                                            -- Filter key used in routes/products.py
@@ -53,7 +60,7 @@ CREATE TABLE Product (
     isActive BOOLEAN NOT NULL DEFAULT TRUE                           -- Hide a product without deleting its order history
 );
 
-CREATE TABLE Cart_item (
+CREATE TABLE IF NOT EXISTS Cart_item (
     user_id INT NOT NULL,
     product_id INT NOT NULL,
     quantity INT NOT NULL,
@@ -63,7 +70,7 @@ CREATE TABLE Cart_item (
     FOREIGN KEY (product_id) REFERENCES Product (Id) ON DELETE CASCADE
 );
 
-CREATE TABLE Manufacturer_products (
+CREATE TABLE IF NOT EXISTS Manufacturer_products (
     manId INT,
     productId INT,
     PRIMARY KEY (manId, productId),
@@ -71,7 +78,7 @@ CREATE TABLE Manufacturer_products (
     FOREIGN KEY (productId) REFERENCES Product (Id) ON DELETE CASCADE
 );
 
-CREATE TABLE `Order` (
+CREATE TABLE IF NOT EXISTS `Order` (
     Id INT AUTO_INCREMENT PRIMARY KEY,
     user_Id INT,
     date_created DATE,
@@ -83,7 +90,7 @@ CREATE TABLE `Order` (
     FOREIGN KEY (user_Id) REFERENCES `User` (Id) ON DELETE CASCADE
 );
 
-CREATE TABLE Order_item (
+CREATE TABLE IF NOT EXISTS Order_item (
     order_id INT,
     product_id INT,
     quantity DECIMAL(12, 3) NOT NULL,
@@ -94,7 +101,7 @@ CREATE TABLE Order_item (
 );
 
 -- Store only the last four card digits, never the full number.
-CREATE TABLE Payments (
+CREATE TABLE IF NOT EXISTS Payments (
     Id INT AUTO_INCREMENT PRIMARY KEY,
     transType INT,
     cardLast4 CHAR(4),

@@ -80,4 +80,5 @@ app.add_url_rule("/order-confirmation/<int:order_id>", "order_confirmation", sho
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    # Port 5000 is used by macOS AirPlay Receiver and can return an AirTunes 403.
+    app.run(debug=True, port=5001)
