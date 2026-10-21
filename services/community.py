@@ -1,11 +1,11 @@
-"Product review and project showcase placeholders."
+"Reviews and project sharing are not written yet."
 
 
 def save_product_review(user_id, product_id, review_data):
-    "Save a product review for moderation."
+    "Save the review for approval before showing it."
     pass
 
 
 def publish_project_showcase(user_id, project_id, showcase_data):
-    "Validate ownership and publish explicitly selected public content."
+    "Check project ownership and share only content the user selected."
     pass

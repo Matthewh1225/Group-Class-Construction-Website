@@ -22,7 +22,6 @@
     {% endfor %}
 
     {% if total %}
-        {# search and filter run on the server, so they also work without JavaScript #}
         <form class="project-filters" method="get" action="{{ url_for('dashboard.projects') }}" role="search">
             <label>
                 <span>Search by name</span>

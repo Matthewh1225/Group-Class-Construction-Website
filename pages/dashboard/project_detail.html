@@ -1,10 +1,6 @@
 {% extends "dashboard/layout.html" %}
 {% from "planner_components.html" import amount, project_specs %}
 
-{# project comes from read_project (services/projects.py) and crew from crew_estimate (services/crews.py).
-   plan is the saved copy of the planner job: plan.project (form inputs), plan.answers and plan.result
-   (format in planning/schemas.py). materials is plan.result.materials, with two keys added to each
-   material by planning/presentation.py add_store_details: product (the database product or none) and buy_quantity. #}
 
 {% block title %}
     {{ project.name }} - BuildBetter
@@ -113,13 +109,7 @@
         {% endif %}
     </section>
 
-    {% if project.crew and project.crew.source == 'preset' %}
-        {% set crew_url = url_for('crews.crews', project_id=project.id, project=project.crew.preset, size=project.crew.size, _anchor='estimate') %}
-    {% elif project.crew %}
-        {% set crew_url = url_for('crews.crews', project_id=project.id, crew='custom', _anchor='estimate') %}
-    {% else %}
-        {% set crew_url = url_for('crews.crews', project_id=project.id) %}
-    {% endif %}
+    {% set crew_url = url_for('crews.crews', project_id=project.id) %}
     <section class="dashboard-card dashboard-detail-card project-section" id="crew" aria-labelledby="crew-title">
         <div class="dashboard-section-heading">
             <h2 id="crew-title">Crew &amp; labor</h2>
@@ -165,6 +155,10 @@
                     <button class="dashboard-text-link project-link-button" type="submit">Remove crew</button>
                 </form>
             </div>
+        {% elif plan.result and 'crew' in plan.result %}
+            {% with recommendation=plan.result.crew, plan_result=plan.result %}
+                {% include "crew_recommendation.html" %}
+            {% endwith %}
         {% else %}
             <p class="dashboard-muted">No crew selected.</p>
             <div class="project-actions">

@@ -10,7 +10,7 @@ erDiagram
         varchar firstName
         varchar lastName
         varchar email "unique"
-        varchar password "Argon2 hash (older accounts: bcrypt)"
+        varchar password "Argon2 hash"
         date dob
         varchar username "added, unique"
         enum status "added: active or disabled"

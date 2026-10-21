@@ -6,7 +6,7 @@
     try {
         savedTheme = localStorage.getItem('buildbetter-theme');
     } catch (error) {
-        // The theme still works for this page if browser storage is unavailable.
+        // The theme still works when browser storage is blocked.
     }
 
     if (savedTheme === 'light' || savedTheme === 'dark') {
@@ -40,7 +40,7 @@
                 try {
                     localStorage.setItem('buildbetter-theme', savedTheme);
                 } catch (error) {
-                    // Keep the selected theme until the page closes.
+                    // Keep using the theme if browser storage is blocked.
                 }
                 updateButtons();
             });

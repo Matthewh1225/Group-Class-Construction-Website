@@ -3,9 +3,6 @@ const progress = document.getElementById("job-progress");
 let failures = 0;
 
 async function updateJob() {
-    if (!["queued", "running"].includes(jobPage.dataset.jobStatus)) {
-        return;
-    }
     try {
         const response = await fetch(jobPage.dataset.statusUrl, { cache: "no-store" });
         if (!response.ok) {
@@ -13,13 +10,18 @@ async function updateJob() {
         }
         const job = await response.json();
         failures = 0;
-        if (!["queued", "running"].includes(job.status)) {
+        if (job.status !== "queued" && job.status !== "running") {
             window.location.reload();
             return;
         }
-        progress.textContent = job.status === "queued" ? "Queued for planning" : job.phase;
+        if (job.status === "queued") {
+            progress.textContent = "Queued for planning";
+        } else {
+            progress.textContent = job.phase;
+        }
         window.setTimeout(updateJob, 2000);
     } catch {
+        // Retry twice, 4 seconds apart.
         failures += 1;
         if (failures < 3) {
             window.setTimeout(updateJob, 4000);
@@ -29,30 +31,38 @@ async function updateJob() {
     }
 }
 
-if (jobPage) {
+const startingStatus = jobPage.dataset.jobStatus;
+if (startingStatus === "queued" || startingStatus === "running") {
     window.setTimeout(updateJob, 2000);
 }
 
-// Save Project: disable the button after the first click so it is only sent once.
-// (The server also refuses to make a second project from the same plan.)
-const saveForms = document.querySelectorAll("form[data-save-project]");
-for (const form of saveForms) {
+const submitOnceForms = document.querySelectorAll("form[data-submit-once]");
+for (const form of submitOnceForms) {
     form.addEventListener("submit", function () {
         form.querySelector("button[type=submit]").disabled = true;
     });
 }
 
-// Long estimates are searchable; all materials remain visible without JavaScript.
-const materialRows = [...document.querySelectorAll("[data-material-row]")];
+// Re-enable buttons when the Back button restores this page.
+window.addEventListener("pageshow", function () {
+    for (const form of submitOnceForms) {
+        form.querySelector("button[type=submit]").disabled = false;
+    }
+});
+
+// Keep all material rows visible until JavaScript is ready.
+const materialRows = document.querySelectorAll("[data-material-row]");
 const materialSearch = document.getElementById("material-search");
-if (materialSearch && materialRows.length > 8) {
+if (materialSearch !== null && materialRows.length > 8) {
     document.getElementById("material-filter").hidden = false;
-    materialSearch.addEventListener("input", () => {
+    materialSearch.addEventListener("input", function () {
         const query = materialSearch.value.trim().toLowerCase();
         let visible = 0;
         for (const row of materialRows) {
             row.hidden = !row.textContent.toLowerCase().includes(query);
-            if (!row.hidden) visible += 1;
+            if (!row.hidden) {
+                visible += 1;
+            }
         }
         document.getElementById("material-search-status").textContent =
             `${visible} of ${materialRows.length} materials shown`;

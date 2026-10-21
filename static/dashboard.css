@@ -22,7 +22,6 @@
 }
 
 .dashboard-shell {
-    /* dashboard names for the shared tokens in base.css */
     --dash-bg: var(--ink);
     --dash-card: var(--panel);
     --dash-line: var(--line);
@@ -826,7 +825,7 @@
         display: block;
     }
 
-    /* Without JS the sidebar stays visible so its links still work. */
+    /* Keep the sidebar links usable without JavaScript. */
     .dashboard-sidebar {
         position: static;
         height: auto;
@@ -1290,11 +1289,6 @@
     height: 15px;
 }
 
-.admin-users-card,
-#admin-overview {
-    scroll-margin-top: 88px;
-}
-
 .admin-row-button:hover {
     background: var(--panel-raised);
 }
@@ -1377,32 +1371,6 @@
     margin-bottom: 15px;
     color: var(--dash-muted);
     font-size: 14px;
-}
-
-.admin-overview-card {
-    padding: clamp(25px, 4vw, 48px);
-}
-
-.admin-overview-card h2 {
-    margin: 15px 0 10px;
-    font-size: 25px;
-}
-
-.admin-overview-card p {
-    max-width: 500px;
-    color: var(--dash-muted);
-    line-height: 1.6;
-}
-
-.admin-overview-icon {
-    display: grid;
-    place-items: center;
-    width: 44px;
-    height: 44px;
-    border: 1px solid var(--amber);
-    border-radius: var(--radius);
-    background: var(--amber-tint);
-    color: var(--dash-accent);
 }
 
 .admin-dialog {
@@ -1853,7 +1821,7 @@
 }
 
 @media (min-width: 901px) {
-    /* on wide screens the meta wrapper disappears so its children join the grid */
+    /* Let these items join the grid on wide screens. */
     .plan-row-meta {
         display: contents;
     }
@@ -1917,7 +1885,7 @@
     margin-top: 24px;
 }
 
-/* the first cell of each row names the material or specialty; it is not a header row */
+/* These are row labels, so use normal text rather than column-heading styles. */
 .dashboard-data-table tbody th {
     background: transparent;
     color: var(--text);

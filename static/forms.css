@@ -301,7 +301,7 @@
         border-bottom: 1px solid var(--line);
     }
 
-    /* on phones the drawing would push the form too far down */
+    /* Hide the drawing on phones to leave room for the form. */
     .auth-drawing,
     .auth-titleblock {
         display: none;

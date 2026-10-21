@@ -1,46 +1,46 @@
-"Payment and billing service placeholders; billing functions are not yet called."
+"Payment helpers are not written yet."
 
 
 def create_payment_session(user_id, order_data):
-    "Create a payment session through a secure payment provider."
+    "Start payment through the payment provider."
     pass
 
 
 def verify_payment(payment_reference):
-    "Verify completed payment directly with the payment provider."
+    "Check payment with the provider, not the browser."
     pass
 
 
 def process_provider_event(verified_event):
-    "Apply a verified payment notification exactly once."
+    "Apply a verified payment update only once."
     pass
 
 
 def save_payment_method(user_id, provider_reference):
-    "Save only an owned provider method reference and display metadata."
+    "Save the user's provider reference and display details, not card numbers."
     pass
 
 
 def request_payment_refund(user_id, payment_id, amount):
-    "Validate the payment and request a refund through its provider."
+    "Check the user's payment before requesting a refund."
     pass
 
 
 def get_default_payment_method(user_id):
-    "Return the brand and last four digits of the user's default saved method."
+    "Return the default card's brand and last four digits."
     pass
 
 
 def update_default_payment_method(user_id, provider_reference):
-    "Replace the default saved method with an owned provider method reference."
+    "Use only a payment method that belongs to the user."
     pass
 
 
 def list_billing_history(user_id):
-    "Return the user's subscription_invoices rows (date, description, amount, status, link), newest first."
+    "Return invoice dates, descriptions, amounts, statuses and links, newest first."
     pass
 
 
 def get_payment_status(order_id, user_id):
-    "Return the latest payment status for the user's own order, or None if there is no payment."
+    "Return the user's latest order payment status, or None."
     pass

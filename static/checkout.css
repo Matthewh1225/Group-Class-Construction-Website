@@ -1,6 +1,5 @@
 .shopping-body {
     color: var(--text);
-    /* shopping names for the shared tokens in base.css */
     --shop-accent: var(--amber);
     --shop-muted: var(--muted);
     --shop-border: var(--line);

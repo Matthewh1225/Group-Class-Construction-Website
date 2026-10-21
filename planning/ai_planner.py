@@ -9,7 +9,6 @@ from .ai_config import AI_TIMEOUT, MODEL_CAPABILITIES, MODELS
 from .schemas import BadAnswer
 
 
-# Creates the connection to an AI provider
 def make_client(provider, key_name):
     api_key = os.getenv(key_name)
     if not api_key:
@@ -28,13 +27,8 @@ for model_name, settings in MODELS.items():
         "client": make_client(settings["provider"], settings["api_key"]),
         "model": os.getenv(settings["model_env"]) or settings["default"],
     }
-
-
-# Reads a field from a dict or an object
-def get_value(item, name, default=None):
-    if isinstance(item, dict):
-        return item.get(name, default)
-    return getattr(item, name, default)
+    if os.getenv("DATABASE_ENV") == "test" and AI_MODELS[model_name]["model"] == "gemini-3.8-flash":
+        AI_MODELS[model_name]["model"] = "gemini-3.5-flash-lite"
 
 
 def make_messages(system_instruction, prompt):
@@ -44,7 +38,6 @@ def make_messages(system_instruction, prompt):
     ]
 
 
-# Sends the prompt to Gemini and returns its text and why it stopped.
 def call_gemini(model, prompt, thinking_level, system_instruction, response_schema,
                 output_tokens):
     config = {
@@ -53,7 +46,6 @@ def call_gemini(model, prompt, thinking_level, system_instruction, response_sche
         "max_output_tokens": output_tokens,
         "http_options": {"timeout": AI_TIMEOUT * 1000, "retry_options": {"attempts": 1}},
         "automatic_function_calling": {"disable": True},
-        # Gemini can be made to follow the JSON schema exactly
         "response_mime_type": "application/json",
         "response_json_schema": response_schema,
     }
@@ -63,17 +55,15 @@ def call_gemini(model, prompt, thinking_level, system_instruction, response_sche
         contents=prompt,
         config=config,
     )
-    candidates = get_value(response, "candidates", []) or []
+    # A blocked response may have no candidates.
     finish_reason = None
-    if isinstance(candidates, list) and candidates:
-        finish_reason = str(get_value(candidates[0], "finish_reason", ""))
-    return {"text": get_value(response, "text", "") or "", "finish_reason": finish_reason}
+    if response.candidates:
+        finish_reason = response.candidates[0].finish_reason
+    return {"text": response.text or "", "finish_reason": finish_reason}
 
 
-# Sends the prompt to Groq and returns its text and why it stopped.
 def call_groq(model, prompt, thinking_level, system_instruction, response_schema,
               output_tokens):
-    # GPT-OSS supports strict JSON schemas. Pydantic and Python still check the answer.
     response = model["client"].with_options(max_retries=0).chat.completions.create(
         model=model["model"],
         messages=make_messages(system_instruction, prompt),
@@ -93,13 +83,12 @@ def call_groq(model, prompt, thinking_level, system_instruction, response_schema
     if not response.choices:
         raise BadAnswer("the AI provider returned an empty answer")
     choice = response.choices[0]
-    return {"text": choice.message.content or "", "finish_reason": get_value(choice, "finish_reason")}
+    return {"text": choice.message.content or "", "finish_reason": choice.finish_reason}
 
 
-# Sends the prompt to OpenRouter and returns its text and why it stopped.
 def call_openrouter(model, prompt, thinking_level, system_instruction, response_schema,
                     output_tokens):
-    #  Nemotron does not follow json format, so the schema goes in the prompt and Pydantic checks 
+    # Put the answer format in the prompt; Python checks the result.
     prompt += "\nReturn only one JSON object matching this schema:\n" + json.dumps(response_schema)
     options = {
         "model": model["model"],
@@ -113,15 +102,13 @@ def call_openrouter(model, prompt, thinking_level, system_instruction, response_
     }
 
     response = model["client"].chat.send(**options)
-    choices = get_value(response, "choices", []) or []
-    if not choices:
+    if not response.choices:
         raise BadAnswer("the AI provider returned an empty answer")
-    choice = choices[0]
-    message = get_value(choice, "message")
-    return {"text": get_value(message, "content", "") or "", "finish_reason": get_value(choice, "finish_reason")}
+    choice = response.choices[0]
+    # Missing content may be None or the SDK's UNSET value.
+    return {"text": choice.message.content or "", "finish_reason": choice.finish_reason}
 
 
-# Makes sure a model can be used with these settings: it has an API key, and the reasoning
 def check_model(model_name, reasoning, output_tokens):
     model = AI_MODELS[model_name]
     if model["client"] is None or not model["model"]:
@@ -133,8 +120,7 @@ def check_model(model_name, reasoning, output_tokens):
         raise ValueError(f"{model_name} cannot return {output_tokens} output tokens.")
 
 
-# Sends a prompt to the model's AI provider and returns the answer text.
-# Raises BadAnswer when the answer was cut off,out of tokens or blocked
+# Gemini uses STOP; the other providers use stop.
 def ask_model(model_name, prompt, reasoning, instructions, schema, output_tokens):
     model = AI_MODELS[model_name]
     if model["provider"] == "gemini":
@@ -146,7 +132,7 @@ def ask_model(model_name, prompt, reasoning, instructions, schema, output_tokens
     else:
         raise ValueError(f"Unsupported AI provider: {model['provider']}")
 
-    if result["finish_reason"] not in {"stop", "STOP", "FinishReason.STOP"}:
+    if result["finish_reason"] not in ("stop", "STOP"):
         raise BadAnswer("the AI answer was cut off before it finished")
     return result["text"]
 

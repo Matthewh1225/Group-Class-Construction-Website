@@ -7,18 +7,14 @@ from services.cart import add_cart_item, get_cart_items, remove_cart_item, updat
 from services.checkout import calculate_order_total, validate_checkout_data
 from services.orders import create_order, get_order_confirmation
 
-# These functions are registered in app.py (add_url_rule) so their endpoint names stay "cart", "checkout" and so on, which the templates use.
-# Every one needs a signed-in user.
-# Payment is FAKE: checkout saves a "test" payment and charges nothing (services/orders.py).
+# app.py registers these routes to keep the endpoint names used by templates.
 
-# Shows the items in the cart with their totals.
 @dashboard_login_required
 def cart():
     items = get_cart_items(session["user_id"])
     return render_template("cart/cart.html", cart_items=items, totals=calculate_order_total(items))
 
 
-# Adds a product to the cart, then returns to the product list.
 @dashboard_login_required
 def cart_add():
     product_id = request.form.get("product_id", type=int)
@@ -30,12 +26,12 @@ def cart_add():
             flash("Added " + product_name + " to your cart.", "success")
     except ValueError as error:
         flash(str(error), "error")
-    return redirect(url_for("products.products", category=request.form.get("category") or None,
+    endpoint = "products.heavy_machinery" if request.form.get("category") == "heavy-machinery" else "products.products"
+    return redirect(url_for(endpoint, category=request.form.get("category") or None,
                             q=request.form.get("q") or None, page=request.form.get("page", type=int),
                             _anchor="catalog-results"), code=303)
 
 
-# Changes how many of a product are in the cart.
 @dashboard_login_required
 def cart_update():
     product_id = request.form.get("product_id", type=int)
@@ -47,7 +43,6 @@ def cart_update():
     return redirect(url_for("cart"), code=303)
 
 
-# Takes a product out of the cart.
 @dashboard_login_required
 def cart_remove():
     product_id = request.form.get("product_id", type=int)
@@ -56,7 +51,6 @@ def cart_remove():
     return redirect(url_for("cart"), code=303)
 
 
-# GET shows the checkout form. POST checks the form and places the order, or shows the error.
 @dashboard_login_required
 def checkout():
     user_id = session["user_id"]
@@ -73,7 +67,7 @@ def checkout():
             error = str(problem)
 
     items = get_cart_items(user_id)
-    # Reuse the key after validation errors so retrying the form cannot create a second order.
+    # Reuse the checkout key after errors to avoid duplicate orders.
     checkout_key = form_data.get("checkout_key") or secrets.token_urlsafe(24)
     page = render_template("cart/checkout.html", cart_items=items, totals=calculate_order_total(items),
                            form_data=form_data, error=error, checkout_key=checkout_key)
@@ -81,7 +75,6 @@ def checkout():
         return page, 400
     return page
 
-#shown after an order is placed..
 @dashboard_login_required
 def order_confirmation(order_id):
     order = None

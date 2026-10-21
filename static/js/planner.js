@@ -1,5 +1,3 @@
-import "./planner-submit.js";
-
 const methodStep = document.getElementById("method-step");
 const templateStep = document.getElementById("template-step");
 const sizeStep = document.getElementById("size-step");
@@ -27,7 +25,6 @@ function showStep(selectedStep) {
     }
     const hasDetails = selectedStep === plannerStep || selectedStep.classList.contains("template-questions");
     showProgress(hasDetails ? "details" : "project");
-    // Move keyboard users to the heading of the step that just appeared.
     const heading = selectedStep.querySelector("h2") || selectedStep.querySelector("button");
     if (heading) heading.focus({ preventScroll: true });
     document.querySelector(".planner-progress").scrollIntoView({ block: "nearest" });
@@ -82,8 +79,35 @@ document.querySelector(".details-back").addEventListener("click", function () {
     showStep(sizeStep);
 });
 
-document.querySelectorAll(".planner-page form").forEach(function (form) {
+// Custom and template forms share the AI mode and Generate controls.
+const plannerForms = document.querySelectorAll(".planner-page form");
+
+for (const form of plannerForms) {
     form.addEventListener("focusin", function (event) {
-        showProgress(event.target.closest(".planner-tiers, .planner-generate") ? "estimate" : "details");
+        if (event.target.closest(".planner-tiers, .planner-generate")) {
+            showProgress("estimate");
+        } else {
+            showProgress("details");
+        }
     });
+
+    // The server also checks the key to stop duplicate submissions.
+    form.addEventListener("submit", function () {
+        const status = form.querySelector(".plan-status");
+        const button = form.querySelector(".planner-generate");
+        status.textContent = "Starting planning...";
+        status.hidden = false;
+        button.disabled = true;
+        button.classList.add("is-busy");
+    });
+}
+
+// Re-enable buttons when the Back button restores this page.
+window.addEventListener("pageshow", function () {
+    for (const form of plannerForms) {
+        const button = form.querySelector(".planner-generate");
+        form.querySelector(".plan-status").hidden = true;
+        button.disabled = false;
+        button.classList.remove("is-busy");
+    }
 });

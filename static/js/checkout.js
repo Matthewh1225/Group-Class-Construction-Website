@@ -3,8 +3,7 @@ document.querySelectorAll('[data-product-image]').forEach(function (image) {
     if (image.complete && image.naturalWidth === 0) image.hidden = true;
 });
 
-// Place Order: disable the button after the first click so the order is only sent once.
-// (The checkout key in the form also stops a second order on the server.)
+// The server also checks the checkout key to stop duplicate orders.
 const checkoutForm = document.getElementById('checkout-form');
 const placeOrderButton = document.getElementById('place-order');
 if (checkoutForm && placeOrderButton) {

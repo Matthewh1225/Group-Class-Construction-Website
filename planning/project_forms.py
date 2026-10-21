@@ -12,7 +12,6 @@ def read_number(form, name, label, minimum, whole=False):
     return value
 
 
-# Reads a dropdown or yes/no answer
 def read_choice(form, name, label, choices):
     value = form.get(name)
     if value not in choices:
@@ -29,7 +28,6 @@ def read_text(form, name, label, required=False):
     return value
 
 
-# Each function turns one project template into a project dict.
 def build_birdhouse(form):
     return {
         "project_type": "birdhouse",

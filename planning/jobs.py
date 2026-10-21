@@ -1,16 +1,5 @@
-# This file stores planner jobs, plus the projects users save from them (the saved_projects table, used by services/projects.py).
-#
-# A job's "data" column is JSON with these keys:
-#   project        the user's form inputs (see routes/planner.py build_project)
-#   questions      the interpreter's follow-up questions while status is "needs_input", else []
-#   answers        [{"question": ..., "answer": ...}] - at most one round
-#   specification  the interpreter's summary, details and questions, or None
-#   result         the finished plan (format in planning/schemas.py), or None
-#   error          a short message when status is "failed", else None
-#
-# Status goes: queued -> running -> complete / partial / needs_input / failed / cancelled.
-# needs_input goes back to queued when the user answers. A failed job is never resumed:
-# restart_job starts a new job with the same inputs and answers.
+# Planner jobs live in SQLite. Saved project helpers are still unfinished.
+# Answering questions requeues a job; restarting a failed job creates a new one.
 
 import hashlib
 import json
@@ -25,24 +14,25 @@ from services.subscriptions import has_active_pro
 
 from .ai_config import WORKFLOW_TIERS
 
-LEASE_SECONDS = 15 * 60       # how long a worker may go without saving before its job counts as interrupted
-MAX_RUNNING_JOBS = 2          # jobs the worker runs at the same time
-MAX_QUEUED_JOBS = 100         # jobs waiting for a worker, from all users together
-MAX_REQUEST_BYTES = 20000     # size limit for one job's project details
-MAX_ANSWER_LENGTH = 2000      # characters allowed in one answer to a follow-up question
-ONE_DAY = 24 * 60 * 60        # seconds, for the daily job allowance
+LEASE_SECONDS = 15 * 60       # seconds before an unsaved job is interrupted
+MAX_RUNNING_JOBS = 2          # shared by all workers
+MAX_QUEUED_JOBS = 100         # shared by all users
+MAX_REQUEST_BYTES = 20000     # bytes
+MAX_ANSWER_LENGTH = 2000      # characters per answer
+ONE_DAY = 24 * 60 * 60        # seconds
 
-# These job fields have their own database columns. Everything else is stored in the "data" column.
+# Other fields go in the JSON data column.
 COLUMN_FIELDS = ["id", "owner", "tier", "status", "phase", "created", "updated"]
 
 
-class LeaseLost(ValueError):
+# Not a ValueError: the routes use those for user input errors.
+class LeaseLost(Exception):
     pass
 
 
 def database_path():
-    # Flask and the worker share this path.
-    # DATABASE_ENV=test selects a separate file, so tests never touch real jobs.
+    # The website and worker must use the same file.
+    # Test mode uses a separate file.
     data_folder = Path(__file__).resolve().parents[1] / "data"
     if os.getenv("DATABASE_ENV") == "test":
         default = data_folder / "planner_jobs_test.sqlite3"
@@ -51,8 +41,7 @@ def database_path():
     return Path(os.getenv("PLANNER_JOB_DATABASE", str(default)))
 
 
-# Opens the planner's SQLite file (making the tables if they are missing).
-# Saves the changes when the "with" block ends, or undoes them if an error happens.
+# Commit when the with block finishes; roll back if it fails.
 @contextmanager
 def connection():
     path = database_path()
@@ -69,9 +58,8 @@ def connection():
             data TEXT NOT NULL, UNIQUE(owner, submission_key)
         )""")
         database.execute("CREATE INDEX IF NOT EXISTS planner_queue ON planner_jobs(status, created)")
-        # A project the user saved from one planner job.
-        # "plan" is a JSON copy of the job's tier, project, answers and result; "crew" is the chosen crew as JSON, or NULL.
-        # (owner, job_id) means one job can only ever become one project.
+        # Plan and crew are saved as JSON.
+        # Each user can save a job as one project.
         database.execute("""CREATE TABLE IF NOT EXISTS saved_projects (
             id INTEGER PRIMARY KEY AUTOINCREMENT, owner TEXT NOT NULL, job_id TEXT NOT NULL,
             name TEXT NOT NULL, plan TEXT NOT NULL,
@@ -87,7 +75,6 @@ def connection():
         database.close()
 
 
-# Turns a database row into a job dict. Columns override old JSON copies, including tier.
 def decode(row):
     if row is None:
         return None
@@ -97,7 +84,6 @@ def decode(row):
     return job
 
 
-# Turns a job dict into the JSON text for the data column.
 def encode(job):
     data = job.copy()
     for field in COLUMN_FIELDS:
@@ -105,15 +91,13 @@ def encode(job):
     return json.dumps(data, allow_nan=False)
 
 
-# Pro is only for signed-in users who have an active Pro subscription.
 def pro_access_allowed(owner):
     if not str(owner or "").strip():
         return False
     return has_active_pro(owner)
 
 
-# Raises ValueError if a new job is not allowed.
-# Returns a hash of the request, used to spot a submission key being reused for a different request.
+# The hash catches a submission key reused with different inputs.
 def check_submission(owner, submission_key, project, tier, answers):
     if tier not in WORKFLOW_TIERS:
         raise ValueError("This planning tier is unavailable.")
@@ -127,7 +111,6 @@ def check_submission(owner, submission_key, project, tier, answers):
     return hashlib.sha256(request_text.encode()).hexdigest()
 
 
-# Raises ValueError if this user already has a job waiting or running, or if the queue is full.
 def check_queue_capacity(database, owner):
     active = database.execute(
         "SELECT COUNT(*) FROM planner_jobs WHERE owner = ? AND status IN ('queued', 'running')",
@@ -140,9 +123,8 @@ def check_queue_capacity(database, owner):
         raise ValueError("The planner queue is full. Please try again later.")
 
 
-# Adds a new planning job to the queue and returns it. Raises ValueError if a limit is hit.
-# Sending the same submission_key twice returns the first job instead of making a second one.
-# answers is only given when restarting a job that already had its question round.
+# Reusing a submission key returns the first job.
+# Restarts can include earlier answers.
 def submit_job(owner, submission_key, project, tier="fast", answers=None):
     if answers is None:
         answers = []
@@ -153,7 +135,7 @@ def submit_job(owner, submission_key, project, tier="fast", answers=None):
     data = {"project": project, "questions": [], "answers": answers,
             "specification": None, "result": None, "error": None}
     with connection() as database:
-        # One transaction prevents simultaneous submissions from bypassing the limits.
+        # Lock while checking limits so two requests cannot slip through together.
         database.execute("BEGIN IMMEDIATE")
         existing = database.execute(
             "SELECT * FROM planner_jobs WHERE owner = ? AND submission_key = ?",
@@ -163,9 +145,10 @@ def submit_job(owner, submission_key, project, tier="fast", answers=None):
             if existing["request_hash"] != request_hash:
                 raise ValueError("This submission key already belongs to another request.")
             return decode(existing)
+        # Each tier has its own daily limit.
         jobs_today = database.execute(
-            "SELECT COUNT(*) FROM planner_jobs WHERE owner = ? AND created >= ?",
-            (owner, now - ONE_DAY),
+            "SELECT COUNT(*) FROM planner_jobs WHERE owner = ? AND tier = ? AND created >= ?",
+            (owner, tier, now - ONE_DAY),
         ).fetchone()[0]
         if jobs_today >= WORKFLOW_TIERS[tier]["daily_jobs"]:
             raise ValueError("Your daily planning allowance has been reached.")
@@ -177,8 +160,6 @@ def submit_job(owner, submission_key, project, tier="fast", answers=None):
     return get_job(job_id, owner)
 
 
-# Looks up one job, only if it belongs to this owner. Returns None otherwise.
-# Takes an open database so it can also be used inside a transaction.
 def find_job(database, job_id, owner):
     row = database.execute("SELECT * FROM planner_jobs WHERE id = ? AND owner = ?",
                            (job_id, str(owner))).fetchone()
@@ -190,14 +171,12 @@ def get_job(job_id, owner):
         return find_job(database, job_id, owner)
 
 
-# How many jobs this owner has made in total
 def count_jobs(owner):
     with connection() as database:
         return database.execute("SELECT COUNT(*) FROM planner_jobs WHERE owner = ?",
                                 (str(owner),)).fetchone()[0]
 
 
-# One page of this owner's jobs, newest first. offset is how many jobs to skip.
 def list_jobs(owner, limit=20, offset=0):
     with connection() as database:
         rows = database.execute(
@@ -207,12 +186,8 @@ def list_jobs(owner, limit=20, offset=0):
     return [decode(row) for row in rows]
 
 
-# A running job whose worker stopped saving (crash or server restart) was interrupted.
-# It is marked failed, not resumed, so the user sees what happened and can start it again.
-# This waits for the lease (LEASE_SECONDS) to run out instead of failing every "running" job
-# when a worker starts, because another worker may still be running that job: planning/worker.py
-# can also be started from the command line, and during a Gunicorn reload the old worker keeps
-# working while the new one starts.
+# Wait for the time limit: another worker may still be running the job.
+# Interrupted jobs fail so the user can restart them.
 def fail_interrupted_jobs(database, now):
     expired_rows = database.execute(
         "SELECT * FROM planner_jobs WHERE status = 'running' AND lease_until < ?", (now,)
@@ -226,11 +201,10 @@ def fail_interrupted_jobs(database, now):
         )
 
 
-# The worker takes the oldest queued job and marks it "running". Returns None if there is nothing to take.
 def claim_job(worker):
     now = time.time()
     with connection() as database:
-        # BEGIN IMMEDIATE locks the file, so two workers can never claim the same job.
+        # Lock before picking a job so two workers cannot take the same one.
         database.execute("BEGIN IMMEDIATE")
         fail_interrupted_jobs(database, now)
         running = database.execute("SELECT COUNT(*) FROM planner_jobs WHERE status = 'running'").fetchone()[0]
@@ -250,12 +224,10 @@ def claim_job(worker):
         return job
 
 
-# Saves a running job's progress and extends its lease.
-# Raises LeaseLost if this worker no longer owns the job (for example it was cancelled).
 def save_job(job, worker):
     now = time.time()
     with connection() as database:
-        # The update only matches while this worker still owns the running job.
+        # Only the worker still assigned to the running job can save it.
         changed = database.execute(
             "UPDATE planner_jobs SET data = ?, status = ?, phase = ?, updated = ?, lease_until = ? WHERE id = ? AND worker = ? AND status = 'running'",
             (encode(job), job["status"], job["phase"], now, now + LEASE_SECONDS, job["id"], worker),
@@ -264,13 +236,11 @@ def save_job(job, worker):
             raise LeaseLost("This worker no longer owns the job, or the job was cancelled.")
 
 
-# Stores the user's answers to the follow-up questions and puts the job back in the queue.
-# The whole workflow then runs again with the original inputs plus these answers.
+# Rerun the job with the user's answers.
 def answer_job(job_id, owner, answers):
     with connection() as database:
         database.execute("BEGIN IMMEDIATE")
         job = find_job(database, job_id, owner)
-        # The status check also stops the same answers being sent twice.
         if job is None or job["status"] != "needs_input":
             raise ValueError("This plan is not waiting for answers.")
         if len(answers) != len(job["questions"]) or any(len(answer) > MAX_ANSWER_LENGTH for answer in answers):
@@ -289,9 +259,7 @@ def answer_job(job_id, owner, answers):
         )
 
 
-# Starts a failed job again from the beginning, as a new job with the same inputs and answers.
-# Returns the new job. The new job counts toward the daily allowance like any other.
-# Its submission key is fixed, so pressing "Start again" twice returns the same new job.
+# A fixed key stops repeated clicks from creating extra jobs.
 def restart_job(job_id, owner):
     job = get_job(job_id, owner)
     if job is None or job["status"] != "failed":
@@ -299,14 +267,12 @@ def restart_job(job_id, owner):
     return submit_job(owner, "restart-" + job_id, job["project"], job["tier"], job["answers"])
 
 
-# Deletes all of one user's planning jobs and saved projects (used when their account is deleted).
 def delete_planner_jobs(owner):
     with connection() as database:
         database.execute("DELETE FROM planner_jobs WHERE owner = ?", (str(owner),))
         database.execute("DELETE FROM saved_projects WHERE owner = ?", (str(owner),))
 
 
-# Cancels a job that is queued, running, or waiting for answers. Returns True if it was cancelled.
 def cancel_job(job_id, owner):
     with connection() as database:
         changed = database.execute(

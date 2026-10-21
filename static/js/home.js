@@ -1,70 +1,19 @@
 const home = document.querySelector('.home');
 
-// Tells the CSS it is safe to hide things until they scroll into view.
 home.classList.add('home-js');
 
-const revealItems = document.querySelectorAll('[data-reveal]');
-
-if ('IntersectionObserver' in window) {
-    const observer = new IntersectionObserver((entries) => {
-        for (const entry of entries) {
-            if (entry.isIntersecting) {
-                entry.target.classList.add('is-in');
-                observer.unobserve(entry.target);
-            }
+function revealVisibleItems(entries) {
+    for (const entry of entries) {
+        if (entry.isIntersecting) {
+            entry.target.classList.add('is-in');
+            revealObserver.unobserve(entry.target);
         }
-    }, { threshold: 0.15, rootMargin: '0px 0px -8% 0px' });
-
-    revealItems.forEach((item) => observer.observe(item));
-} else {
-    // very old browsers: just show everything
-    revealItems.forEach((item) => item.classList.add('is-in'));
+    }
 }
 
-const tabList = document.querySelector('.template-tabs');
-
-if (tabList) {
-    const tabs = Array.from(tabList.querySelectorAll('[role="tab"]'));
-    const panels = tabs.map((tab) => document.getElementById(tab.getAttribute('aria-controls')));
-
-    function selectTab(index, moveFocus) {
-        tabs.forEach((tab, i) => {
-            const selected = i === index;
-            tab.setAttribute('aria-selected', String(selected));
-            // only the selected tab is a tab stop; arrow keys move between tabs
-            tab.tabIndex = selected ? 0 : -1;
-            panels[i].hidden = !selected;
-        });
-        if (moveFocus) tabs[index].focus();
-    }
-
-    tabs.forEach((tab, index) => {
-        tab.addEventListener('click', () => selectTab(index, false));
-    });
-
-    tabList.addEventListener('keydown', (event) => {
-        let next = tabs.indexOf(document.activeElement);
-
-        if (event.key === 'ArrowDown' || event.key === 'ArrowRight') {
-            next += 1;
-            if (next === tabs.length) next = 0;
-        } else if (event.key === 'ArrowUp' || event.key === 'ArrowLeft') {
-            next -= 1;
-            if (next < 0) next = tabs.length - 1;
-        } else if (event.key === 'Home') {
-            next = 0;
-        } else if (event.key === 'End') {
-            next = tabs.length - 1;
-        } else {
-            return;
-        }
-
-        event.preventDefault();
-        selectTab(next, true);
-    });
-
-    tabList.hidden = false;
-    selectTab(0, false);
+const revealObserver = new IntersectionObserver(revealVisibleItems, { threshold: 0.15, rootMargin: '0px 0px -8% 0px' });
+for (const item of document.querySelectorAll('[data-reveal]')) {
+    revealObserver.observe(item);
 }
 
 const sheet = document.querySelector('.hero-sheet');
@@ -73,7 +22,7 @@ if (sheet) {
     const readout = sheet.querySelector('.readout');
 
     sheet.addEventListener('pointermove', (event) => {
-        // touch and pen users do not get a crosshair
+        // Only show the crosshair for a mouse.
         if (event.pointerType !== 'mouse') return;
 
         const box = sheet.getBoundingClientRect();
@@ -108,7 +57,7 @@ if (tape) {
         updateQueued = false;
     }
 
-    // Schedule at most one tape update per animation frame.
+    // Update the tape at most once per animation frame.
     window.addEventListener('scroll', () => {
         if (!updateQueued) {
             updateQueued = true;

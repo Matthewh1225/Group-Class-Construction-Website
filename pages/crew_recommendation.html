@@ -1,0 +1,25 @@
+<h3>AI-estimated crew</h3>
+{% if recommendation %}
+<p>Estimated completion: {{ recommendation.days[0] }}–{{ recommendation.days[1] }} working days, assuming {{ hours_per_day }}-hour workdays.</p>
+<ul>
+    {% for member in recommendation.members %}
+        <li>{{ crew_rates[member.role].name }}: {{ member.workers }} worker{{ '' if member.workers == 1 else 's' }}, {{ member.days[0] }}–{{ member.days[1] }} days on site.</li>
+    {% endfor %}
+</ul>
+<a href="{{ crew_url }}">Review and adjust crew</a>
+{% else %}
+<p>A crew could not be estimated from the supplied project details.</p>
+{% endif %}
+{% if plan_result.assumptions or plan_result.warnings %}
+<details>
+    <summary>Planning assumptions and uncertainty</summary>
+    {% if plan_result.assumptions %}
+        <h4>Assumptions</h4>
+        <ul>{% for assumption in plan_result.assumptions %}<li>{{ assumption }}</li>{% endfor %}</ul>
+    {% endif %}
+    {% if plan_result.warnings %}
+        <h4>Uncertainty and warnings</h4>
+        <ul>{% for warning in plan_result.warnings %}<li>{{ warning }}</li>{% endfor %}</ul>
+    {% endif %}
+</details>
+{% endif %}

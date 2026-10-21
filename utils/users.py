@@ -2,12 +2,11 @@ from planning.jobs import delete_planner_jobs
 from utils.database import database_cursor
 from utils.passwords import hash_password, validate_password
 
-# These match the column sizes of User.username and User.email (sql/erd_schema.sql).
+# Keep these limits in line with the User table.
 MAX_USERNAME_LENGTH = 50
 MAX_EMAIL_LENGTH = 100
 
 
-# check that the text has a name, one "@", and a "." in the domain.
 def looks_like_email(email):
     name, at, domain = email.partition("@")
     return bool(name) and at == "@" and "." in domain and "@" not in domain and " " not in email
@@ -28,7 +27,7 @@ def create_user(data, permission_level="user"):
         raise ValueError("Complete all fields.")
     if len(username) > MAX_USERNAME_LENGTH:
         raise ValueError(f"Usernames can be at most {MAX_USERNAME_LENGTH} characters.")
-    # login accepts a username or an email, so a username must never look like an email
+    # Login accepts usernames and emails, so usernames cannot contain @.
     if "@" in username:
         raise ValueError("Usernames cannot contain @.")
     if len(email) > MAX_EMAIL_LENGTH or not looks_like_email(email):
@@ -49,10 +48,8 @@ def create_user(data, permission_level="user"):
             cursor.execute("INSERT INTO Administrator (user_Id) VALUES (%s)", (user_id,))
         else:
             cursor.execute("INSERT INTO Customer (user_Id) VALUES (%s)", (user_id,))
-        # ADD send the welcome notification after the account transaction commits.
     return user_id
 
-# turns an account "active" or "disabled". Returns False if the user does not exist.
 def set_user_status(user_id, status):
     if status not in {"active", "disabled"}:
         raise ValueError("Choose active or disabled.")

@@ -2,8 +2,7 @@ from datetime import date
 
 from utils.database import database_cursor
 
-# Pro is stored as one date on the user: User.proUntil is the last day of Pro access,and NULL means the user never had Pro.
-# True when the user's Pro access has not run out yet (proUntil is today or later).
+# proUntil is the last day of Pro access; NULL means none.
 def has_active_pro(user_id):
     with database_cursor() as cursor:
         cursor.execute("SELECT 1 FROM `User` WHERE Id = %s AND proUntil >= CURDATE()", (user_id,))
@@ -11,16 +10,16 @@ def has_active_pro(user_id):
 
 
 def get_user_entitlements(user_id):
-    "Read verified subscription status and expiry to determine Pro access."
+    "Check subscription status and expiry for Pro access."
     pass
 
 
 def update_subscription_from_provider(verified_event):
-    "Apply an authenticated provider event exactly once."
+    "Apply a verified subscription update only once."
     pass
 
 
-# Returns the user's plan name, status ("active" or "expired") and end date as a dict, or None if they never had Pro
+# No expiry date means there is no subscription.
 def get_user_subscription(user_id):
     with database_cursor() as cursor:
         cursor.execute("SELECT proUntil FROM `User` WHERE Id = %s", (user_id,))
@@ -35,15 +34,15 @@ def get_user_subscription(user_id):
 
 
 def start_pro_subscription(user_id, billing_details):
-    "Create checkout; activate access only after a verified provider event."
+    "Start checkout; wait for a verified payment update before enabling Pro."
     pass
 
 
 def cancel_user_subscription(user_id, reason=None):
-    "Cancel an owned subscription through the provider and record the result."
+    "Cancel the user's subscription with the provider and save the result."
     pass
 
 
 def resume_user_subscription(user_id):
-    "Undo a pending cancellation on an owned subscription."
+    "Undo a pending cancellation on the user's subscription."
     pass

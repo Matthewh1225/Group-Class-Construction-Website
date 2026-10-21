@@ -1,4 +1,3 @@
-
 import json
 
 CREW_RATES = {
@@ -22,8 +21,7 @@ MAX_DAYS = 1000
 
 
 def read_days(value):
-    # Days are sent as [shortest, longest]
-    # A custom crew uses the same number twice,  [5, 5].
+    # Equal values mean an exact number of days.
     if not isinstance(value, list) or len(value) != 2:
         raise ValueError("The crew's working days are missing.")
     low = value[0]
@@ -35,7 +33,6 @@ def read_days(value):
     return [low, high]
 
 
-# Reads the crew the page sent as JSON then returns a  crew info dict.
 def parse_crew(crew_json):
     try:
         data = json.loads(crew_json or "")
@@ -49,54 +46,37 @@ def parse_crew(crew_json):
         raise ValueError("The crew needs a short name.")
 
     members = []
+    roles = set()
     for member in data["members"]:
-        if not isinstance(member, dict) or member.get("role") not in CREW_RATES:
+        if not isinstance(member, dict) or not isinstance(member.get("role"), str) or member["role"] not in CREW_RATES:
             raise ValueError("The crew includes an unknown specialty.")
+        if member["role"] in roles:
+            raise ValueError("Each specialty can only appear once.")
+        roles.add(member["role"])
         workers = member.get("workers")
         if type(workers) != int or workers < 1 or workers > MAX_WORKERS:
             raise ValueError(f"Each specialty needs between 1 and {MAX_WORKERS} workers.")
         members.append({"role": member["role"], "workers": workers, "days": read_days(member.get("days"))})
     if len(members) == 0:
         raise ValueError("Add at least one worker to the crew.")
-    if len(members) > len(CREW_RATES):
-        raise ValueError("The crew lists too many specialties.")
 
-    # "preset" and "size" let the Crews page reopen the same preset when editing.
-    crew = {"label": label.strip(), "source": "custom", "preset": None, "size": None,
-            "days": read_days(data.get("days")), "members": members}
-    if data.get("source") == "preset":
-        preset = data.get("preset")
-        size = data.get("size")
-        if isinstance(preset, str) and isinstance(size, str) and len(preset) <= 40 and len(size) <= 40:
-            crew["source"] = "preset"
-            crew["preset"] = preset
-            crew["size"] = size
-    return crew
+    days = read_days(data.get("days"))
+    if any(member["days"][1] > days[1] for member in members):
+        raise ValueError("A role's working days cannot exceed the project's maximum days.")
+    return {"label": label.strip(), "days": days, "members": members}
 
 
-# Whole dollars as text, like 1234 becomes "$1,234".
 def money(value):
     return "${:,.0f}".format(value)
 
 
-# A low-high range as text: "7 – 10", or just "7" when both are the same.
 def range_text(low, high):
     if low == high:
         return low
     return low + " – " + high
 
 
-# Rounds a cost to the nearest 1 or 100.
-def round_cost(value, step):
-    return int(value / step + 0.5) * step
-
-
 def crew_estimate(crew):
-    if crew["source"] == "preset":
-        step = 100
-    else:
-        step = 1
-
     rows = []
     total_workers = 0
     total_hourly = 0
@@ -114,7 +94,7 @@ def crew_estimate(crew):
             "rate": money(specialty["rate"]),
             "hourly": money(hourly),
             "days": range_text(f"{shortest:,}", f"{longest:,}") + " days",
-            "cost": range_text(money(round_cost(low, step)), money(round_cost(high, step))),
+            "cost": range_text(money(low), money(high)),
         })
         total_workers = total_workers + member["workers"]
         total_hourly = total_hourly + hourly
@@ -128,5 +108,5 @@ def crew_estimate(crew):
         "workers": total_workers,
         "hourly": money(total_hourly),
         "days": range_text(f"{shortest:,}", f"{longest:,}") + " working days",
-        "cost": range_text(money(round_cost(total_low, step)), money(round_cost(total_high, step))),
+        "cost": range_text(money(total_low), money(total_high)),
     }

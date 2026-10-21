@@ -74,28 +74,11 @@
             </dl>
         {% endif %}
         {% if checkout %}
-            {# form="checkout-form" connects this button to the form in checkout.html #}
+            {# This button submits the form in checkout.html. #}
             <button class="shopping-button shopping-primary" type="submit" form="checkout-form" id="place-order" {% if not totals or not items %}disabled{% endif %}>Place Order</button>
         {% elif items %}
             <a class="shopping-button shopping-primary" href="{{ url_for('checkout') }}">Proceed to Checkout {{ icon('arrow') }}</a>
             <a class="shopping-button shopping-secondary" href="{{ url_for('products.products') }}">Continue Shopping</a>
         {% endif %}
     </aside>
-{% endmacro %}
-
-{% macro field(name, label, autocomplete, type='text', required=True, value='', wide=False, maxlength=120) %}
-    <div class="shopping-field{% if wide %} shopping-field-wide{% endif %}">
-        <label for="{{ name }}">{{ label }}{% if not required %} <span>(optional)</span>{% endif %}</label>
-        <input
-            id="{{ name }}"
-            name="{{ name }}"
-            type="{{ type }}"
-            autocomplete="{{ autocomplete }}"
-            maxlength="{{ maxlength }}"
-            value="{{ value }}"
-            {% if required %}required{% endif %}
-            aria-describedby="{{ name }}-error"
-        >
-        <span class="shopping-field-error" id="{{ name }}-error"></span>
-    </div>
 {% endmacro %}

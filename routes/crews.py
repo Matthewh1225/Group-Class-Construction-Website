@@ -1,6 +1,7 @@
-from flask import Blueprint, render_template, request, session
+from flask import Blueprint, abort, render_template, request, session
 
-from services.crews import CREW_RATES, HOURS_PER_DAY
+from planning.jobs import get_job
+from services.crews import CREW_RATES, HOURS_PER_DAY, MAX_DAYS, MAX_WORKERS
 from services.projects import get_project
 
 crews_bp = Blueprint("crews", __name__)
@@ -8,11 +9,25 @@ crews_bp = Blueprint("crews", __name__)
 
 @crews_bp.get("/crews")
 def crews():
-    # CREW presets live in static/js/crews.js; rates come from services/crews.py.
-    # Quote requests need services/rentals/request_crew
     project = None
+    initial_crew = None
     project_id = request.args.get("project_id", type=int)
-    if project_id is not None and "user_id" in session:
+    job_id = request.args.get("job_id")
+    if project_id is not None or job_id:
+        if "user_id" not in session:
+            abort(401)
+    if project_id is not None:
         project = get_project(project_id, session["user_id"])
+        if project is None:
+            abort(404)
+        result = project["plan"].get("result") or {}
+        initial_crew = project["crew"] or result.get("crew")
+    elif job_id:
+        job = get_job(job_id, session["user_id"])
+        if job is None:
+            abort(404)
+        result = job["result"] or {}
+        initial_crew = result.get("crew")
     return render_template("crews.html", crew_rates=CREW_RATES,
-                           hours_per_day=HOURS_PER_DAY, project=project)
+                           hours_per_day=HOURS_PER_DAY, max_days=MAX_DAYS,
+                           max_workers=MAX_WORKERS, project=project, initial_crew=initial_crew)

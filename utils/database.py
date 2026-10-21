@@ -7,7 +7,7 @@ from dotenv import dotenv_values
 from flask import current_app, has_app_context
 
 
-# Picks which MySQL database to connect to: the test database from .env.test or real one (from .env).
+# Test mode reads .env.test; other runs use .env.
 def database_settings():
     testing = os.getenv("DATABASE_ENV") == "test"
     if has_app_context() and current_app.testing:
@@ -35,7 +35,7 @@ def database_settings():
         "password": os.getenv("DB_PASSWORD"),
     }
 
-# Commit after the caller finishes; failures roll back before the connection closes.
+# Commit on success; roll back on error.
 @contextmanager
 def database_cursor():
     connection = mysql.connector.connect(

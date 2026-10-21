@@ -1,4 +1,4 @@
-"""Render starts the planner after Gunicorn loads the web application."""
+"""Start the planner after Gunicorn loads the app."""
 
 import logging
 import os
@@ -26,7 +26,7 @@ def post_worker_init(worker):
     if existing is not None and existing.is_alive():
         return
 
-    # Import after app initialization and fork, so environment/client setup is ready.
+    # Wait until the app and worker are ready before importing the planner.
     from planning.worker import run_worker
 
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
@@ -47,9 +47,7 @@ def worker_exit(server, worker):
     if stop_event is None:
         return
     stop_event.set()
-    # Idle workers stop immediately
     worker.planner_thread.join(timeout=5)
     if worker.planner_thread.is_alive():
-        # The job is marked failed ("interrupted") when its lease runs out (planning/jobs.py LEASE_SECONDS),
-        # and the user can start it again from the job page.
+        # An unfinished job fails when its time limit runs out.
         worker.log.info("Planner is still finishing a call; an unfinished job is marked failed when its lease runs out.")

@@ -6,7 +6,5 @@ google-genai
 groq
 Flask-Limiter[redis]
 argon2-cffi==25.1.0
-# bcrypt is only used to check passwords of accounts made before the switch to Argon2 (utils/passwords.py)
-bcrypt==5.0.0
 openrouter
 pydantic>=2.12,<3

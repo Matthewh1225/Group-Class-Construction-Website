@@ -4,14 +4,14 @@ from dotenv import load_dotenv
 from flask import Flask, redirect, render_template, url_for
 from mysql.connector import Error as DatabaseError
 
-# load .env before the route imports set up their clients
+# Load .env before routes create their AI clients.
 load_dotenv()
 
 from routes.auth import auth_bp, check_logged_in_user
 from routes.crews import crews_bp
 from routes.dashboard import dashboard_bp
 from routes.planner import planner_bp
-from routes.products import PRODUCT_CATEGORIES, products_bp
+from routes.products import products_bp
 from routes.subscription import subscription_bp
 from utils.csrf import check_csrf, csrf_token
 from utils.rate_limits import limiter
@@ -21,7 +21,7 @@ app = Flask(__name__, template_folder="pages")
 app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")
 # Lax stops other sites from sending this cookie with their form posts
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
-# set SESSION_COOKIE_SECURE=true on an HTTPS server so the cookie is never sent over plain HTTP
+# Set SESSION_COOKIE_SECURE=true when using HTTPS.
 app.config["SESSION_COOKIE_SECURE"] = os.getenv("SESSION_COOKIE_SECURE", "").lower() == "true"
 app.before_request(check_csrf)
 app.before_request(check_logged_in_user)
@@ -43,7 +43,6 @@ app.register_blueprint(crews_bp)
 
 @app.errorhandler(DatabaseError)
 def database_unavailable(error):
-    # The details go to the server log
     app.logger.error("Database error", exc_info=error)
     return render_template("unavailable.html"), 503
 
@@ -55,7 +54,7 @@ def landing_page():
 
 @app.route("/home")
 def home():
-    return render_template("home.html", categories=PRODUCT_CATEGORIES)
+    return render_template("home.html")
 
 
 @app.route("/reviews")
@@ -75,7 +74,6 @@ app.add_url_rule("/cart/add", "cart_add", shopping.cart_add, methods=["POST"])
 app.add_url_rule("/cart/update", "cart_update", shopping.cart_update, methods=["POST"])
 app.add_url_rule("/cart/remove", "cart_remove", shopping.cart_remove, methods=["POST"])
 app.add_url_rule("/checkout", "checkout", shopping.checkout, methods=["GET", "POST"])
-# the order number is in the address, but the page only shows orders owned by the signed-in user
 app.add_url_rule("/order-confirmation", "order_confirmation", shopping.order_confirmation, defaults={"order_id": None})
 app.add_url_rule("/order-confirmation/<int:order_id>", "order_confirmation", shopping.order_confirmation)
 

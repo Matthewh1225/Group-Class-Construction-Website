@@ -5,14 +5,15 @@ from flask import Blueprint, abort, flash, redirect, render_template, request, s
 from planning.ai_config import WORKFLOW_TIERS
 from planning.jobs import answer_job, cancel_job, count_jobs, get_job, list_jobs, pro_access_allowed, restart_job, submit_job
 from planning.project_forms import PROJECT_TEMPLATES, build_custom_project
-from planning.presentation import add_store_details, interpretation_details, status_label
+from planning.presentation import add_store_details, cart_items, cart_total, status_label
+from services.cart import add_cart_item
+from services.crews import CREW_RATES, HOURS_PER_DAY
 from services.projects import can_save, default_project_name, get_project_for_job, save_project
 from utils.rate_limits import limiter
 
 planner_bp = Blueprint("planner", __name__)
 
 
-# Draws the planner page. form_data refills the form, and popup_message shows an error.
 def show_planner(popup_message=None, form_data=None):
     form_data = form_data or {}
     return render_template(
@@ -25,8 +26,6 @@ def show_planner(popup_message=None, form_data=None):
     )
 
 
-# Turns the planner form into one project dict (from a template or a custom description).
-# Raises ValueError if something is missing or invalid.
 def build_project(form):
     project_mode = form.get("projectMode")
     project_size = form.get("projectSize")
@@ -49,7 +48,6 @@ def build_project(form):
 
 
 def owned_job(job_id):
-    # The signed-in user's job, or an error page: 401 when signed out, 404 for anyone else's.
     if "user_id" not in session:
         abort(401, description="Sign in to view planning jobs.")
     job = get_job(job_id, session["user_id"])
@@ -63,7 +61,6 @@ def planner():
     return show_planner(form_data=request.args)
 
 
-# Takes the submitted planner form and queues a planning job, then shows that job's page.
 @planner_bp.post("/planner/jobs")
 @limiter.limit("4 per minute; 30 per hour", methods=["POST"])
 def submit_planning_job():
@@ -78,32 +75,88 @@ def submit_planning_job():
     return redirect(url_for("planner.planning_job", job_id=job["id"]), code=303)
 
 
-# The job page: progress while it runs, the questions, the error, or the finished plan.
+def plan_materials(job):
+    if not job["result"]:
+        return []
+    return add_store_details(job["result"]["materials"])
+
+
 @planner_bp.get("/planner/jobs/<job_id>")
 def planning_job(job_id):
     job = owned_job(job_id)
-    materials = []
-    if job["result"]:
-        materials = add_store_details(job["result"].get("materials", []))
+    materials = plan_materials(job)
+    cart = cart_items(materials)
     label, tone = status_label(job)
     template = PROJECT_TEMPLATES.get(job["project"].get("project_type"), {})
     title = template.get("title", "Your project")
-    # get_project_for_job, can_save and default_project_name are unfinished teammate
-    # functions in services/projects.py; until they are written they return None,
-    # so the "Save this project" box stays hidden.
+    # The save box stays hidden until services/projects.py is finished.
     return render_template("planner_job.html", job=job, materials=materials,
-                           interpretation_details=interpretation_details(job.get("specification"), job["result"]),
+                           cart=cart, cart_total=cart_total(cart),
                            title=title,
                            status_label=label, status_tone=tone,
                            tier_label=WORKFLOW_TIERS[job["tier"]]["label"],
+                           crew_rates=CREW_RATES, hours_per_day=HOURS_PER_DAY,
                            saved_project=get_project_for_job(job_id, session["user_id"]),
                            can_save=can_save(job), default_name=default_project_name(job))
 
 
+# No material index means add all available items.
+# Get IDs and amounts from the plan and store data, not the form.
+@planner_bp.post("/planner/jobs/<job_id>/cart")
+@limiter.limit("30 per minute", methods=["POST"])
+def planning_job_add_to_cart(job_id):
+    job = owned_job(job_id)
+    materials = plan_materials(job)
+    position = request.form.get("material", type=int)
+    if position is None:
+        chosen = materials
+    elif 0 <= position < len(materials):
+        chosen = [materials[position]]
+    else:
+        chosen = []
+
+    added = []
+    failed = []
+    for item in cart_items(chosen):
+        product = item["product"]
+        # Use plain digits rather than scientific notation.
+        quantity = format(item["quantity"], "f")
+        try:
+            product_name = add_cart_item(session["user_id"], product["product_id"], quantity)
+        except ValueError as error:
+            failed.append(f"{product['product_name']} ({error})")
+            continue
+        # The cart helper is still a stub; None means nothing was added.
+        if product_name is None:
+            failed.append(product["product_name"])
+        else:
+            added.append(product_name)
+
+    skipped = 0
+    for row in chosen:
+        if not row["can_add"]:
+            skipped += 1
+
+    if len(added) == 1:
+        flash(f"Added {added[0]} to your cart.", "success")
+    elif len(added) > 1:
+        flash(f"Added {len(added)} products to your cart.", "success")
+    if failed:
+        flash("Could not add to your cart: " + "; ".join(failed) + ".", "error")
+    if skipped == 1:
+        flash("1 material was not added: the store does not sell it, has none in stock, "
+              "or the amount is unknown.", "info")
+    elif skipped > 1:
+        flash(f"{skipped} materials were not added: the store does not sell them, has none in stock, "
+              "or the amount is unknown.", "info")
+    if not chosen:
+        flash("There was nothing to add to your cart.", "error")
+    return redirect(url_for("planner.planning_job", job_id=job_id, _anchor="plan-messages"), code=303)
+
+
 @planner_bp.post("/planner/jobs/<job_id>/save")
 def planning_job_save(job_id):
-    # Save Project / Update Project: keep this plan in My Projects.
-    # Saving the same job again updates its project instead of making a new one.
+    # Saving the same job again should update its project.
     job = owned_job(job_id)
     try:
         project_id = save_project(session["user_id"], job, request.form.get("name"))
@@ -119,7 +172,6 @@ def planning_job_save(job_id):
     return redirect(url_for("planner.planning_job", job_id=job_id), code=303)
 
 
-# Small JSON answer the job page asks for again and again to see how far along the job is.
 @planner_bp.get("/planner/jobs/<job_id>/status")
 def planning_job_status(job_id):
     job = owned_job(job_id)
@@ -127,14 +179,6 @@ def planning_job_status(job_id):
     return status, 200, {"Cache-Control": "no-store"}
 
 
-# Returns the finished plan as JSON, in the format described in planning/schemas.py.
-@planner_bp.get("/planner/jobs/<job_id>/result")
-def planning_job_result(job_id):
-    job = owned_job(job_id)
-    return {"id": job["id"], "status": job["status"], "result": job["result"]}, 200, {"Cache-Control": "no-store"}
-
-
-# Saves the user's answers to the planner's follow-up questions (one round only) and puts the job back in the queue.
 @planner_bp.post("/planner/jobs/<job_id>/answers")
 @limiter.limit("4 per minute; 30 per hour", methods=["POST"])
 def planning_job_answers(job_id):
@@ -146,7 +190,6 @@ def planning_job_answers(job_id):
     return redirect(url_for("planner.planning_job", job_id=job_id), code=303)
 
 
-# Stops a job that is waiting or running.
 @planner_bp.post("/planner/jobs/<job_id>/cancel")
 def planning_job_cancel(job_id):
     owned_job(job_id)
@@ -154,7 +197,7 @@ def planning_job_cancel(job_id):
     return redirect(url_for("planner.planning_job", job_id=job_id), code=303)
 
 
-# Starts a failed job again from the beginning with the same inputs and answers, as a new job.
+# A failed job restarts as a new job with the same inputs and answers.
 @planner_bp.post("/planner/jobs/<job_id>/restart")
 @limiter.limit("4 per minute; 30 per hour", methods=["POST"])
 def planning_job_restart(job_id):
@@ -167,7 +210,6 @@ def planning_job_restart(job_id):
     return redirect(url_for("planner.planning_job", job_id=new_job["id"]), code=303)
 
 
-# Shows the user's past planning jobs, 20 per page.
 @planner_bp.get("/planner/history")
 def planning_history():
     if "user_id" not in session:

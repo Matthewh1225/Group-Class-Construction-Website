@@ -10,7 +10,7 @@
 <div class="shopping-columns">
     <section class="shopping-panel" aria-label="Cart items">
         {% for item in cart_items %}
-        {# The quantity box and Remove button below belong to these two forms through their form="..." attribute. #}
+        {# The quantity and Remove controls use these forms through their form attributes. #}
         <form id="update-{{ item.product_id }}" method="post" action="{{ url_for('cart_update') }}">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="hidden" name="product_id" value="{{ item.product_id }}">

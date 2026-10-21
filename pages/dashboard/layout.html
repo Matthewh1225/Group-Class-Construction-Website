@@ -28,9 +28,6 @@
         <symbol id="icon-folder" viewBox="0 0 24 24">
             <path d="M3 7a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v10H3z"/>
         </symbol>
-        <symbol id="icon-list" viewBox="0 0 24 24">
-            <path d="M9 6h12M9 12h12M9 18h12M3 6h1M3 12h1M3 18h1"/>
-        </symbol>
         <symbol id="icon-bag" viewBox="0 0 24 24">
             <path d="M4 8h16l-1 13H5L4 8ZM9 9V6a3 3 0 0 1 6 0v3"/>
         </symbol>
@@ -86,13 +83,7 @@
             <p class="dashboard-nav-label">{{ 'ADMINISTRATION' if admin_nav else 'WORKSPACE' }}</p>
             <nav class="dashboard-side-nav" aria-label="Dashboard navigation">
                 {% if admin_nav %}
-                    <a href="{{ url_for('dashboard.dashboard') }}#overview" data-admin-nav="overview">
-                        <svg class="dashboard-icon" aria-hidden="true">
-                            <use href="#icon-grid"/>
-                        </svg>
-                        Overview
-                    </a>
-                    <a href="{{ url_for('dashboard.dashboard') }}#users" data-admin-nav="users" {% if is_admin %}aria-current="page"{% endif %}>
+                    <a href="{{ url_for('dashboard.dashboard') }}" {% if is_admin %}aria-current="page"{% endif %}>
                         <svg class="dashboard-icon" aria-hidden="true">
                             <use href="#icon-user"/>
                         </svg>
@@ -212,7 +203,7 @@
             </div>
         </div>
     </div>
-    <script src="{{ url_for('static', filename='js/dashboard-navigation.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='js/dashboard-navigation.js') }}" type="module"></script>
     {% block dashboard_scripts %}
     {% endblock %}
 {% endblock %}

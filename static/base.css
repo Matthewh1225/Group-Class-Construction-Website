@@ -107,7 +107,7 @@ main {
     outline-offset: 3px;
 }
 
-/* hides text visually but keeps it for screen readers */
+/* Keep this text available to screen readers. */
 .sr-only {
     position: absolute;
     width: 1px;
@@ -662,7 +662,6 @@ textarea:focus {
     }
 }
 
-/* the "Service unavailable" page (pages/unavailable.html) */
 .unavailable-page {
     padding-block: clamp(48px, 8vw, 96px);
 }

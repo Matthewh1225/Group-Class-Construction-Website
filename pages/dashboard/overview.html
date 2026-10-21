@@ -6,14 +6,6 @@
     Dashboard - BuildBetter
 {% endblock %}
 
-{% macro stat_value(value) -%}
-    {% if value is not none %}
-        <strong>{{ value }}</strong>
-    {% else %}
-        <strong aria-hidden="true">&mdash;</strong>
-    {% endif %}
-{%- endmacro %}
-
 {% block dashboard_content %}
     <div class="dashboard-page-heading">
         <div>
@@ -39,15 +31,17 @@
     </section>
     <section class="dashboard-section" aria-label="Workspace summary">
         <div class="dashboard-stat-grid workspace-stats">
-            {% if project_count is not none %}<a class="dashboard-card dashboard-stat dashboard-stat-featured" href="{{ url_for('dashboard.projects') }}">
+            {% if project_count is not none %}
+            <a class="dashboard-card dashboard-stat dashboard-stat-featured" href="{{ url_for('dashboard.projects') }}">
                 <span class="dashboard-stat-icon">
                     <svg class="dashboard-icon" aria-hidden="true">
                         <use href="#icon-folder"/>
                     </svg>
                 </span>
                 <span class="dashboard-stat-label">My projects</span>
-                {{ stat_value(project_count) }}
-            </a>{% endif %}
+                <strong>{{ project_count }}</strong>
+            </a>
+            {% endif %}
             <a class="dashboard-card dashboard-stat" href="{{ url_for('planner.planning_history') }}">
                 <span class="dashboard-stat-icon">
                     <svg class="dashboard-icon" aria-hidden="true">
@@ -64,11 +58,16 @@
                     </svg>
                 </span>
                 <span class="dashboard-stat-label">Cart items</span>
-                {{ stat_value(cart_count) }}
+                {% if cart_count is not none %}
+                    <strong>{{ cart_count }}</strong>
+                {% else %}
+                    <strong aria-hidden="true">&mdash;</strong>
+                {% endif %}
             </a>
         </div>
     </section>
-    {% if recent_projects is not none %}<section class="dashboard-section" aria-labelledby="recent-projects-title">
+    {% if recent_projects is not none %}
+    <section class="dashboard-section" aria-labelledby="recent-projects-title">
         <div class="dashboard-section-heading">
             <div>
                 <p class="dashboard-eyebrow">Pick up where you left off</p>
@@ -86,5 +85,6 @@
                 <a class="dashboard-text-link" href="{{ url_for('planner.planning_history') }}">Planning history <span aria-hidden="true">&rarr;</span></a>
             {% endcall %}
         {% endif %}
-    </section>{% endif %}
+    </section>
+    {% endif %}
 {% endblock %}

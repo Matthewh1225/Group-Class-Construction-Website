@@ -6,7 +6,7 @@ from mysql.connector import Error, IntegrityError
 
 from planning.presentation import add_store_details
 from services.orders import get_order_by_id, get_order_items, get_user_orders
-from services.crews import parse_crew, crew_estimate
+from services.crews import CREW_RATES, HOURS_PER_DAY, parse_crew, crew_estimate
 from services.projects import (delete_project, get_project, get_project_count, get_user_projects,
                                rename_project, save_project_crew, set_project_completed)
 from utils.database import database_cursor
@@ -15,7 +15,6 @@ from utils.users import create_user, delete_user_completely, set_user_status
 dashboard_bp = Blueprint("dashboard", __name__)
 
 
-# only signed-in users can open it; everyone else goes to the login page.
 def dashboard_login_required(view):
     @wraps(view)
     def wrapped(*args, **kwargs):
@@ -25,8 +24,7 @@ def dashboard_login_required(view):
 
     return wrapped
 
-# The role in the session is reloaded from the database before every request.
-# Admins see the user list, Regular users see their overview page.
+# The sign-in check refreshes the role each request.
 @dashboard_bp.route("/dashboard", methods=["GET", "POST"])
 @dashboard_login_required
 def dashboard():
@@ -48,14 +46,13 @@ def dashboard():
             current_app.logger.exception("Unable to create an admin user")
             flash("User creation is temporarily unavailable. Nothing was changed.", "error")
 
-        # redirect after POST so refreshing does not create the user again
+        # Redirect so refreshing does not create another user.
         return redirect(url_for("dashboard.dashboard"))
 
     if permission_level == "admin":
         users_error = False
         try:
             with database_cursor() as cursor:
-                # The names after AS are the ones pages/admin_dashboard.html uses.
                 cursor.execute(
                     """SELECT u.Id AS id, u.username, u.email, u.status, u.date_created AS created_at,
                               CASE WHEN a.user_Id IS NULL THEN 'user' ELSE 'admin' END AS permission_level
@@ -86,7 +83,6 @@ def dashboard():
 PROJECT_STATUSES = ["In Progress", "Review Needed", "Ready", "Completed"]
 
 
-# Lists the user's saved projects, narrowed by the search box and the status filter.
 @dashboard_bp.get("/dashboard/projects")
 @dashboard_login_required
 def projects():
@@ -106,7 +102,6 @@ def projects():
                            search=search, status=status, statuses=PROJECT_STATUSES)
 
 
-# Returns the project if it belongs to the signed-in user, otherwise shows a 404 page.
 def owned_project(project_id):
     project = get_project(project_id, session["user_id"])
     if project is None:
@@ -121,14 +116,13 @@ def project_detail(project_id):
     crew = None
     if project["crew"]:
         crew = crew_estimate(project["crew"])
-    # The saved plan is a copy of the planner job's tier, project, answers and result
-    # (the result format is in planning/schemas.py).
     plan = project["plan"]
     materials = []
     if plan.get("result"):
-        materials = add_store_details(plan["result"].get("materials", []))
+        materials = add_store_details(plan["result"]["materials"])
     return render_template("dashboard/project_detail.html", project=project, plan=plan,
-                           materials=materials, crew=crew)
+                           materials=materials, crew=crew,
+                           crew_rates=CREW_RATES, hours_per_day=HOURS_PER_DAY)
 
 
 @dashboard_bp.post("/dashboard/projects/<int:project_id>/rename")
@@ -156,7 +150,6 @@ def project_completed(project_id):
     return redirect(url_for("dashboard.project_detail", project_id=project_id))
 
 
-# Saves the crew chosen on the Crews page to this project.
 @dashboard_bp.post("/dashboard/projects/<int:project_id>/crew")
 @dashboard_login_required
 def project_crew(project_id):
@@ -183,7 +176,7 @@ def project_crew_remove(project_id):
 @dashboard_bp.post("/dashboard/projects/<int:project_id>/delete")
 @dashboard_login_required
 def project_delete(project_id):
-    # Deletes only the saved project; its AI plan stays in Planning history.
+    # The AI plan stays in planning history when the saved project is deleted.
     owned_project(project_id)
     delete_project(project_id, session["user_id"])
     flash("Project deleted.", "success")
@@ -199,7 +192,6 @@ def orders():
 @dashboard_bp.get("/dashboard/orders/<int:order_id>")
 @dashboard_login_required
 def order_detail(order_id):
-    # both functions check that the order belongs to the signed-in user
     order = get_order_by_id(order_id, session["user_id"])
     if order is None:
         abort(404)
@@ -215,7 +207,6 @@ def settings():
     )
 
 
-# Admin only: disables or re-enables another user's account.
 @dashboard_bp.post("/dashboard/users/<int:user_id>/status")
 def change_user_status(user_id):
     if "user_id" not in session or session.get("permission_level") != "admin":
@@ -244,7 +235,6 @@ def change_user_status(user_id):
     return redirect(url_for("dashboard.dashboard"))
 
 
-# Admin only: permanently deletes another user's account (they must type DELETE to confirm).
 @dashboard_bp.post("/dashboard/users/<int:user_id>/delete")
 def delete_user(user_id):
     if "user_id" not in session or session.get("permission_level") != "admin":
@@ -252,7 +242,7 @@ def delete_user(user_id):
     if user_id == session.get("user_id"):
         flash("You cannot delete your own account.", "error")
         return redirect(url_for("dashboard.dashboard"))
-    # the typed confirmation is checked here too, so skipping the dialog does not skip it
+    # Check the typed confirmation here too; the dialog alone is not enough.
     if request.form.get("confirm_text") != "DELETE":
         flash("Type DELETE to confirm. Nothing was deleted.", "error")
         return redirect(url_for("dashboard.dashboard"))

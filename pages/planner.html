@@ -96,11 +96,9 @@
             </div>
         </section>
 
-        <div id="template-forms">
-            {% for template_id, template in project_templates.items() %}
-                {% include template.form %}
-            {% endfor %}
-        </div>
+        {% for template_id, template in project_templates.items() %}
+            {% include template.form %}
+        {% endfor %}
 
         <section id="size-step" class="planner-step" hidden>
             <button class="back-button step-back" type="button">&larr; Project type</button>

@@ -1,4 +1,4 @@
-"Product catalog services. Searching and listing work; the other functions are placeholders."
+"Catalog searches work; the remaining helpers are not written yet."
 import logging
 
 from mysql.connector import Error
@@ -11,8 +11,7 @@ PAGE_SIZE = 12
 
 
 def search_products(search=None, category_url_name=None, page=1):
-    "Return (products, has_next_page) for one page of active products, sorted by name, with price and stock."
-    # A product's manufacturer comes from the Manufacturer_products link table
+    "Return (products, has_next_page), sorted by name."
     sql = """
         SELECT p.Id AS product_id, p.name AS product_name, p.details AS specification,
                p.sku, p.unit, p.category,
@@ -25,7 +24,7 @@ def search_products(search=None, category_url_name=None, page=1):
         FROM Product p
         WHERE p.isActive = 1
     """
-    # What the user typed goes in the values list, never into the SQL text itself.
+    # Keep user input in SQL parameters.
     values = []
 
     if search:
@@ -36,8 +35,11 @@ def search_products(search=None, category_url_name=None, page=1):
     if category_url_name:
         sql = sql + " AND p.category = %s"
         values.append(category_url_name)
+    else:
+        sql = sql + " AND (p.category IS NULL OR p.category <> %s)"
+        values.append("heavy-machinery")
 
-    # Ask for one more product than fits on the page: if it comes back, there is a next page.
+    # One extra product tells us whether another page exists.
     sql = sql + " ORDER BY p.name LIMIT %s OFFSET %s"
     values.append(PAGE_SIZE + 1)
     values.append((page - 1) * PAGE_SIZE)
@@ -51,10 +53,11 @@ def search_products(search=None, category_url_name=None, page=1):
 
 
 def get_planner_catalog():
-    "Return [{product_id, product_name, unit}] for every active product; the AI planner may only pick these IDs."
+    "Return active products and specifications for the planner."
 
     sql = """
-        SELECT p.Id AS product_id, p.name AS product_name, p.unit
+        SELECT p.Id AS product_id, p.name AS product_name, p.unit,
+               p.details AS specification
         FROM Product p
         WHERE p.isActive = 1
         ORDER BY p.Id
@@ -70,9 +73,8 @@ def get_planner_catalog():
 
 
 def get_products_by_ids(product_ids):
-    "Return {product_id: product} with the name, unit, price and stock of each active product in the list."
-    # Used by the plan pages, so names, prices and stock always come from the database.
-    # Returns {} when the list is empty or the catalog cannot be read.
+    "Return current product details by ID, or {} if unavailable."
+    # Read current store data instead of saving prices in the AI plan.
     product_ids = sorted(set(product_ids))
     if not product_ids:
         return {}
@@ -98,29 +100,29 @@ def get_products_by_ids(product_ids):
 
 
 def get_categories():
-    "Return active categories, each with its list of subcategories."
+    "Include each category's subcategories."
     pass
 
 def get_category_by_url_name(url_name):
-    "Return the category whose icon_key matches a page url_name such as 'hvac', or None."
+    "Find a category by its URL name, or return None."
     pass
 
 def get_product_stock(product_id):
-    "Return price, stock_quantity, reserved_quantity and the amount still available to buy."
+    "Include price, stock, reserved amounts and available amounts."
     pass
 
 def get_product_details(product_id):
-    "Return product specifications, suppliers, and image metadata."
+    "Include specifications, suppliers and image details."
     pass
 
 def create_product(product_data):
-    "Create a catalog product after an administrator is authorized."
+    "Check admin access before creating a product."
     pass
 
 def update_product(product_id, product_data):
-    "Update catalog details after an administrator is authorized."
+    "Check admin access before changing a product."
     pass
 
 def archive_product(product_id):
-    "Deactivate a product while retaining order history."
+    "Hide the product but keep its order history."
     pass

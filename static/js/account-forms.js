@@ -1,36 +1,42 @@
+
+// Use the same password rules as Python.
 export function passwordChecks(value, digits) {
-    const characters = [...value];
-    return {
-        length: characters.length >= 3,
-        number: characters.some((character) => digits.includes(character)),
-    };
+    let characterCount = 0;
+    let hasNumber = false;
+    // Count Unicode characters like Python does.
+    for (const character of value) {
+        characterCount += 1;
+        if (digits.includes(character)) {
+            hasNumber = true;
+        }
+    }
+    return { length: characterCount >= 3, number: hasNumber };
 }
 
 export async function submitAccountForm(form, message, data) {
-    if (form.dataset.submitting === "true") return;
     const submitButton = form.querySelector('button[type="submit"]');
-    const buttonText = submitButton.innerHTML;
-    form.dataset.submitting = "true";
-    form.setAttribute("aria-busy", "true");
+    const buttonHtml = submitButton.innerHTML;
     submitButton.disabled = true;
-    if (submitButton.dataset.busyLabel) submitButton.innerHTML = submitButton.dataset.busyLabel;
+    form.setAttribute("aria-busy", "true");
+    if (submitButton.dataset.busyLabel) {
+        submitButton.textContent = submitButton.dataset.busyLabel;
+    }
+
     try {
         const response = await fetch(form.action, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
-                // the session's CSRF token, printed into the page by base.html
                 "X-CSRF-Token": document.querySelector('meta[name="csrf-token"]').content,
             },
             body: JSON.stringify(data),
         });
-        // the rate limiter answers with a page, not JSON
+        // Rate-limit errors may be HTML rather than JSON.
         if (response.status === 429) {
             message.textContent = "Too many attempts. Try again in a minute.";
             return;
         }
         const result = await response.json();
-
         if (response.ok && result.redirect_url) {
             window.location.href = result.redirect_url;
         } else {
@@ -39,37 +45,44 @@ export async function submitAccountForm(form, message, data) {
     } catch {
         message.textContent = "Request failed. Try again.";
     } finally {
-        // Clear secrets and release the form even when the request fails.
-        form.querySelectorAll('input[type="password"]').forEach(function (input) {
+        for (const input of form.querySelectorAll('input[type="password"]')) {
             input.value = "";
+            // Let the password checklist know the field was cleared.
             input.dispatchEvent(new Event("input"));
-        });
-        delete form.dataset.submitting;
+        }
         form.removeAttribute("aria-busy");
         submitButton.disabled = false;
-        submitButton.innerHTML = buttonText;
+        submitButton.innerHTML = buttonHtml;
     }
 }
 
+
+function setPasswordVisible(button, visible) {
+    const input = document.getElementById(button.getAttribute("aria-controls"));
+    if (visible) {
+        input.type = "text";
+        button.textContent = "Hide";
+    } else {
+        input.type = "password";
+        button.textContent = "Show";
+    }
+    button.setAttribute("aria-pressed", String(visible));
+}
+
 export function setupPasswordToggles(form) {
-    form.querySelectorAll(".password-toggle").forEach(function (button) {
-        const input = document.getElementById(button.getAttribute("aria-controls"));
-        button.hidden = false;
+    const toggles = form.querySelectorAll(".password-toggle");
+    for (const button of toggles) {
+        button.hidden = false; // Show toggles once JavaScript is ready.
         button.addEventListener("click", function () {
-            const showing = input.type === "text";
-            input.type = showing ? "password" : "text";
-            button.textContent = showing ? "Show" : "Hide";
-            button.setAttribute("aria-pressed", String(!showing));
+            const input = document.getElementById(button.getAttribute("aria-controls"));
+            setPasswordVisible(button, input.type === "password");
             input.focus();
         });
-    });
+    }
 
-    // always hide the password again before it is sent
     form.addEventListener("submit", function () {
-        form.querySelectorAll(".password-toggle").forEach(function (button) {
-            document.getElementById(button.getAttribute("aria-controls")).type = "password";
-            button.textContent = "Show";
-            button.setAttribute("aria-pressed", "false");
-        });
+        for (const button of toggles) {
+            setPasswordVisible(button, false);
+        }
     });
 }

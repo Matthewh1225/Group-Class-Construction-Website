@@ -1,0 +1,46 @@
+﻿{% extends "base.html" %}
+{% block title %}Heavy Machinery - BuildBetter{% endblock %}
+{% block styles %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='products.css') }}">
+{% endblock %}
+{% block content %}
+{% set selected_url_name = 'heavy-machinery' %}
+<div class="catalog">
+    <header class="catalog-header grid-bg">
+        <div class="wrap">
+            <p class="sheet-tag"><span>MAT-13</span>Construction equipment</p>
+            <h1>Heavy Machinery</h1>
+            <p>Explore road rollers, excavators, bulldozers, loaders and cranes.</p>
+        </div>
+    </header>
+    <div class="wrap">
+        <form class="catalog-search" action="{{ url_for('products.heavy_machinery') }}" method="get" role="search">
+            <label for="machine-search">Search heavy machinery</label>
+            <div class="catalog-search-controls">
+                <span class="catalog-search-field"><input id="machine-search" type="search" name="q" value="{{ search }}" maxlength="200" placeholder="Try excavator, crane, or a SKU"></span>
+                <button class="btn btn-primary" type="submit">Search</button>
+                {% if search %}<a class="text-link" href="{{ url_for('products.heavy_machinery') }}">Clear</a>{% endif %}
+            </div>
+        </form>
+        <section class="catalog-results" id="catalog-results" aria-labelledby="results-title">
+            <div class="catalog-results-head"><h2 id="results-title">Available machinery</h2></div>
+            {% if catalog_error %}
+                <div class="catalog-notice" role="alert"><h3>Heavy machinery is temporarily unavailable</h3></div>
+            {% elif products %}
+                <p class="catalog-count">Showing {{ products|length }} machine{{ '' if products|length == 1 else 's' }}</p>
+                {% include "product_grid.html" %}
+            {% else %}
+                <div class="catalog-notice"><h3>No machinery matches your search.</h3></div>
+            {% endif %}
+            {% if not catalog_error and (page > 1 or has_next) %}
+                <nav class="catalog-pagination" aria-label="Machinery pages">
+                    {% if page > 1 %}<a class="btn btn-ghost" href="{{ url_for('products.heavy_machinery', q=search, page=page-1) }}">&larr; Previous</a>{% endif %}
+                    <span>Page {{ page }}</span>
+                    {% if has_next %}<a class="btn btn-ghost" href="{{ url_for('products.heavy_machinery', q=search, page=page+1) }}">Next &rarr;</a>{% endif %}
+                </nav>
+            {% endif %}
+        </section>
+    </div>
+</div>
+{% endblock %}
+{% block footer %}{% include "site_footer.html" %}{% endblock %}

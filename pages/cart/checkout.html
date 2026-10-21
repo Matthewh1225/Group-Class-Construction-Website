@@ -1,6 +1,23 @@
 {% extends "cart/layout.html" %}
-{% from "cart/cart_components.html" import field, order_summary %}
+{% from "cart/cart_components.html" import order_summary %}
 {% block title %}Checkout - BuildBetter{% endblock %}
+{% macro field(name, label, autocomplete, type='text', required=True, wide=False, maxlength=120) %}
+    <div class="shopping-field{% if wide %} shopping-field-wide{% endif %}">
+        <label for="{{ name }}">{{ label }}{% if not required %} <span>(optional)</span>{% endif %}</label>
+        <input
+            id="{{ name }}"
+            name="{{ name }}"
+            type="{{ type }}"
+            autocomplete="{{ autocomplete }}"
+            maxlength="{{ maxlength }}"
+            value="{{ form_data.get(name, '') }}"
+            {% if required %}required{% endif %}
+            aria-describedby="{{ name }}-error"
+        >
+        <span class="shopping-field-error" id="{{ name }}-error"></span>
+    </div>
+{% endmacro %}
+
 {% block shopping_content %}
 <header class="shopping-heading">
     <div><p class="sheet-tag"><span>C-03</span>Contact &amp; delivery</p><h1>Checkout</h1></div>
@@ -14,16 +31,21 @@
         <section class="shopping-panel">
             <h2>Contact and delivery</h2>
             <div class="shopping-field-grid">
-                {{ field('first_name', 'First name', 'given-name', value=form_data.get('first_name', ''), maxlength=70) }}
-                {{ field('last_name', 'Last name', 'family-name', value=form_data.get('last_name', ''), maxlength=70) }}
-                {{ field('email', 'Email', 'email', type='email', value=form_data.get('email', ''), maxlength=254) }}
-                {{ field('phone', 'Phone', 'tel', required=False, value=form_data.get('phone', ''), maxlength=30) }}
-                {{ field('street_address', 'Street address', 'address-line1', value=form_data.get('street_address', ''), maxlength=200, wide=True) }}
-                {{ field('apartment', 'Apartment / Suite', 'address-line2', required=False, value=form_data.get('apartment', ''), maxlength=200) }}
-                {{ field('city', 'City', 'address-level2', value=form_data.get('city', ''), maxlength=100) }}
-                {{ field('state', 'State abbreviation (e.g. IL)', 'address-level1', value=form_data.get('state', ''), maxlength=2) }}
-                {{ field('zip_code', 'ZIP code', 'postal-code', value=form_data.get('zip_code', ''), maxlength=10) }}
-                <div class="shopping-field"><label for="country">Country</label><select id="country" name="country"><option value="US">United States</option></select></div>
+                {{ field('first_name', 'First name', 'given-name', maxlength=70) }}
+                {{ field('last_name', 'Last name', 'family-name', maxlength=70) }}
+                {{ field('email', 'Email', 'email', type='email', maxlength=254) }}
+                {{ field('phone', 'Phone', 'tel', required=False, maxlength=30) }}
+                {{ field('street_address', 'Street address', 'address-line1', maxlength=200, wide=True) }}
+                {{ field('apartment', 'Apartment / Suite', 'address-line2', required=False, maxlength=200) }}
+                {{ field('city', 'City', 'address-level2', maxlength=100) }}
+                {{ field('state', 'State abbreviation (e.g. IL)', 'address-level1', maxlength=2) }}
+                {{ field('zip_code', 'ZIP code', 'postal-code', maxlength=10) }}
+                <div class="shopping-field">
+                    <label for="country">Country</label>
+                    <select id="country" name="country">
+                        <option value="US">United States</option>
+                    </select>
+                </div>
             </div>
         </section>
     </form>

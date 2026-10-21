@@ -3,16 +3,15 @@ import secrets
 from flask import abort, request, session
 
 
-# Gives the page the secret token that proves a form came from our site.
 def csrf_token():
-    # made once per session; login clears the session
+    # Reuse the token until login clears the session.
     if "csrf_token" not in session:
         session["csrf_token"] = secrets.token_urlsafe(32)
     return session["csrf_token"]
 
 
 def check_csrf():
-    # Runs before every request. A POST without this session's token is rejected  before any route code runs
+    # Reject POSTs with a missing or incorrect token before running the route.
     if request.method != "POST":
         return None
     expected = session.get("csrf_token", "")

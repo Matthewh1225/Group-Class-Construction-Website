@@ -1,46 +1,46 @@
-"Future account helpers; current login and registration are unchanged."
+"Account helpers are not written yet."
 
 
 def issue_account_token(user_id, purpose):
-    "Create a hashed, expiring verification or password-reset token."
+    "Create a hashed token that expires, for email checks or password resets."
     pass
 
 
 def consume_account_token(token, purpose):
-    "Validate and consume an unused token atomically."
+    "Check and use a token once, in the same database update."
     pass
 
 
 def link_social_identity(user_id, provider, verified_identity):
-    "Link a provider identity after its ownership is verified."
+    "Check that the external account belongs to the user before linking it."
     pass
 
 
 def save_user_address(user_id, address_data):
-    "Save an owned shipping or billing address and its default choice."
+    "Save the user's address and whether it is their default."
     pass
 
 
 def mark_email_verified(user_id):
-    "Set users.email_verified_at after a verify_email token is consumed. Returns True if the user exists."
+    "Mark the email as verified after checking the token. Return False if the user is missing."
     pass
 
 
 def request_password_reset(email):
-    "Issue a reset_password token for the account with this email. Returns the raw token, or None if no account matches."
+    "Return a reset token, or None if no account matches the email."
     pass
 
 
 def reset_password_with_token(token, new_password):
-    "Consume a reset_password token and save the new password hash. Returns True when the password was changed."
+    "Use the token once and save the new password hash. Return whether it changed."
     pass
 
 
 def get_user_addresses(user_id):
-    "Return the user's saved addresses as a list of dictionaries, defaults first."
+    "Return saved addresses with defaults first."
     pass
 
 
 def delete_user_address(user_id, address_id):
-    "Delete one of the user's own addresses. Returns True if a row was deleted."
+    "Delete only the user's own address. Return whether one was deleted."
     pass

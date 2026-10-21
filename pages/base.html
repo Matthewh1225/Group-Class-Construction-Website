@@ -33,8 +33,9 @@
                 </button>
                 <div class="navbar-menu" id="navbar-menu">
                     <a href="{{ url_for('planner.planner') }}" {% if request.blueprint == 'planner' %}aria-current="page"{% endif %}>AI Planner</a>
-                    <a href="{{ url_for('products.products') }}" {% if request.blueprint == 'products' %}aria-current="page"{% endif %}>Products</a>
-                    <a href="{{ url_for('crews.crews') }}" {% if request.blueprint == 'crews' %}aria-current="page"{% endif %}>Crew Costs</a>
+                    <a href="{{ url_for('products.products') }}" {% if request.endpoint == 'products.products' %}aria-current="page"{% endif %}>Products</a>
+                    <a href="{{ url_for('products.heavy_machinery') }}" {% if request.endpoint == 'products.heavy_machinery' %}aria-current="page"{% endif %}>Heavy Machinery</a>
+                    <a href="{{ url_for('crews.crews') }}" {% if request.blueprint == 'crews' %}aria-current="page"{% endif %}>Crews</a>
                     <a href="{{ url_for('reviews') }}" {% if request.endpoint == 'reviews' %}aria-current="page"{% endif %}>Reviews</a>
                     <a href="{{ url_for('manufacturers') }}" {% if request.endpoint == 'manufacturers' %}aria-current="page"{% endif %}>Manufacturers</a>
                     <a class="nav-account" href="{{ url_for('dashboard.dashboard') }}" {% if request.blueprint in ['dashboard', 'subscription'] %}aria-current="page"{% endif %}>Dashboard</a>
@@ -62,7 +63,7 @@
                     Some account data could not be refreshed. The rest of the page is still available.
                 </p>
             {% endif %}
-            {# pages that show their own messages (the admin page) empty this block #}
+            {# Pages can replace this block to show messages elsewhere. #}
             {% block flash_messages %}
                 {% for category, message in get_flashed_messages(with_categories=True) %}
                     <p class="site-message" role="{{ 'alert' if category == 'error' else 'status' }}">{{ message }}</p>

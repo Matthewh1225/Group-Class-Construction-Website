@@ -1,9 +1,5 @@
 {% extends "base.html" %}
-{% from "planner_components.html" import amount, project_specs %}
-{# job is the planner job dict (planning/jobs.py); job.result is the plan described in planning/schemas.py.
-   materials is job.result.materials, with two keys added to each material by planning/presentation.py
-   add_store_details: product (the database product or none) and buy_quantity.
-   interpretation_details is the interpreter's details without assumptions the result already lists. #}
+{% from "planner_components.html" import amount, money, project_specs %}
 {% block title %}{{ title }} plan - BuildBetter{% endblock %}
 {% block flash_messages %}{% endblock %}
 {% block styles %}<link rel="stylesheet" href="{{ url_for('static', filename='planner.css') }}">{% endblock %}
@@ -14,44 +10,39 @@
     <nav class="plan-breadcrumb" aria-label="Plan navigation">
         <a href="{{ url_for('dashboard.projects') }}">&larr; My Projects</a><span aria-hidden="true">/</span><span>Project plan</span>
     </nav>
+
     <header class="plan-header">
         <div class="plan-heading-row">
-            <p class="sheet-tag"><span>B-02</span>Materials schedule</p>
+            <p class="sheet-tag"><span>B-02</span>Materials list</p>
             <span class="plan-status-badge plan-status-{{ status_tone }}" id="job-progress" role="status" aria-live="polite">{{ status_label }}</span>
         </div>
         <h1>{{ title }} plan</h1>
-        <p class="plan-tier">{{ tier_label }}</p>
+        <p class="plan-meta">{{ tier_label }}{% if job.result %} &middot; {{ materials|length }} material{{ '' if materials|length == 1 else 's' }}{% endif %}</p>
         {% if job.result and job.result.summary %}
-            <p class="plan-description">{{ job.result.summary|truncate(260, true) }}</p>
+            <p class="plan-summary">{{ job.result.summary|truncate(300, true) }}</p>
         {% elif job.project.description %}
-            <p class="plan-description">{{ job.project.description|truncate(260, true) }}</p>
+            <p class="plan-summary">{{ job.project.description|truncate(300, true) }}</p>
         {% endif %}
     </header>
 
     {% if job.status in ['queued', 'running'] %}
         <a class="plan-refresh" href="{{ url_for('planner.planning_job', job_id=job.id) }}">Refresh progress</a>
     {% endif %}
-    {% for category, message in get_flashed_messages(with_categories=True) %}
-        {% if category == 'success' %}<p class="plan-alert plan-alert-success" role="status">{{ message }}</p>
-        {% else %}<p class="plan-alert" role="alert">{{ message }}</p>{% endif %}
-    {% endfor %}
+
+    <div id="plan-messages">
+        {% for category, message in get_flashed_messages(with_categories=True) %}
+            <p class="plan-alert plan-alert-{{ category }}" role="{{ 'alert' if category == 'error' else 'status' }}">{{ message }}</p>
+        {% endfor %}
+    </div>
+
     {% if job.status == 'failed' %}
-        <div class="plan-alert" role="alert">
+        <div class="plan-alert plan-alert-error" role="alert">
             <p>{{ job.error or 'Planning failed.' }} Start again to rerun the whole plan with the same details{% if job.answers %} and answers{% endif %}.</p>
             <form method="post" action="{{ url_for('planner.planning_job_restart', job_id=job.id) }}">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button type="submit">Start again</button>
+                <button class="plan-button" type="submit">Start again</button>
             </form>
         </div>
-    {% endif %}
-
-    {% if job.project.dimensions or job.project.project_type != 'custom' %}
-        <section class="plan-specifications" aria-labelledby="specs-title">
-            <h2 id="specs-title">Project specifications</h2>
-            <dl class="plan-spec-grid">
-                {{ project_specs(job.project, note='From your request') }}
-            </dl>
-        </section>
     {% endif %}
 
     {% if job.status == 'needs_input' %}
@@ -65,61 +56,122 @@
                     <textarea id="answer-{{ loop.index }}" name="answers" class="planner-input question-answer" aria-describedby="answer-help" maxlength="2000"></textarea>
                 {% endfor %}
                 <p id="answer-help" class="plan-muted">Include units. Unknown details can be left blank.</p>
-                <button type="submit">Continue planning</button>
+                <button class="plan-button" type="submit">Continue planning</button>
             </form>
         </section>
     {% endif %}
 
     {% if job.result %}
-        <section class="plan-estimate" aria-labelledby="materials-title">
-            <div class="plan-section-heading">
-                <div><h2 id="materials-title">Materials</h2></div>
-                <span class="plan-count">{{ materials|length }} material{{ 's' if materials|length != 1 else '' }}</span>
+        <section class="plan-materials" aria-labelledby="materials-title">
+            <div class="plan-materials-heading">
+                <div>
+                    <h2 id="materials-title">Materials</h2>
+                    <p class="plan-muted">Everything this project needs. Products we sell can go straight into your cart.</p>
+                </div>
+                <div class="plan-cart-box">
+                    {% if cart %}
+                        <p><strong>{{ cart|length }}</strong> product{{ '' if cart|length == 1 else 's' }} ready to add{% if cart_total > 0 %} &middot; about <strong>{{ money(cart_total) }}</strong>{% endif %}</p>
+                        <form method="post" action="{{ url_for('planner.planning_job_add_to_cart', job_id=job.id) }}" data-submit-once>
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button class="plan-button" type="submit">Add all available to cart</button>
+                        </form>
+                    {% else %}
+                        <p>None of these materials can be added to your cart.</p>
+                    {% endif %}
+                    <a href="{{ url_for('cart') }}">View cart</a>
+                </div>
             </div>
+
             {% if job.status == 'partial' %}
-                <p class="plan-alert">Some quantities could not be worked out from the details given. Each one says what is missing.</p>
+                <p class="plan-alert plan-alert-info">Some amounts could not be worked out from the details given. Each one says what is missing.</p>
             {% endif %}
+
             {% if materials %}
                 <div class="plan-filter" id="material-filter" hidden>
                     <label for="material-search">Find a material</label>
-                    <input id="material-search" type="search" placeholder="Search materials or specifications" autocomplete="off" aria-controls="materials-table">
+                    <input id="material-search" type="search" placeholder="Search materials or products" autocomplete="off" aria-controls="materials-table">
                     <p id="material-search-status" class="plan-muted" role="status" aria-live="polite"></p>
                 </div>
-                <div class="planner-table-scroll">
-                    <table class="planner-materials" id="materials-table">
-                        <caption class="plan-sr-only">Material quantities needed, and matching store products</caption>
-                        <thead><tr><th scope="col">Material</th><th scope="col">Needed</th><th scope="col">Unit</th><th scope="col">Store product</th></tr></thead>
-                        <tbody>
-                            {% for item in materials %}
-                                {% set product = item.product %}
-                                {% set buy = item.buy_quantity %}
-                                <tr data-material-row>
-                                    <th scope="row"><span class="plan-material-name">{{ item.material_name }}</span>
-                                        {% if item.specification %}<small>{{ item.specification|truncate(100, true) }}</small>{% endif %}</th>
-                                    <td class="plan-quantity" data-label="Needed">{{ amount(item.quantity) }}
-                                        {% if item.quantity is none %}<small>{{ item.notes }}</small>{% endif %}</td>
-                                    <td class="plan-unit" data-label="Unit">{{ item.unit }}</td>
-                                    <td class="plan-material-spec" data-label="Store product">
-                                        {% if product %}
-                                            {{ product.product_name }}
-                                            <small>
-                                                {% if product.unit_price is not none %}${{ '{:,.2f}'.format(product.unit_price|float) }} per {{ product.unit }}{% else %}Price not listed{% endif %}
-                                                &middot;
-                                                {% if product.available_quantity is none %}Stock unknown{% elif product.available_quantity <= 0 %}Out of stock{% else %}{{ amount(product.available_quantity) }} in stock{% endif %}
-                                            </small>
-                                            <small>{% if buy is not none %}Buy {{ amount(buy) }} {{ product.unit }}{% elif item.quantity is none %}Amount to buy unknown{% else %}Sold per {{ product.unit }}; choose how many to buy{% endif %}</small>
-                                        {% elif item.product_id is not none %}
-                                            Product details unavailable
-                                        {% else %}
-                                            No catalog match
+                <table class="plan-table" id="materials-table">
+                    <caption class="plan-sr-only">Materials this project needs, and the store products that match them</caption>
+                    <thead>
+                        <tr>
+                            <th scope="col">Material</th>
+                            <th scope="col">You need</th>
+                            <th scope="col">Store product</th>
+                            <th scope="col">You buy</th>
+                            <th scope="col"><span class="plan-sr-only">Cart</span></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in materials %}
+                            {% set product = item.product %}
+                            <tr data-material-row {% if not product %}class="plan-row-unmatched"{% endif %}>
+                                <th scope="row">
+                                    {{ item.material_name }}
+                                    {% if item.specification %}<small>{{ item.specification|truncate(120, true) }}</small>{% endif %}
+                                </th>
+                                <td data-label="You need">
+                                    {% if item.quantity is none %}
+                                        <span class="plan-unknown">Amount unknown</span>
+                                        <small>{{ item.notes }}</small>
+                                    {% else %}
+                                        <span class="plan-number">{{ amount(item.quantity) }}</span> {{ item.unit }}
+                                    {% endif %}
+                                </td>
+                                <td data-label="Store product">
+                                    {% if product %}
+                                        {{ product.product_name }}
+                                        <small>
+                                            {% if product.unit_price is not none %}{{ money(product.unit_price) }} per {{ product.unit }}{% else %}Price not listed{% endif %}
+                                            &middot;
+                                            {% if item.out_of_stock %}<span class="plan-warning">Out of stock</span>{% elif product.available_quantity is none %}Stock unknown{% else %}{{ amount(product.available_quantity) }} in stock{% endif %}
+                                        </small>
+                                    {% elif item.product_id is not none %}
+                                        <span class="plan-tag">No longer sold</span>
+                                    {% else %}
+                                        <span class="plan-tag">Not sold here</span>
+                                    {% endif %}
+                                </td>
+                                <td data-label="You buy">
+                                    {% if item.can_add %}
+                                        <span class="plan-number">{{ amount(item.buy_quantity) }}</span> {{ product.unit }}
+                                        {% if item.line_total is not none %}<small>{{ money(item.line_total) }}</small>{% endif %}
+                                        {% if product.available_quantity is not none and product.available_quantity < item.buy_quantity %}
+                                            <small class="plan-warning">Only {{ amount(product.available_quantity) }} in stock</small>
                                         {% endif %}
-                                    </td>
-                                </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            {% else %}<p class="plan-empty">No materials returned.</p>{% endif %}
+                                    {% elif product and not item.out_of_stock %}
+                                        <small>Sold per {{ product.unit }}: choose the amount in the store</small>
+                                    {% else %}
+                                        <span class="plan-muted">&mdash;</span>
+                                    {% endif %}
+                                </td>
+                                <td class="plan-row-action">
+                                    {% if item.can_add %}
+                                        <form method="post" action="{{ url_for('planner.planning_job_add_to_cart', job_id=job.id) }}" data-submit-once>
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                            <input type="hidden" name="material" value="{{ loop.index0 }}">
+                                            <button class="plan-button-secondary" type="submit" aria-label="Add {{ product.product_name }} to cart">Add to cart</button>
+                                        </form>
+                                    {% elif product and not item.out_of_stock %}
+                                        <a href="{{ url_for('products.products', q=product.product_name) }}">View in store</a>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <p class="plan-empty">No materials returned.</p>
+            {% endif %}
+        </section>
+    {% endif %}
+
+    {% if job.result %}
+        <section class="plan-crew" aria-label="AI-estimated crew">
+            {% with recommendation=job.result.crew, plan_result=job.result, crew_url=url_for('crews.crews', project_id=saved_project.id) if saved_project else url_for('crews.crews', job_id=job.id) %}
+                {% include "crew_recommendation.html" %}
+            {% endwith %}
         </section>
     {% endif %}
 
@@ -129,70 +181,52 @@
                 <h2 id="save-title">Saved to My Projects</h2>
                 <p class="plan-muted">{{ saved_project.name }}</p>
             </div>
-            <div class="plan-save-actions">
-                <a class="plan-button" href="{{ url_for('dashboard.project_detail', project_id=saved_project.id) }}">View Project</a>
-            </div>
+            <a class="plan-button" href="{{ url_for('dashboard.project_detail', project_id=saved_project.id) }}">View Project</a>
         </section>
     {% elif can_save %}
         <section class="plan-save" id="save-project" aria-labelledby="save-title">
-            <form method="post" action="{{ url_for('planner.planning_job_save', job_id=job.id) }}" data-save-project>
+            <form method="post" action="{{ url_for('planner.planning_job_save', job_id=job.id) }}" data-submit-once>
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <h2 id="save-title">Save this project</h2>
                 <label for="project-name">Project name</label>
                 <div class="plan-save-row">
                     <input id="project-name" name="name" type="text" maxlength="120" value="{{ default_name }}" required>
-                    <button type="submit">Save Project</button>
+                    <button class="plan-button" type="submit">Save Project</button>
                 </div>
             </form>
         </section>
     {% endif %}
 
-    {% if job.result %}
-        <div class="plan-details">
-            {% if job.result.assumptions or job.result.warnings %}
-            <details id="assumption-details" open>
-                <summary>Assumptions &amp; warnings<span class="plan-chevron" aria-hidden="true"></span></summary>
-                <div class="plan-details-body">
-                    {% if job.result.warnings %}<h3>Warnings</h3><ul>{% for warning in job.result.warnings %}<li>{{ warning }}</li>{% endfor %}</ul>{% endif %}
-                    {% if job.result.assumptions %}<h3>Assumptions</h3><ul>{% for assumption in job.result.assumptions %}<li>{{ assumption }}</li>{% endfor %}</ul>{% endif %}
-                </div>
-            </details>
+    <details class="plan-project-details">
+        <summary>Project details</summary>
+        <div class="plan-project-body">
+            {% if job.project.description %}
+                <h3>Your request</h3>
+                <p>{{ job.project.description }}</p>
             {% endif %}
-            {% if materials %}
-            <details id="quantity-details">
-                <summary>Material notes &amp; calculations<span class="plan-chevron" aria-hidden="true"></span></summary>
-                <div class="plan-details-body">
-                    {% for item in materials %}
-                        <article class="plan-detail-item">
-                            <h3>{{ item.material_name }}</h3>
-                            {% if item.specification %}<p>{{ item.specification }}</p>{% endif %}
-                            {% if item.notes %}<p>{{ item.notes }}</p>{% endif %}
-                            <dl class="plan-calculation-grid">
-                                <div><dt>Method</dt><dd>{{ item.calculation.method|replace('_', ' ')|capitalize }}</dd></div>
-                                <div><dt>Waste allowance</dt><dd>{{ amount(item.waste_percent) }}%</dd></div>
-                            </dl>
-                            {% if item.calculation.inputs %}<h4>Calculation inputs</h4><ul>{% for input in item.calculation.inputs %}<li>{{ input.name|replace('_', ' ')|capitalize }}: {{ amount(input.value) }} {{ input.unit }}</li>{% endfor %}</ul>{% endif %}
-                        </article>
+            {% if job.project.dimensions or job.project.project_type != 'custom' %}
+                <h3>Specifications</h3>
+                <dl class="plan-spec-grid">{{ project_specs(job.project) }}</dl>
+            {% endif %}
+            {% if job.answers %}
+                <h3>Your answers</h3>
+                <dl>
+                    {% for answer in job.answers %}
+                        <dt>{{ answer.question }}</dt><dd>{{ answer.answer }}</dd>
                     {% endfor %}
-                </div>
-            </details>
+                </dl>
             {% endif %}
-            <details id="request-details">
-                <summary>Project details<span class="plan-chevron" aria-hidden="true"></span></summary>
-                <div class="plan-details-body">
-                    {% if job.project.description %}<h3>Your original request</h3><p>{{ job.project.description }}</p>{% endif %}
-                    {% if job.answers %}<h3>Your clarifications</h3><dl>{% for answer in job.answers %}<dt>{{ answer.question }}</dt><dd>{{ answer.answer }}</dd>{% endfor %}</dl>{% endif %}
-                    {% if interpretation_details %}<h3>Planner's interpretation</h3><ul>{% for detail in interpretation_details %}<li>{{ detail }}</li>{% endfor %}</ul>{% endif %}
-                </div>
-            </details>
         </div>
-    {% endif %}
+    </details>
+
     <footer class="plan-footer">
         <a class="plan-button" href="{{ url_for('planner.planner') }}">Start a new project</a>
         <a href="{{ url_for('planner.planning_history') }}">Planning history</a>
-        {% if job.result %}<a href="{{ url_for('planner.planning_job_result', job_id=job.id) }}">View JSON</a>{% endif %}
         {% if job.status in ['queued', 'running', 'needs_input'] %}
-            <form method="post" action="{{ url_for('planner.planning_job_cancel', job_id=job.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="plan-button-secondary" type="submit">Cancel planning</button></form>
+            <form method="post" action="{{ url_for('planner.planning_job_cancel', job_id=job.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="plan-button-secondary" type="submit">Cancel planning</button>
+            </form>
         {% endif %}
     </footer>
 </section>

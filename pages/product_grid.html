@@ -1,0 +1,42 @@
+                <div class="catalog-grid">
+                    {% for product in products %}
+                        <article class="product-card">
+                            <p class="product-category">{{ product.category_name or 'Materials & tools' }}</p>
+                            <h3>{{ product.product_name }}</h3>
+                            {% if product.manufacturer_name %}<p class="product-manufacturer">{{ product.manufacturer_name }}</p>{% endif %}
+                            {% if product.specification %}<p class="product-specification">{{ product.specification }}</p>{% endif %}
+                            <dl class="product-details">
+                                <div><dt>SKU</dt><dd>{{ product.sku }}</dd></div>
+                                <div><dt>Sold by</dt><dd>{{ product.unit }}{% if product.pack_quantity > 1 %} · {{ '%g'|format(product.pack_quantity) }} per pack{% endif %}</dd></div>
+                            </dl>
+                            <footer class="product-footer">
+                                {% if product.unit_price is not none %}
+                                    <p class="product-price">${{ '%.2f'|format(product.unit_price) }} <span>/ {{ product.unit }}</span></p>
+                                {% else %}
+                                    <p class="product-price product-price-unknown">Price unavailable</p>
+                                {% endif %}
+                                {% if product.unit_price is none %}
+                                    <span class="product-status">Currently unavailable</span>
+                                {% elif not product.available_quantity or product.available_quantity <= 0 %}
+                                    <span class="product-status">Out of stock</span>
+                                {% else %}
+                                    <span class="product-status product-status-available">In stock</span>
+                                {% endif %}
+                                {% if product.unit_price is not none and product.available_quantity and product.available_quantity >= product.purchase_increment %}
+                                    <form class="product-cart-form" method="post" action="{{ url_for('cart_add') }}">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <input type="hidden" name="product_id" value="{{ product.product_id }}">
+                                        <input type="hidden" name="category" value="{{ selected_url_name }}">
+                                        <input type="hidden" name="q" value="{{ search }}">
+                                        <input type="hidden" name="page" value="{{ page }}">
+                                        <label for="quantity-{{ product.product_id }}">Quantity ({{ product.unit }})</label>
+                                        <input id="quantity-{{ product.product_id }}" name="quantity" type="number" min="{{ product.purchase_increment }}" step="{{ product.purchase_increment }}" max="{{ product.available_quantity }}" value="{{ product.purchase_increment }}" required>
+                                        <button class="btn btn-primary" type="submit">Add to Cart</button>
+                                    </form>
+                                {% else %}
+                                    <button class="product-cart-unavailable" type="button" disabled>Add to cart</button>
+                                {% endif %}
+                            </footer>
+                        </article>
+                    {% endfor %}
+                </div>

@@ -1,6 +1,4 @@
-{# The list of saved projects, used on My Projects and the Overview page.
-   Each project comes from read_project in services/projects.py. The whole row links to
-   the project. Dates are filled in by dashboard-navigation.js from data-timestamp. #}
+{# dashboard-navigation.js turns data-timestamp values into local dates. #}
 {% macro project_list(projects, label) %}
     <ol class="plan-register" aria-label="{{ label }}">
         <li class="plan-register-head" aria-hidden="true">

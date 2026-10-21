@@ -1,198 +1,64 @@
 {% extends "base.html" %}
-
-{% block title %}Crew Costs - BuildBetter{% endblock %}
+{% block title %}Crews - BuildBetter{% endblock %}
 {% block styles %}
-    <meta name="description" content="Choose a recommended crew or build a custom crew and estimate labor costs.">
+    <meta name="description" content="Choose workers and working days to estimate crew labor costs.">
     <link rel="stylesheet" href="{{ url_for('static', filename='crews.css') }}">
 {% endblock %}
-
 {% block content %}
-{% set scales = [
-    {'url_name': 'small', 'code': 'S', 'name': 'Small projects', 'examples': 'Fences, sheds, decks, patios, repairs and small renovations.',
-     'art': 'M40 104V66L80 40L120 66V104ZM30 70L80 34L130 70M70 104V80H90V104M48 72h14v12H48zM98 72h14v12H98zM140 104L150 50M154 104L164 50M142 92h14M145 78h14M148 64h14'},
-    {'url_name': 'medium', 'code': 'M', 'name': 'Medium projects', 'examples': 'Home additions, remodels, new homes, roofing and foundations.',
-     'art': 'M26 104V46L64 22L102 46V104ZM38 54h12v12H38zM78 54h12v12H78zM38 78h12v12H38zM58 104V82H72V104M102 104V62H150V104M102 62L126 50L150 62M114 62V104M126 62V104M138 62V104M160 104V54M178 104V54M160 54H178M160 70H178M160 86H178M160 70L178 86'},
-    {'url_name': 'large', 'code': 'L', 'name': 'Large projects', 'examples': 'Commercial buildings, warehouses and industrial facilities.',
-     'art': 'M20 104V40H80V104ZM28 48h10v10H28zM45 48h10v10H45zM62 48h10v10H62zM28 64h10v10H28zM45 64h10v10H45zM62 64h10v10H62zM28 80h10v10H28zM62 80h10v10H62zM45 104V84H55V104M96 104V58H136V104M96 74H136M96 90H136M116 58V104M156 104V16M164 104V16M156 32H164M156 48H164M156 64H164M156 80H164M156 96H164M112 16H196M160 16L148 4L196 16M128 16V40M122 40h12v6h-12z'},
-] %}
-
-<div class="crews">
-    <header class="crews-hero grid-bg">
-        <div class="wrap crews-hero-grid">
-            <div>
-                <p class="sheet-tag"><span>W-01</span>Crew costs</p>
-                <h1>Pick your project.<br>Get the crew and the cost.</h1>
-            </div>
-            <ol class="crews-flow" aria-label="How it works">
-                <li><span>01</span>Choose the scale</li>
-                <li><span>02</span>Pick a project or custom crew</li>
-                <li><span>03</span>See crew &amp; cost</li>
-            </ol>
-        </div>
+<section class="crews wrap" aria-labelledby="crew-title">
+    <header class="crews-header">
+        <p class="sheet-tag"><span>C-01</span>Crews</p>
+        <h1 id="crew-title">Build your crew</h1>
+        <p class="crews-lede">Set the days on site, then choose workers for each role. Estimates use an {{ hours_per_day }}-hour working day.</p>
+        {% if project %}
+            <p class="crews-project">Saving to <strong>{{ project.name }}</strong> &middot; <a href="{{ url_for('dashboard.project_detail', project_id=project.id, _anchor='crew') }}">Back to project</a></p>
+        {% endif %}
     </header>
-
-    {% if project %}
-        {# opened from a saved project: the chosen crew can be saved back to it #}
-        <div class="wrap crews-project-bar">
-            <p><strong>{{ project.name }}</strong></p>
-            <a class="text-link" href="{{ url_for('dashboard.project_detail', project_id=project.id, _anchor='crew') }}">Back to project <span class="arrow" aria-hidden="true">&rarr;</span></a>
+    <noscript><p class="crews-note">Enable JavaScript to calculate costs and save crews.</p></noscript>
+    <form id="crew-form" {% if project %}method="post" action="{{ url_for('dashboard.project_crew', project_id=project.id) }}"{% endif %}>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="crew" id="crew-input">
+        <div class="crew-fields">
+            <label class="crew-name"><span>Crew name</span><input id="crew-label" maxlength="120" required value="Custom crew"></label>
+            <label><span>Project days (min)</span><input id="project-days-min" type="number" min="1" max="{{ max_days }}" step="1" required value="1"></label>
+            <label><span>Project days (max)</span><input id="project-days-max" type="number" min="1" max="{{ max_days }}" step="1" required value="1"></label>
         </div>
-    {% endif %}
-
-    <noscript>
-        <p class="wrap crews-noscript">Enable JavaScript to calculate crew costs.</p>
-    </noscript>
-
-    <section class="crews-section" id="scale" aria-labelledby="scale-title">
-        <div class="wrap">
-            <div class="crews-section-head">
-                <p class="step-code">01</p>
-                <h2 id="scale-title">How big is the project?</h2>
-            </div>
-            <fieldset class="scale-picker">
-                <legend class="sr-only">Project scale</legend>
-                {% for scale in scales %}
-                    <label class="scale-option">
-                        <input type="radio" name="scale" value="{{ scale.url_name }}" {% if loop.first %}checked{% endif %}>
-                        <span class="scale-card">
-                            <span class="scale-code" aria-hidden="true">{{ scale.code }}</span>
-                            <svg class="scale-art" viewBox="0 0 200 120" aria-hidden="true" focusable="false">
-                                <path class="art-marks" d="M6 104H194"/>
-                                <path class="art-lines" d="{{ scale.art }}"/>
-                            </svg>
-                            <strong>{{ scale.name }}</strong>
-                            <span class="scale-examples">{{ scale.examples }}</span>
-                        </span>
-                    </label>
-                {% endfor %}
-            </fieldset>
+        <div class="crew-table-wrap" tabindex="0" role="region" aria-label="Crew workers by role">
+            <table class="crew-table">
+                <caption class="sr-only">Workers and estimated labor costs by role</caption>
+                <thead><tr><th scope="col">Role</th><th scope="col">Rate / hour</th><th scope="col">Workers</th><th scope="col">Days (min)</th><th scope="col">Days (max)</th><th scope="col">Labor cost</th></tr></thead>
+                <tbody>
+                    {% for role, info in crew_rates.items() %}
+                    <tr data-role="{{ role }}">
+                        <th scope="row">{{ info.name }}</th>
+                        <td>${{ info.rate }}</td>
+                        <td>
+                            <div class="worker-stepper">
+                                <button type="button" data-worker-step="-1" aria-label="Decrease {{ info.name }} workers" disabled>&minus;</button>
+                                <input data-field="workers" type="number" min="0" max="{{ max_workers }}" step="1" value="0" required aria-label="{{ info.name }} workers">
+                                <button type="button" data-worker-step="1" aria-label="Increase {{ info.name }} workers" disabled>+</button>
+                            </div>
+                        </td>
+                        <td><input data-field="days-min" type="number" min="1" max="{{ max_days }}" step="1" value="1" required aria-label="{{ info.name }} minimum days"></td>
+                        <td><input data-field="days-max" type="number" min="1" max="{{ max_days }}" step="1" value="1" required aria-label="{{ info.name }} maximum days"></td>
+                        <td data-cost>$0</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
-    </section>
-
-    <section class="crews-section crews-section-alt" id="project" aria-labelledby="project-title">
-        <div class="wrap">
-            <div class="crews-section-head">
-                <p class="step-code">02</p>
-                <h2 id="project-title">What are you building?</h2>
-            </div>
-            <div class="project-group custom-project-group">
-                <h3>Build your own</h3>
-                <div class="project-list">
-                    <button class="project-card" id="custom-crew-option" type="button" aria-pressed="false">
-                        <svg class="project-icon" viewBox="0 0 48 48" aria-hidden="true" focusable="false"><path d="M8 12h32M8 24h32M8 36h32M16 8v8M32 20v8M22 32v8"/></svg>
-                        <span class="project-text"><strong>Custom Crew</strong><span class="project-desc">Choose workers and working days yourself.</span><span class="project-meta">All specialties · live cost estimate</span></span>
-                        <span class="arrow" aria-hidden="true">&rarr;</span>
-                    </button>
-                </div>
-            </div>
-            <div class="project-groups" id="project-groups"></div>
+        <p id="crew-error" role="alert" hidden></p>
+        <div class="crew-footer">
+            <dl class="crew-summary" aria-live="polite">
+                <div class="crew-total"><dt>Estimated labor cost</dt><dd id="total-cost">$0</dd></div>
+                <div><dt>Total workers</dt><dd id="total-workers">0</dd></div>
+                <div><dt>Full crew / hour</dt><dd id="total-hourly">$0</dd></div>
+            </dl>
+            {% if project %}<button id="save-crew" class="btn btn-primary" type="submit" disabled>Save crew to project</button>{% endif %}
         </div>
-    </section>
-
-    <section class="crews-section" id="estimate" aria-label="Crew and labor estimate" tabindex="-1">
-        <div class="wrap">
-
-            <div class="estimate-empty" id="estimate-empty">
-                <svg viewBox="0 0 160 90" aria-hidden="true" focusable="false"><path class="art-marks" d="M8 80H152M30 88V72M130 88V72M30 84H130"/><path class="art-dashed" d="M30 80V44L80 16L130 44V80ZM68 80V58H92V80"/></svg>
-                <p>Pick a project or Custom Crew above to see a labor cost estimate.</p>
-            </div>
-
-            <div class="estimate" id="estimate-result" hidden>
-                <div class="estimate-head">
-                    <nav class="estimate-path" aria-label="Your selection">
-                        <a href="#scale" id="path-scale"></a>
-                        <span aria-hidden="true">/</span>
-                        <a href="#project" id="path-category"></a>
-                        <span aria-hidden="true">/</span>
-                        <span id="path-project"></span>
-                    </nav>
-                    <h3 id="result-name"></h3>
-                    <p class="estimate-description" id="result-description"></p>
-                    <fieldset class="size-picker">
-                        <legend>Size</legend>
-                        <div class="size-options" id="size-options"></div>
-                    </fieldset>
-                </div>
-
-                <div class="estimate-figures">
-                    <div class="cost-block">
-                        <p class="figure-label">Estimated labor cost</p>
-                        <p class="cost-range" id="result-cost" aria-live="polite"></p>
-                    </div>
-                    <dl class="figure-grid">
-                        <div><dt>Completion</dt><dd id="result-days"></dd></div>
-                        <div><dt>Crew</dt><dd id="result-crew"></dd></div>
-                        <div><dt>Full crew per hour</dt><dd id="result-hourly"></dd></div>
-                        <div><dt>Work day</dt><dd id="result-hours"></dd></div>
-                    </dl>
-                </div>
-
-                <div class="crew-breakdown">
-                    <h4>Recommended crew</h4>
-                    <div class="crew-table-wrap">
-                        <table class="crew-table">
-                            <caption class="sr-only">Workers, rates, days on site and labor cost for each specialty</caption>
-                            <thead>
-                                <tr><th scope="col">Specialty</th><th scope="col">Workers</th><th scope="col">Rate / hr</th><th scope="col">Crew / hr</th><th scope="col">Days on site</th><th scope="col">Labor cost</th></tr>
-                            </thead>
-                            <tbody id="crew-rows"></tbody>
-                            <tfoot>
-                                <tr><th scope="row">Total</th><td id="total-workers"></td><td></td><td id="total-hourly"></td><td id="total-days"></td><td id="total-cost"></td></tr>
-                            </tfoot>
-                        </table>
-                    </div>
-
-                </div>
-            </div>
-            <div class="estimate custom-estimate" id="custom-builder" hidden>
-                <div class="estimate-head">
-                    <p class="step-code">YOUR CREW</p>
-                    <h3 id="custom-title">Custom Crew</h3>
-                    <div class="custom-duration">
-                        <label for="custom-days">Working days</label>
-                        <input id="custom-days" type="number" min="1" step="1" value="1" inputmode="numeric">
-                        <span>8 hours per day</span>
-                    </div>
-                </div>
-                <div class="estimate-figures">
-                    <div class="cost-block">
-                        <p class="figure-label">Total estimated labor cost</p>
-                        <p class="cost-range" id="custom-total-cost" aria-live="polite">$0.00</p>
-                    </div>
-                    <dl class="figure-grid">
-                        <div><dt>Total workers</dt><dd id="custom-total-workers">0</dd></div>
-                        <div><dt>Working days</dt><dd id="custom-total-days">1</dd></div>
-                        <div><dt>Work day</dt><dd>8 hours</dd></div>
-                        <div><dt>Crew per hour</dt><dd id="custom-total-hourly">$0.00</dd></div>
-                    </dl>
-                    <button class="btn btn-ghost custom-reset" id="custom-reset" type="button">Reset Crew</button>
-                </div>
-                <div class="crew-breakdown">
-                    <h4>Choose specialties</h4>
-                    <div class="custom-roles" id="custom-roles"></div>
-                </div>
-            </div>
-            {% if project %}
-                <form class="crews-save" id="save-crew-form" method="post" action="{{ url_for('dashboard.project_crew', project_id=project.id) }}" hidden>
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <input type="hidden" name="crew" id="crew-input">
-                    <button class="btn btn-primary" type="submit">Save crew to project <span class="arrow" aria-hidden="true">&rarr;</span></button>
-                    <p class="crew-error" id="save-crew-status" role="alert" hidden></p>
-                </form>
-            {% endif %}
-        </div>
-    </section>
-</div>
-
-{# rates come from services/crews.py so the page and saved projects use the same numbers #}
-<script id="crew-data" type="application/json">{{ {
-    "rates": crew_rates,
-    "hoursPerDay": hours_per_day,
-    "savedCrew": project.crew if project else None,
-}|tojson }}</script>
+    </form>
+</section>
+<script id="crew-data" type="application/json">{{ {"rates": crew_rates, "hoursPerDay": hours_per_day, "savedCrew": initial_crew}|tojson }}</script>
 <script src="{{ url_for('static', filename='js/crews.js') }}" defer></script>
 {% endblock %}
-
-{% block footer %}
-    {% include "site_footer.html" %}
-{% endblock %}
+{% block footer %}{% include "site_footer.html" %}{% endblock %}
