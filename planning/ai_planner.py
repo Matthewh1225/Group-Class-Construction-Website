@@ -2,11 +2,11 @@ import json
 import os
 
 from google import genai
-from groq import Groq
+from groq import BadRequestError, Groq
 from openrouter import OpenRouter
 
-from .ai_config import AI_TIMEOUT, MODEL_CAPABILITIES, MODELS
-from .schemas import BadAnswer
+from .ai_config import AI_TIMEOUT, MODELS
+from .schemas import BadAnswer, PlanningError
 
 
 def make_client(provider, key_name):
@@ -27,7 +27,8 @@ for model_name, settings in MODELS.items():
         "client": make_client(settings["provider"], settings["api_key"]),
         "model": os.getenv(settings["model_env"]) or settings["default"],
     }
-    if os.getenv("DATABASE_ENV") == "test" and AI_MODELS[model_name]["model"] == "gemini-3.8-flash":
+    # Gemini 3.5 Flash Lite is used in place of Gemini 3.8 Flash on purpose.
+    if AI_MODELS[model_name]["model"] == "gemini-3.8-flash":
         AI_MODELS[model_name]["model"] = "gemini-3.5-flash-lite"
 
 
@@ -64,22 +65,30 @@ def call_gemini(model, prompt, thinking_level, system_instruction, response_sche
 
 def call_groq(model, prompt, thinking_level, system_instruction, response_schema,
               output_tokens):
-    response = model["client"].with_options(max_retries=0).chat.completions.create(
-        model=model["model"],
-        messages=make_messages(system_instruction, prompt),
-        temperature=0.5,
-        max_completion_tokens=output_tokens,
-        reasoning_effort=thinking_level,
-        response_format={
-            "type": "json_schema",
-            "json_schema": {
-                "name": response_schema["title"],
-                "strict": True,
-                "schema": response_schema,
+    try:
+        response = model["client"].with_options(max_retries=0).chat.completions.create(
+            model=model["model"],
+            messages=make_messages(system_instruction, prompt),
+            temperature=0.5,
+            max_completion_tokens=output_tokens,
+            reasoning_effort=thinking_level,
+            response_format={
+                "type": "json_schema",
+                "json_schema": {
+                    "name": response_schema["title"],
+                    "strict": True,
+                    "schema": response_schema,
+                },
             },
-        },
-        timeout=AI_TIMEOUT,
-    )
+            timeout=AI_TIMEOUT,
+        )
+    except BadRequestError as error:
+      
+        if "json_validate_failed" in str(error.body):
+            raise BadAnswer("The last answer did not match the required JSON schema. Return one "
+                            "complete JSON object with every required field, the correct types "
+                            "and no extra keys.") from error
+        raise
     if not response.choices:
         raise BadAnswer("the AI provider returned an empty answer")
     choice = response.choices[0]
@@ -108,19 +117,10 @@ def call_openrouter(model, prompt, thinking_level, system_instruction, response_
     return {"text": choice.message.content or "", "finish_reason": choice.finish_reason}
 
 
-def check_model(model_name, reasoning, output_tokens):
-    model = AI_MODELS[model_name]
-    if model["client"] is None or not model["model"]:
-        raise ValueError(f"{model_name} is not configured.")
-    capability = MODEL_CAPABILITIES.get(model["model"])
-    if capability is None or reasoning not in capability["levels"]:
-        raise ValueError(f"{model_name} has no verified {reasoning} reasoning configuration.")
-    if output_tokens > capability["output_limit"]:
-        raise ValueError(f"{model_name} cannot return {output_tokens} output tokens.")
-
-
 def ask_model(model_name, prompt, reasoning, instructions, schema, output_tokens):
     model = AI_MODELS[model_name]
+    if model["client"] is None:
+        raise PlanningError(f"The {model_name} AI model is not configured.")
     if model["provider"] == "gemini":
         result = call_gemini(model, prompt, reasoning, instructions, schema, output_tokens)
     elif model["provider"] == "groq":
@@ -128,8 +128,8 @@ def ask_model(model_name, prompt, reasoning, instructions, schema, output_tokens
     elif model["provider"] == "openrouter":
         result = call_openrouter(model, prompt, reasoning, instructions, schema, output_tokens)
     else:
-        raise ValueError(f"Unsupported AI provider: {model['provider']}")
-# Gemini uses STOP; the other providers use stop.
+        raise PlanningError(f"Unsupported AI provider: {model['provider']}")
+    # Gemini uses STOP; the other providers use stop.
     if result["finish_reason"] not in ("stop", "STOP"):
         raise BadAnswer("the AI answer was cut off before it finished")
     return result["text"]
