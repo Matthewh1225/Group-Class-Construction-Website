@@ -1,18 +1,22 @@
-"""AI answer formats and basic checks."""
-
-import math
+"""AI answer formats and the planner's two errors."""
 
 from pydantic import BaseModel, ConfigDict, Field
 
 
-# Bad AI answers get one more try in the workflow.
+# A bad AI answer. The workflow sends the message back to the AI on its second try.
 class BadAnswer(Exception):
+    pass
+
+
+# The page shows this error to the user.
+class PlanningError(Exception):
     pass
 
 
 # These classes tell the AI what to return and check its answer.
 class Record(BaseModel):
-    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False,
+                              str_strip_whitespace=True)
 
 
 class Specification(Record):
@@ -22,18 +26,26 @@ class Specification(Record):
 
 class Material(Record):
     material_name: str = Field(min_length=1)
-    specification: str
+    specification: str = Field(
+        description="Material size or type as text; use an empty string if not needed."
+    )
     quantity: float = Field(
         gt=0, description="Positive estimated amount, including waste and rounding. "
         "Use labeled assumptions when measurements are missing; never null or zero."
     )
-    unit: str = Field(min_length=1)
-    notes: str
-    product_id: int | None
+    unit: str = Field(
+        min_length=1, description="The quantity's unit, such as sheet, ft or bag. Keep it out of quantity."
+    )
+    notes: str = Field(
+        min_length=1, description="One short string explaining the quantity, assumptions, waste and rounding."
+    )
+    product_id: int | None = Field(
+        description="An integer ID from the supplied catalog, or null if unmatched. Always include this field."
+    )
 
 
 class DraftEstimate(Record):
-    materials: list[Material]
+    materials: list[Material] = Field(min_length=1)
 
 
 class CrewMember(Record):
@@ -53,28 +65,8 @@ class AuditedEstimate(DraftEstimate):
     crew: CrewRecommendation
 
 
-def normalize_unit(unit):
-    aliases = {"feet": "ft", "foot": "ft", "inches": "in", "inch": "in",
-               "meters": "m", "metres": "m", "square feet": "sq_ft", "sq ft": "sq_ft",
-               "square meters": "sq_m", "sq m": "sq_m", "layers": "count",
-               "layer": "count", "coats": "count", "coat": "count",
-               "gallons": "gallon", "sheets": "sheet", "pieces": "piece",
-               "rolls": "roll", "screws": "screw", "boxes": "box", "bags": "bag"}
-    text = unit.strip().lower()
-    return aliases.get(text, text)
-
-
-# Clear product IDs outside the supplied catalog.
-def check_estimate(estimate, catalog_ids):
-    if not estimate["materials"]:
-        raise BadAnswer("The estimate has no materials.")
+# The schema cannot know the store catalog, so unknown product IDs are cleared here.
+def clear_unknown_products(estimate, catalog_ids):
     for material in estimate["materials"]:
-        if not material["material_name"].strip() or not material["unit"].strip():
-            raise BadAnswer("Material names and units cannot be blank.")
-        if not math.isfinite(material["quantity"]) or material["quantity"] <= 0:
-            raise BadAnswer(f"{material['material_name']}: the estimated quantity must be greater than zero.")
-        if not material["notes"].strip():
-            raise BadAnswer(f"{material['material_name']}: explain the estimated quantity in notes.")
         if material["product_id"] not in catalog_ids:
             material["product_id"] = None
-    return estimate

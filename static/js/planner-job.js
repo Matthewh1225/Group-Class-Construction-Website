@@ -1,6 +1,7 @@
 const jobPage = document.getElementById("planning-job");
 const progress = document.getElementById("job-progress");
 let failures = 0;
+const stageLabels = { pending: "Pending", processing: "Processing", done: "Done", failed: "Failed", cancelled: "Cancelled" };
 
 async function updateJob() {
     try {
@@ -10,15 +11,20 @@ async function updateJob() {
         }
         const job = await response.json();
         failures = 0;
+        if (job.stages) {
+            for (const stage of document.querySelectorAll("[data-stage]")) {
+                const state = job.stages[stage.dataset.stage];
+                if (stageLabels[state] && state !== stage.dataset.state) {
+                    stage.dataset.state = state;
+                    stage.querySelector("[data-stage-status]").textContent = stageLabels[state];
+                }
+            }
+        }
         if (job.status !== "queued" && job.status !== "running") {
             window.location.reload();
             return;
         }
-        if (job.status === "queued") {
-            progress.textContent = "Queued for planning";
-        } else {
-            progress.textContent = job.phase;
-        }
+        progress.textContent = job.label;
         window.setTimeout(updateJob, 2000);
     } catch {
         // Retry twice, 4 seconds apart.

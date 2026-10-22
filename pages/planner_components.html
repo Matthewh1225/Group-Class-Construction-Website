@@ -1,4 +1,5 @@
 
+{# Up to 2 decimals without trailing zeros (2.50 shows as 2.5); tiny amounts keep their digits. #}
 {% macro amount(value) -%}
     {%- if value is none -%}Unknown
     {%- elif 0 < value|float < 0.01 -%}{{ '{:g}'.format(value|float) }}
@@ -10,12 +11,10 @@
 {%- endmacro %}
 
 {% macro planning_notes(result) -%}
-    {# Older saved plans kept these in two lists. #}
-    {% set notes = result.notes if result.notes is defined else (result.assumptions|default([]) + result.warnings|default([])) %}
-    {% if notes %}
+    {% if result.notes %}
         <details>
             <summary>Planning notes</summary>
-            <ul>{% for note in notes|unique %}<li>{{ note }}</li>{% endfor %}</ul>
+            <ul>{% for note in result.notes %}<li>{{ note }}</li>{% endfor %}</ul>
         </details>
     {% endif %}
 {%- endmacro %}

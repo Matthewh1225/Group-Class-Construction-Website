@@ -33,11 +33,17 @@ def read_days(value):
     return [low, high]
 
 
+# Form input arrives as JSON text.
 def parse_crew(crew_json):
     try:
         data = json.loads(crew_json or "")
     except ValueError:
         raise ValueError("The crew could not be read. Please choose it again.")
+    return check_crew(data)
+
+
+# Shared by the crew form and the AI planner.
+def check_crew(data):
     if not isinstance(data, dict) or not isinstance(data.get("members"), list):
         raise ValueError("The crew could not be read. Please choose it again.")
 

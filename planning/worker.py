@@ -10,8 +10,9 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from .jobs import LeaseLost, claim_job, database_path, save_job
-from .workflow import PlanningError, run_workflow
+from .jobs import LeaseLost, claim_job, database_path, save_job, stop_running_stages
+from .schemas import PlanningError
+from .workflow import run_workflow
 
 logger = logging.getLogger(__name__)
 
@@ -21,8 +22,8 @@ ERROR_DELAY = 10  # seconds after an error
 
 def mark_failed(job, worker, message):
     job["status"] = "failed"
-    job["phase"] = "Failed"
     job["error"] = message
+    stop_running_stages(job, "failed")
     try:
         save_job(job, worker)
     except LeaseLost:
@@ -83,7 +84,6 @@ def main():
     parser.add_argument("--once", action="store_true", help="Process at most one queued job.")
     options = parser.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
-    # Use the same DATABASE_ENV and database path as the website.
     try:
         run_worker(once=options.once)
     except KeyboardInterrupt:

@@ -5,7 +5,7 @@ from flask import flash, redirect, render_template, request, session, url_for
 from routes.dashboard import dashboard_login_required
 from services.cart import add_cart_item, get_cart_items, remove_cart_item, update_cart_quantity
 from services.checkout import calculate_order_total, validate_checkout_data
-from services.orders import create_order, get_order_confirmation
+from services.orders import create_order, get_order_by_id, get_order_items
 
 # app.py registers these routes to keep the endpoint names used by templates.
 
@@ -69,7 +69,7 @@ def checkout():
             error = str(problem)
 
     items = get_cart_items(user_id)
-    # Reuse the checkout key after errors to avoid duplicate orders.
+    # TODO: create_order must reject a reused checkout key so a double submit places one order.
     checkout_key = form_data.get("checkout_key") or secrets.token_urlsafe(24)
     page = render_template("cart/checkout.html", cart_items=items, totals=calculate_order_total(items),
                            form_data=form_data, error=error, checkout_key=checkout_key)
@@ -81,5 +81,7 @@ def checkout():
 def order_confirmation(order_id):
     order = None
     if order_id is not None:
-        order = get_order_confirmation(order_id, session["user_id"])
+        order = get_order_by_id(order_id, session["user_id"])
+    if order is not None:
+        order["items"] = get_order_items(order_id, session["user_id"])
     return render_template("cart/confirmation.html", verified_order=order)

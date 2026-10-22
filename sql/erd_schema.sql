@@ -1,109 +1,129 @@
--- Runs in the current database. Use setup_test_database.py for a confirmed test reset.
--- Keep table name casing exact: Linux can treat User and user differently.
--- An Administrator row gives a user admin access.
 
 CREATE TABLE `User` (
-    Id INT AUTO_INCREMENT PRIMARY KEY,
-    username VARCHAR(50) NOT NULL UNIQUE,
-    firstName VARCHAR(50),
-    lastName VARCHAR(50),
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    firstName VARCHAR(50) NOT NULL,
+    lastName VARCHAR(50) NOT NULL DEFAULT '',
     email VARCHAR(100) NOT NULL UNIQUE,
-    password VARCHAR(255) NOT NULL,                                  -- Argon2 password hash
-    dob DATE,
-    status ENUM('active', 'disabled') NOT NULL DEFAULT 'active',
-    date_created DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    proUntil DATE                                                    -- Last day of Pro access; NULL means none
+    passkey VARCHAR(255) NOT NULL,
+    permissions ENUM('user', 'admin') NOT NULL DEFAULT 'user',
+    dateCreated DATE NOT NULL
 );
 
 CREATE TABLE Administrator (
-    user_Id INT PRIMARY KEY,
-    permissions INT,
+    userId INT PRIMARY KEY,
     notes TEXT,
-    FOREIGN KEY (user_Id) REFERENCES `User` (Id) ON DELETE CASCADE
+    FOREIGN KEY (userId) REFERENCES `User` (id) ON DELETE CASCADE
 );
 
+-- Administrators also have a customer profile: they can shop and use Pro.
 CREATE TABLE Customer (
-    user_Id INT PRIMARY KEY,
-    address VARCHAR(100),
-    FOREIGN KEY (user_Id) REFERENCES `User` (Id) ON DELETE CASCADE
+    userId INT PRIMARY KEY,
+    streetAddress VARCHAR(100),
+    city VARCHAR(50),
+    state VARCHAR(50),
+    zipcode INT,
+    accountStatus VARCHAR(20) NOT NULL DEFAULT 'active',
+    proDate DATE,
+    CHECK (zipcode IS NULL OR zipcode BETWEEN 0 AND 99999),
+    CHECK (accountStatus IN ('active', 'disabled')),
+    FOREIGN KEY (userId) REFERENCES `User` (id) ON DELETE CASCADE
 );
 
 CREATE TABLE Manufacturer (
-    Id INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(50)
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(50) NOT NULL
 );
 
--- Manufacturer_products links products to their manufacturers.
 CREATE TABLE Product (
-    Id INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(100),
-    category VARCHAR(50),                                            -- Filter key used in routes/products.py
-    subCategory VARCHAR(50),
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    subCategory ENUM(
+        'Accessories', 'Anchors', 'Blocks', 'Bolts', 'Boxes', 'Compaction',
+        'Compaction tools', 'Concrete tools', 'Connectors', 'Decking',
+        'Demolition tools', 'Doors', 'Ductwork', 'Earthmoving', 'Fencing',
+        'Filters', 'Finishing', 'Fittings', 'Flashing', 'Forms', 'Framing',
+        'Hand tools', 'Hauling', 'Installation', 'Insulation', 'Laminate',
+        'Lifting', 'Lighting', 'Loading', 'Mix', 'Mortar', 'Nails', 'Outlets',
+        'Paint', 'Panels', 'Pipe', 'Posts', 'Power tools', 'Primer', 'Rebar',
+        'Registers', 'Reinforcement', 'Screws', 'Sealants', 'Sheathing',
+        'Shingles', 'Subfloor', 'Switches', 'Tile', 'Trim', 'Underlayment',
+        'Ventilation', 'Vinyl', 'Windows', 'Wire'
+    ) NOT NULL,
     details TEXT,
-    price DECIMAL(10, 2),
+    price DECIMAL(12, 2) NOT NULL,
     dimensions VARCHAR(100),
     materials VARCHAR(100),
-    itemQty INT,
-    manufacturer VARCHAR(100),
+    itemQty INT NOT NULL DEFAULT 1,
+    stockQty INT NOT NULL DEFAULT 0,
+    -- Added to the ERD: used by category pages, planner unit matching, search and hiding retired products.
+    category ENUM('lumber', 'fasteners', 'concrete', 'tools', 'electrical',
+                  'drywall', 'roofing', 'plumbing', 'hvac', 'flooring', 'paint',
+                  'doors-windows', 'heavy-machinery') NOT NULL,
+    unit VARCHAR(50) NOT NULL DEFAULT 'piece',
     sku VARCHAR(80) UNIQUE,
     keywords VARCHAR(512),
-    unit VARCHAR(50) NOT NULL DEFAULT 'piece',                       -- Unit sold, such as piece or box
-    packQuantity DECIMAL(14, 3) NOT NULL DEFAULT 1,                  -- Amount in one item, such as 350 screws per box
-    purchaseIncrement DECIMAL(12, 3) NOT NULL DEFAULT 1,             -- Smallest purchase step in the chosen unit
-    isActive BOOLEAN NOT NULL DEFAULT TRUE                           -- Hide a product without deleting its order history
-);
-
-CREATE TABLE Cart_item (
-    user_id INT NOT NULL,
-    product_id INT NOT NULL,
-    quantity INT NOT NULL,
-    PRIMARY KEY (user_id, product_id),
-    CHECK (quantity > 0),
-    FOREIGN KEY (user_id) REFERENCES `User` (Id) ON DELETE CASCADE,
-    FOREIGN KEY (product_id) REFERENCES Product (Id) ON DELETE CASCADE
+    isActive BOOLEAN NOT NULL DEFAULT TRUE,
+    CHECK (price >= 0),
+    CHECK (itemQty > 0),
+    CHECK (stockQty >= 0),
+    CHECK (isActive IN (0, 1))
 );
 
 CREATE TABLE Manufacturer_products (
-    manId INT,
-    productId INT,
-    PRIMARY KEY (manId, productId),
-    FOREIGN KEY (manId) REFERENCES Manufacturer (Id) ON DELETE CASCADE,
-    FOREIGN KEY (productId) REFERENCES Product (Id) ON DELETE CASCADE
+    manid INT NOT NULL,
+    productId INT NOT NULL,
+    PRIMARY KEY (manid, productId),
+    FOREIGN KEY (manid) REFERENCES Manufacturer (id) ON DELETE CASCADE,
+    FOREIGN KEY (productId) REFERENCES Product (id) ON DELETE CASCADE
+);
+
+-- Added to the ERD: the working shopping cart. Order/Order_item record purchases at
+-- the price paid, so a cart cannot be stored there. See docs/database_erd.md.
+CREATE TABLE Cart_item (
+    userId INT NOT NULL,
+    productId INT NOT NULL,
+    itemQty INT NOT NULL,
+    PRIMARY KEY (userId, productId),
+    CHECK (itemQty > 0),
+    FOREIGN KEY (userId) REFERENCES `User` (id) ON DELETE CASCADE,
+    FOREIGN KEY (productId) REFERENCES Product (id) ON DELETE CASCADE
 );
 
 CREATE TABLE `Order` (
-    Id INT AUTO_INCREMENT PRIMARY KEY,
-    user_Id INT,
-    date_created DATE,
-    date_completed DATE,
-    totalCost DECIMAL(10, 2),
-    status ENUM('pending', 'paid', 'shipped', 'completed', 'cancelled')
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    userId INT NOT NULL,
+    dateCreated DATE NOT NULL,
+    dateCompleted DATE,
+    totalCost DECIMAL(12, 2) NOT NULL,
+    orderStatus ENUM('pending', 'paid', 'shipped', 'completed', 'cancelled')
         NOT NULL DEFAULT 'pending',
     shippingAddress VARCHAR(255),
-    FOREIGN KEY (user_Id) REFERENCES `User` (Id) ON DELETE CASCADE
+    CHECK (totalCost >= 0),
+    FOREIGN KEY (userId) REFERENCES `User` (id) ON DELETE CASCADE
 );
 
 CREATE TABLE Order_item (
-    order_id INT,
-    product_id INT,
-    quantity DECIMAL(12, 3) NOT NULL,
-    unitPrice DECIMAL(10, 2) NOT NULL,                               -- Keep the price at the time of the order
-    PRIMARY KEY (order_id, product_id),
-    FOREIGN KEY (order_id) REFERENCES `Order` (Id) ON DELETE CASCADE,
-    FOREIGN KEY (product_id) REFERENCES Product (Id)
+    orderId INT NOT NULL,
+    productId INT NOT NULL,
+    itemQty INT NOT NULL,
+    unitPrice DECIMAL(12, 2) NOT NULL,
+    PRIMARY KEY (orderId, productId),
+    CHECK (itemQty > 0),
+    CHECK (unitPrice >= 0),
+    FOREIGN KEY (orderId) REFERENCES `Order` (id) ON DELETE CASCADE,
+    FOREIGN KEY (productId) REFERENCES Product (id)
 );
 
--- Store only the last four card digits, never the full number.
 CREATE TABLE Payments (
-    Id INT AUTO_INCREMENT PRIMARY KEY,
-    transType INT,
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    dateCharged DATE NOT NULL,
+    userId INT NOT NULL,
+    payStatus ENUM('pending', 'paid', 'failed', 'refunded') NOT NULL DEFAULT 'pending',
+    -- Safe display information only; never store a raw card number.
     cardLast4 CHAR(4),
-    date_charged DATE,
-    user_id INT,
-    order_id INT,
-    amount DECIMAL(10, 2) NOT NULL,
-    status ENUM('pending', 'paid', 'failed', 'refunded')
-        NOT NULL DEFAULT 'pending',
-    FOREIGN KEY (user_id) REFERENCES `User` (Id) ON DELETE CASCADE,
-    FOREIGN KEY (order_id) REFERENCES `Order` (Id) ON DELETE CASCADE
+    orderId INT,
+    amount DECIMAL(12, 2) NOT NULL,
+    CHECK (amount >= 0),
+    FOREIGN KEY (userId) REFERENCES `User` (id) ON DELETE CASCADE,
+    FOREIGN KEY (orderId) REFERENCES `Order` (id) ON DELETE CASCADE
 );

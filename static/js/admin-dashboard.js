@@ -22,7 +22,7 @@ const addForm = document.getElementById("admin-add-form");
 const createButton = document.getElementById("admin-create-user");
 const serverError = document.getElementById("admin-add-server-error");
 
-const state = { sort: "username", direction: "asc", page: 1, pageSize: 10 };
+const state = { sort: "displayName", direction: "asc", page: 1, pageSize: 10 };
 
 // Sort names like user2 before user10.
 const collator = new Intl.Collator(undefined, { sensitivity: "base", numeric: true });
@@ -34,8 +34,8 @@ function parseDate(value) {
     if (!value) {
         return null;
     }
-    // Use T so browsers read the date correctly.
-    const timestamp = Date.parse(value.trim().replace(" ", "T"));
+    // A MySQL DATE is a local calendar day, not a UTC timestamp.
+    const timestamp = Date.parse(value.trim() + "T00:00:00");
     if (Number.isNaN(timestamp)) {
         return null;
     }
@@ -54,7 +54,7 @@ for (const row of document.querySelectorAll(".admin-user-row")) {
     const user = {
         row: row,
         id: row.dataset.userId,
-        username: row.dataset.username,
+        displayName: row.dataset.displayName,
         email: row.dataset.email,
         role: row.dataset.role,
         status: row.dataset.status,
@@ -70,7 +70,7 @@ for (const row of document.querySelectorAll(".admin-user-row")) {
 
 
 function userMatches(user, query) {
-    const nameMatches = user.username.toLocaleLowerCase().includes(query);
+    const nameMatches = user.displayName.toLocaleLowerCase().includes(query);
     const emailMatches = user.email.toLocaleLowerCase().includes(query);
     if (!nameMatches && !emailMatches) {
         return false;
@@ -276,7 +276,7 @@ function showUserDetails(user) {
     if (user.status === "disabled") {
         status = "Disabled";
     }
-    document.getElementById("admin-detail-username").textContent = user.username || "—";
+    document.getElementById("admin-detail-displayName").textContent = user.displayName || "—";
     document.getElementById("admin-detail-email").textContent = user.email || "—";
     document.getElementById("admin-detail-role").textContent = role;
     document.getElementById("admin-detail-status").textContent = status;
@@ -286,13 +286,13 @@ function showUserDetails(user) {
 }
 
 function openDisableDialog(user, statusUrl) {
-    document.getElementById("admin-disable-username").textContent = user.username;
+    document.getElementById("admin-disable-displayName").textContent = user.displayName;
     document.getElementById("admin-disable-form").action = statusUrl;
     document.getElementById("admin-disable-dialog").showModal();
 }
 
 function openDeleteDialog(user, deleteUrl) {
-    document.getElementById("admin-delete-username").textContent = user.username;
+    document.getElementById("admin-delete-displayName").textContent = user.displayName;
     deleteForm.action = deleteUrl;
     deleteWarning.hidden = false;
     deleteForm.hidden = true;
@@ -354,15 +354,14 @@ function setupRowButtons() {
 
 
 function validateField(input) {
-    if (input.name === "username" || input.name === "email") {
+    if (["firstName", "lastName", "email"].includes(input.name)) {
         input.value = input.value.trim();
     }
 
     let error = "";
     if (input.validity.valueMissing) {
         error = "This field is required.";
-    } else if (input.name === "username" && input.value.includes("@")) {
-        error = "Usernames cannot contain @.";
+
     } else if (input.name === "email" && input.validity.typeMismatch) {
         error = "Enter a valid email.";
     } else if (input.name === "password") {
@@ -382,12 +381,13 @@ function validateField(input) {
 }
 
 // Keep each admin's saved form values separate.
-const storageKey = "buildbetter-admin-add-user-" + workspace.dataset.currentUserId;
+const storageKey = "buildbetter-admin-add-user-erd-" + workspace.dataset.currentUserId;
 
 // Restore non-password fields after a failed submission.
 function saveTypedValues() {
     const values = {
-        username: addForm.elements.username.value,
+        firstName: addForm.elements.firstName.value,
+        lastName: addForm.elements.lastName.value,
         email: addForm.elements.email.value,
         role: addForm.elements.permission_level.value,
     };
@@ -412,7 +412,8 @@ function restoreAddUserForm() {
     if (saved === null || error === null) {
         return;
     }
-    addForm.elements.username.value = saved.username;
+    addForm.elements.firstName.value = saved.firstName || "";
+    addForm.elements.lastName.value = saved.lastName || "";
     addForm.elements.email.value = saved.email;
     addForm.elements.permission_level.value = saved.role;
     serverError.textContent = error.textContent;
@@ -426,7 +427,7 @@ function setupAddUserForm() {
     for (const button of document.querySelectorAll("[data-open-add-user]")) {
         button.addEventListener("click", function () {
             addDialog.showModal();
-            document.getElementById("admin-username").focus();
+            document.getElementById("admin-firstName").focus();
         });
     }
     setupPasswordToggles(addForm);

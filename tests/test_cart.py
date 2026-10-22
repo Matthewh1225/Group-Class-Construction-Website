@@ -31,7 +31,7 @@ class CartValidationTests(unittest.TestCase):
         self.assertEqual(calculate_order_total([{"error": "", "total_cents": None}]), {})
 
 
-@unittest.skipUnless(os.getenv("RUN_CART_DB_TESTS") == "1", "Set RUN_CART_DB_TESTS=1 to use the local test database.")
+@unittest.skipUnless(os.getenv("RUN_AIVEN_DB_TESTS") == "1", "Set RUN_AIVEN_DB_TESTS=1 to create and clean up isolated fixtures in the primary database.")
 class CartDatabaseTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -47,8 +47,8 @@ class CartDatabaseTests(unittest.TestCase):
         cls.addClassCleanup(cls.context.pop)
         cls.addClassCleanup(app.config.update, cls.old_config)
         settings = database_settings()
-        if settings["host"] not in ("localhost", "127.0.0.1") or settings["database"] != "Construction_db_test":
-            raise RuntimeError("Cart database tests require localhost / Construction_db_test.")
+        if not settings["host"].endswith(".aivencloud.com"):
+            raise RuntimeError("Integration tests require the configured Aiven database.")
         cls.old_limiter = limiter.enabled
         limiter.enabled = False
         cls.addClassCleanup(setattr, limiter, "enabled", cls.old_limiter)
@@ -60,14 +60,15 @@ class CartDatabaseTests(unittest.TestCase):
         with database_cursor() as cursor:
             for suffix in ("a", "b"):
                 name = prefix + suffix
-                cursor.execute("INSERT INTO `User` (username, email, password) VALUES (%s, %s, %s)",
+                cursor.execute("INSERT INTO `User` (firstName, lastName, email, passkey, dateCreated) VALUES (%s, 'Fixture', %s, %s, CURDATE())",
                                (name, name + "@example.test", password))
                 cls.users.append(cursor.lastrowid)
+                cursor.execute("INSERT INTO Customer (userId) VALUES (%s)", (cls.users[-1],))
             for suffix, price, step in (("single", "19.95", "1"), ("bulk", "4.25", "5")):
                 name = prefix + suffix
                 cursor.execute("""
-                    INSERT INTO Product (name, sku, unit, price, itemQty, purchaseIncrement, category)
-                    VALUES (%s, %s, 'piece', %s, 100, %s, 'tools')
+                    INSERT INTO Product (name, sku, unit, price, stockQty, itemQty, category, subCategory)
+                    VALUES (%s, %s, 'piece', %s, 100, %s, 'tools', 'Hand tools')
                 """, (name, name, price, step))
                 cls.products.append(cursor.lastrowid)
 
@@ -75,18 +76,18 @@ class CartDatabaseTests(unittest.TestCase):
     def remove_test_data(cls):
         with database_cursor() as cursor:
             for user_id in cls.users:
-                cursor.execute("DELETE FROM `User` WHERE Id = %s", (user_id,))
+                cursor.execute("DELETE FROM `User` WHERE id = %s", (user_id,))
             for product_id in cls.products:
-                cursor.execute("DELETE FROM Product WHERE Id = %s", (product_id,))
+                cursor.execute("DELETE FROM Product WHERE id = %s", (product_id,))
 
     def setUp(self):
         self.user, self.other_user = self.users
         self.product, self.bulk = self.products
         with database_cursor() as cursor:
-            cursor.execute("DELETE FROM Cart_item WHERE user_id IN (%s, %s)", tuple(self.users))
+            cursor.execute("DELETE FROM Cart_item WHERE userId IN (%s, %s)", tuple(self.users))
             cursor.execute("""
-                UPDATE Product SET price = 19.95, itemQty = 100, isActive = 1, purchaseIncrement = 1
-                WHERE Id = %s
+                UPDATE Product SET price = 19.95, stockQty = 100, isActive = 1
+                WHERE id = %s
             """, (self.product,))
         self.client = self.app.test_client()
         with self.client.session_transaction() as session:
@@ -125,29 +126,27 @@ class CartDatabaseTests(unittest.TestCase):
         self.assertEqual(get_cart_items(self.user)[0]["quantity"], 99)
 
     def test_pack_sizes_and_unavailable_products(self):
-        with self.assertRaises(ValueError):
-            add_cart_item(self.user, self.bulk, "1")
-        add_cart_item(self.user, self.bulk, "5")
-        self.assertEqual(get_cart_items(self.user)[0]["quantity"], 5)
-        for change in ("isActive = 0", "price = NULL", "itemQty = 0"):
+        add_cart_item(self.user, self.bulk, "1")
+        self.assertEqual(get_cart_items(self.user)[0]["quantity"], 1)
+        for change in ("isActive = 0", "stockQty = 0"):
             with database_cursor() as cursor:
-                cursor.execute("UPDATE Product SET isActive = 1, price = 19.95, itemQty = 100 WHERE Id = %s",
+                cursor.execute("UPDATE Product SET isActive = 1, price = 19.95, stockQty = 100 WHERE id = %s",
                                (self.product,))
-                cursor.execute("UPDATE Product SET " + change + " WHERE Id = %s", (self.product,))
+                cursor.execute("UPDATE Product SET " + change + " WHERE id = %s", (self.product,))
             with self.subTest(change=change), self.assertRaises(ValueError):
                 add_cart_item(self.user, self.product, "1")
 
     def test_current_prices_and_availability(self):
         add_cart_item(self.user, self.product, "2")
         with database_cursor() as cursor:
-            cursor.execute("UPDATE Product SET name = 'Updated cart product', price = 21.23 WHERE Id = %s",
+            cursor.execute("UPDATE Product SET name = 'Updated cart product', price = 21.23 WHERE id = %s",
                            (self.product,))
         items = get_cart_items(self.user)
         self.assertEqual(items[0]["name"], "Updated cart product")
         self.assertEqual(items[0]["unit_price_cents"], 2123)
         self.assertEqual(calculate_order_total(items)["total_cents"], 4246)
         with database_cursor() as cursor:
-            cursor.execute("UPDATE Product SET itemQty = 1 WHERE Id = %s", (self.product,))
+            cursor.execute("UPDATE Product SET stockQty = 1 WHERE id = %s", (self.product,))
         items = get_cart_items(self.user)
         self.assertTrue(items[0]["error"])
         self.assertEqual(calculate_order_total(items), {})

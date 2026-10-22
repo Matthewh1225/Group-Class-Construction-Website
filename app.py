@@ -14,18 +14,22 @@ from routes.planner import planner_bp
 from routes.products import products_bp
 from routes.subscription import subscription_bp
 from utils.csrf import check_csrf, csrf_token
+from utils.database import close_database
 from utils.rate_limits import limiter
 from utils.passwords import MAX_PASSWORD_LENGTH, PASSWORD_DIGITS
 from services.products import get_manufacturers
 
 app = Flask(__name__, template_folder="pages")
 app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")
+# Old sessions may contain test-database user IDs. Require a fresh sign-in.
+app.config["SESSION_COOKIE_NAME"] = "buildbetter_session"
 # Lax stops other sites from sending this cookie with their form posts
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 # Set SESSION_COOKIE_SECURE=true when using HTTPS.
 app.config["SESSION_COOKIE_SECURE"] = os.getenv("SESSION_COOKIE_SECURE", "").lower() == "true"
 app.before_request(check_csrf)
 app.before_request(check_logged_in_user)
+app.teardown_request(close_database)
 
 
 app.jinja_env.globals["csrf_token"] = csrf_token

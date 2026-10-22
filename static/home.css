@@ -5,7 +5,7 @@
     overflow-x: clip;
 }
 
-/* Later class rules can still change these margins. */
+/* :where() adds no specificity, so any class rule below can set these margins again. */
 .home :where(h1, h2, h3, p, ul, ol, dl, dd, figure) {
     margin: 0;
 }

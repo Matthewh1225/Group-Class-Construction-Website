@@ -1,4 +1,4 @@
-# Planner jobs live in SQLite. Saved project helpers are still unfinished.
+# Planner jobs and saved projects are stored in SQLite, not MySQL.
 # Answering questions requeues a job; restarting a failed job creates a new one.
 
 import hashlib
@@ -17,12 +17,12 @@ from .ai_config import WORKFLOW_TIERS
 LEASE_SECONDS = 15 * 60       # seconds before an unsaved job is interrupted
 MAX_RUNNING_JOBS = 2          # shared by all workers
 MAX_QUEUED_JOBS = 100         # shared by all users
-MAX_REQUEST_BYTES = 20000     # bytes
+MAX_REQUEST_BYTES = 20000
 MAX_ANSWER_LENGTH = 2000      # characters per answer
 ONE_DAY = 24 * 60 * 60        # seconds
 
 # Other fields go in the JSON data column.
-COLUMN_FIELDS = ["id", "owner", "tier", "status", "phase", "created", "updated"]
+COLUMN_FIELDS = ["id", "owner", "tier", "status", "created", "updated"]
 
 
 # Not a ValueError: the routes use those for user input errors.
@@ -32,12 +32,8 @@ class LeaseLost(Exception):
 
 def database_path():
     # The website and worker must use the same file.
-    # Test mode uses a separate file.
     data_folder = Path(__file__).resolve().parents[1] / "data"
-    if os.getenv("DATABASE_ENV") == "test":
-        default = data_folder / "planner_jobs_test.sqlite3"
-    else:
-        default = data_folder / "planner_jobs.sqlite3"
+    default = data_folder / "planner_jobs.sqlite3"
     return Path(os.getenv("PLANNER_JOB_DATABASE", str(default)))
 
 
@@ -53,7 +49,7 @@ def connection():
         database.execute("""CREATE TABLE IF NOT EXISTS planner_jobs (
             id TEXT PRIMARY KEY, owner TEXT NOT NULL, submission_key TEXT NOT NULL,
             request_hash TEXT NOT NULL, tier TEXT NOT NULL, status TEXT NOT NULL,
-            phase TEXT NOT NULL, created REAL NOT NULL, updated REAL NOT NULL,
+            created REAL NOT NULL, updated REAL NOT NULL,
             lease_until REAL NOT NULL DEFAULT 0, worker TEXT,
             data TEXT NOT NULL, UNIQUE(owner, submission_key)
         )""")
@@ -97,6 +93,23 @@ def pro_access_allowed(owner):
     return has_active_pro(owner)
 
 
+# A job gets fresh stages each time it is queued.
+def pending_stages(tier):
+    stages = {"interpreter": "pending", "planner": "pending"}
+    if tier == "pro":
+        stages["second_planner"] = "pending"
+    stages["auditor"] = "pending"
+    return stages
+
+
+# Used when a job fails, is interrupted or is cancelled.
+# Jobs saved before stages existed have none.
+def stop_running_stages(job, new_state):
+    for stage, state in job.get("stages", {}).items():
+        if state == "processing":
+            job["stages"][stage] = new_state
+
+
 # The hash catches a submission key reused with different inputs.
 def check_submission(owner, submission_key, project, tier, answers):
     if tier not in WORKFLOW_TIERS:
@@ -133,7 +146,8 @@ def submit_job(owner, submission_key, project, tier="fast", answers=None):
     now = time.time()
     job_id = uuid.uuid4().hex
     data = {"project": project, "questions": [], "answers": answers,
-            "specification": None, "result": None, "error": None}
+            "specification": None, "result": None, "error": None,
+            "stages": pending_stages(tier)}
     with connection() as database:
         # Lock while checking limits so two requests cannot slip through together.
         database.execute("BEGIN IMMEDIATE")
@@ -154,7 +168,7 @@ def submit_job(owner, submission_key, project, tier="fast", answers=None):
             raise ValueError("Your daily planning allowance has been reached.")
         check_queue_capacity(database, owner)
         database.execute(
-            "INSERT INTO planner_jobs (id, owner, submission_key, request_hash, tier, status, phase, created, updated, data) VALUES (?, ?, ?, ?, ?, 'queued', 'Queued', ?, ?, ?)",
+            "INSERT INTO planner_jobs (id, owner, submission_key, request_hash, tier, status, created, updated, data) VALUES (?, ?, ?, ?, ?, 'queued', ?, ?, ?)",
             (job_id, owner, submission_key, request_hash, tier, now, now, encode(data)),
         )
     return get_job(job_id, owner)
@@ -195,8 +209,9 @@ def fail_interrupted_jobs(database, now):
     for row in expired_rows:
         job = decode(row)
         job["error"] = "Planning was interrupted before it finished."
+        stop_running_stages(job, "failed")
         database.execute(
-            "UPDATE planner_jobs SET status = 'failed', phase = 'Interrupted', worker = NULL, data = ?, updated = ? WHERE id = ?",
+            "UPDATE planner_jobs SET status = 'failed', worker = NULL, data = ?, updated = ? WHERE id = ?",
             (encode(job), now, row["id"]),
         )
 
@@ -229,8 +244,8 @@ def save_job(job, worker):
     with connection() as database:
         # Only the worker still assigned to the running job can save it.
         changed = database.execute(
-            "UPDATE planner_jobs SET data = ?, status = ?, phase = ?, updated = ?, lease_until = ? WHERE id = ? AND worker = ? AND status = 'running'",
-            (encode(job), job["status"], job["phase"], now, now + LEASE_SECONDS, job["id"], worker),
+            "UPDATE planner_jobs SET data = ?, status = ?, updated = ?, lease_until = ? WHERE id = ? AND worker = ? AND status = 'running'",
+            (encode(job), job["status"], now, now + LEASE_SECONDS, job["id"], worker),
         ).rowcount
         if changed != 1:
             raise LeaseLost("This worker no longer owns the job, or the job was cancelled.")
@@ -253,8 +268,9 @@ def answer_job(job_id, owner, answers):
                 answer = "Not answered"
             job["answers"].append({"question": question, "answer": answer})
         job["questions"] = []
+        job["stages"] = pending_stages(job["tier"])
         database.execute(
-            "UPDATE planner_jobs SET data = ?, status = 'queued', phase = 'Queued', worker = NULL, lease_until = 0, updated = ? WHERE id = ?",
+            "UPDATE planner_jobs SET data = ?, status = 'queued', worker = NULL, lease_until = 0, updated = ? WHERE id = ?",
             (encode(job), time.time(), job_id),
         )
 
@@ -262,8 +278,8 @@ def answer_job(job_id, owner, answers):
 # A fixed key stops repeated clicks from creating extra jobs.
 def restart_job(job_id, owner):
     job = get_job(job_id, owner)
-    if job is None or job["status"] not in ("failed", "partial"):
-        raise ValueError("Only failed or incomplete plans can be started again.")
+    if job is None or job["status"] != "failed":
+        raise ValueError("Only failed plans can be started again.")
     return submit_job(owner, "restart-" + job_id, job["project"], job["tier"], job["answers"])
 
 
@@ -275,8 +291,13 @@ def delete_planner_jobs(owner):
 
 def cancel_job(job_id, owner):
     with connection() as database:
+        database.execute("BEGIN IMMEDIATE")
+        job = find_job(database, job_id, owner)
+        if job is None or job["status"] not in ("queued", "running", "needs_input"):
+            return False
+        stop_running_stages(job, "cancelled")
         changed = database.execute(
-            "UPDATE planner_jobs SET status = 'cancelled', phase = 'Cancelled', worker = NULL, updated = ? WHERE id = ? AND owner = ? AND status IN ('queued', 'running', 'needs_input')",
-            (time.time(), job_id, str(owner)),
+            "UPDATE planner_jobs SET status = 'cancelled', worker = NULL, data = ?, updated = ? WHERE id = ? AND owner = ? AND status IN ('queued', 'running', 'needs_input')",
+            (encode(job), time.time(), job_id, str(owner)),
         ).rowcount
     return changed == 1

@@ -41,7 +41,7 @@ def dashboard():
         except ValueError as error:
             flash(str(error), "error")
         except IntegrityError:
-            flash("Username or email already in use.", "error")
+            flash("Email already in use.", "error")
         except Error:
             current_app.logger.exception("Unable to create an admin user")
             flash("User creation is temporarily unavailable. Nothing was changed.", "error")
@@ -54,11 +54,11 @@ def dashboard():
         try:
             with database_cursor() as cursor:
                 cursor.execute(
-                    """SELECT u.Id AS id, u.username, u.email, u.status, u.date_created AS created_at,
-                              CASE WHEN a.user_Id IS NULL THEN 'user' ELSE 'admin' END AS permission_level
+                    """SELECT u.id, CONCAT_WS(' ', u.firstName, NULLIF(u.lastName, '')) AS display_name,
+                              u.email, u.permissions, u.dateCreated, c.accountStatus
                        FROM `User` u
-                       LEFT JOIN Administrator a ON a.user_Id = u.Id
-                       ORDER BY u.Id"""
+                       JOIN Customer c ON c.userId = u.id
+                       ORDER BY u.id"""
                 )
                 users = cursor.fetchall()
         except Error:
@@ -67,14 +67,14 @@ def dashboard():
             users = []
             users_error = True
         return render_template(
-            "admin_dashboard.html", username=session.get("username"),
+            "admin_dashboard.html", display_name=session.get("display_name"),
             permission_level=permission_level, users=users, users_error=users_error,
             admin_workspace=True,
         )
 
     user_id = session["user_id"]
     return render_template(
-        "dashboard/overview.html", username=session.get("username"),
+        "dashboard/overview.html", display_name=session.get("display_name"),
         recent_projects=get_user_projects(user_id, limit=3),
         project_count=get_project_count(user_id), cart_count=None,
     )
@@ -203,7 +203,7 @@ def order_detail(order_id):
 @dashboard_login_required
 def settings():
     return render_template(
-        "dashboard/settings.html", profile={"username": session.get("username", "")},
+        "dashboard/settings.html", profile={"display_name": session.get("display_name", "")},
     )
 
 
@@ -249,6 +249,7 @@ def delete_user(user_id):
 
     try:
         deleted = delete_user_completely(user_id)
+    # Planner jobs are deleted from SQLite, so its errors count too.
     except (Error, sqlite3.Error):
         current_app.logger.exception("Deleting user %s failed", user_id)
         flash("Unable to delete user. Nothing was removed.", "error")

@@ -3,15 +3,12 @@ from decimal import Decimal, ROUND_CEILING
 
 from services.products import get_products_by_ids
 
-from .schemas import normalize_unit
-
 STATUS_LABELS = {
     "queued": ("Queued for planning", "neutral"),
     "running": ("Preparing your plan", "neutral"),
     "needs_input": ("Details needed", "attention"),
     "failed": ("Planning failed", "attention"),
     "cancelled": ("Cancelled", "neutral"),
-    "partial": ("Partial result", "neutral"),
     "complete": ("Complete", "ready"),
 }
 
@@ -20,21 +17,29 @@ def status_label(job):
     return STATUS_LABELS.get(job.get("status"), ("Status unavailable", "neutral"))
 
 
-# For example, 130 screws become 200 when sold in packs of 100.
-def round_up_to_step(needed, product):
-    step = Decimal(str(product["purchase_increment"]))
-    if step <= 0:
-        return None
-    steps = (needed / step).to_integral_value(rounding=ROUND_CEILING)
-    return steps * step
+# Plan units and store units must match before a product can be bought.
+def normalize_unit(unit):
+    aliases = {"feet": "ft", "foot": "ft", "inches": "in", "inch": "in",
+               "meters": "m", "metres": "m", "square feet": "sq_ft", "sq ft": "sq_ft",
+               "square meters": "sq_m", "sq m": "sq_m", "layers": "count",
+               "layer": "count", "coats": "count", "coat": "count",
+               "gallons": "gallon", "sheets": "sheet", "pieces": "piece",
+               "rolls": "roll", "screws": "screw", "boxes": "box", "bags": "bag"}
+    text = unit.strip().lower()
+    return aliases.get(text, text)
+
+
+# Products are purchased as whole sellable units (boxes, bags, pieces, etc.).
+def round_up_quantity(needed):
+    return needed.to_integral_value(rounding=ROUND_CEILING)
 
 
 def buy_quantity(material, product):
-    if product is None or material["quantity"] is None or material["quantity"] <= 0:
+    if product is None:
         return None
     if normalize_unit(material["unit"]) != normalize_unit(product["unit"]):
         return None
-    return round_up_to_step(Decimal(str(material["quantity"])), product)
+    return round_up_quantity(Decimal(str(material["quantity"])))
 
 
 # Use current store prices and stock when showing a plan.
@@ -81,7 +86,7 @@ def cart_items(rows):
     items = []
     for product_id in needed:
         product = products[product_id]
-        items.append({"product": product, "quantity": round_up_to_step(needed[product_id], product)})
+        items.append({"product": product, "quantity": round_up_quantity(needed[product_id])})
     return items
 
 

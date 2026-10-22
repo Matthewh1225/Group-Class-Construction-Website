@@ -1,4 +1,4 @@
-"Catalog searches work; the remaining helpers are not written yet."
+"""Product catalog queries shared by shopping and the AI planner."""
 import logging
 
 from mysql.connector import Error
@@ -13,10 +13,10 @@ PAGE_SIZE = 12
 def get_manufacturers():
     with database_cursor() as cursor:
         cursor.execute("""
-            SELECT m.Id AS manufacturer_id, m.name,
+            SELECT m.id AS manufacturer_id, m.name,
                    EXISTS (SELECT 1 FROM Manufacturer_products mp
-                           JOIN Product p ON p.Id = mp.productId
-                           WHERE mp.manId = m.Id AND p.isActive = 1
+                           JOIN Product p ON p.id = mp.productId
+                           WHERE mp.manid = m.id AND p.isActive = 1
                              AND p.category = 'heavy-machinery') AS has_machinery
             FROM Manufacturer m
             ORDER BY m.name
@@ -26,7 +26,7 @@ def get_manufacturers():
 
 def get_manufacturer(manufacturer_id):
     with database_cursor() as cursor:
-        cursor.execute("SELECT Id AS manufacturer_id, name FROM Manufacturer WHERE Id = %s",
+        cursor.execute("SELECT id AS manufacturer_id, name FROM Manufacturer WHERE id = %s",
                        (manufacturer_id,))
         return cursor.fetchone()
 
@@ -34,13 +34,13 @@ def get_manufacturer(manufacturer_id):
 def search_products(search=None, category_url_name=None, page=1, manufacturer_id=None):
     "Return (products, has_next_page), sorted by name."
     sql = """
-        SELECT p.Id AS product_id, p.name AS product_name, p.details AS specification,
+        SELECT p.id AS product_id, p.name AS product_name, p.details AS specification,
                p.sku, p.unit, p.category,
-               p.packQuantity AS pack_quantity, p.purchaseIncrement AS purchase_increment,
-               p.price AS unit_price, p.itemQty AS available_quantity,
+               p.itemQty AS pack_quantity,
+               p.price AS unit_price, p.stockQty AS available_quantity,
                (SELECT m.name FROM Manufacturer_products mp
-                JOIN Manufacturer m ON m.Id = mp.manId
-                WHERE mp.productId = p.Id
+                JOIN Manufacturer m ON m.id = mp.manid
+                WHERE mp.productId = p.id
                 ORDER BY m.name LIMIT 1) AS manufacturer_name
         FROM Product p
         WHERE p.isActive = 1
@@ -49,7 +49,7 @@ def search_products(search=None, category_url_name=None, page=1, manufacturer_id
     values = []
 
     if manufacturer_id is not None:
-        sql += " AND EXISTS (SELECT 1 FROM Manufacturer_products mp WHERE mp.productId = p.Id AND mp.manId = %s)"
+        sql += " AND EXISTS (SELECT 1 FROM Manufacturer_products mp WHERE mp.productId = p.id AND mp.manid = %s)"
         values.append(manufacturer_id)
 
     if search:
@@ -81,11 +81,11 @@ def get_planner_catalog():
     "Return active products and specifications for the planner."
 
     sql = """
-        SELECT p.Id AS product_id, p.name AS product_name, p.unit,
+        SELECT p.id AS product_id, p.name AS product_name, p.unit,
                p.details AS specification
         FROM Product p
         WHERE p.isActive = 1
-        ORDER BY p.Id
+        ORDER BY p.id
         LIMIT 500
     """
     try:
@@ -105,11 +105,10 @@ def get_products_by_ids(product_ids):
         return {}
     placeholders = ", ".join(["%s"] * len(product_ids))
     sql = f"""
-        SELECT p.Id AS product_id, p.name AS product_name, p.unit,
-               p.purchaseIncrement AS purchase_increment,
-               p.price AS unit_price, p.itemQty AS available_quantity
+        SELECT p.id AS product_id, p.name AS product_name, p.unit,
+               p.price AS unit_price, p.stockQty AS available_quantity
         FROM Product p
-        WHERE p.isActive = 1 AND p.Id IN ({placeholders})
+        WHERE p.isActive = 1 AND p.id IN ({placeholders})
     """
     try:
         with database_cursor() as cursor:
@@ -122,32 +121,3 @@ def get_products_by_ids(product_ids):
     for row in rows:
         products[row["product_id"]] = row
     return products
-
-
-def get_categories():
-    "Include each category's subcategories."
-    pass
-
-def get_category_by_url_name(url_name):
-    "Find a category by its URL name, or return None."
-    pass
-
-def get_product_stock(product_id):
-    "Include price, stock, reserved amounts and available amounts."
-    pass
-
-def get_product_details(product_id):
-    "Include specifications, suppliers and image details."
-    pass
-
-def create_product(product_data):
-    "Check admin access before creating a product."
-    pass
-
-def update_product(product_id, product_data):
-    "Check admin access before changing a product."
-    pass
-
-def archive_product(product_id):
-    "Hide the product but keep its order history."
-    pass

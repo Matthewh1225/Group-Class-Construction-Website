@@ -71,7 +71,7 @@
         >
             <div class="dashboard-sidebar-header">
                 <a class="dashboard-sidebar-brand" href="{{ url_for('home') }}" aria-label="BuildBetter home">
-                    <img class="dashboard-brand-logo" src="{{ url_for('static', filename='images/logo.png') }}" alt="">
+                    <img class="dashboard-brand-logo" src="{{ url_for('static', filename='images/logo-128.png') }}" alt="">
                     <span>BUILD BETTER<small>{{ 'ADMINISTRATION' if admin_nav else 'DASHBOARD' }}</small></span>
                 </a>
                 <button class="dashboard-sidebar-close dashboard-utility" type="button" aria-label="Close navigation">
@@ -183,11 +183,11 @@
                             <svg class="dashboard-icon" aria-hidden="true">
                                 <use href="#icon-user"/>
                             </svg>
-                            <span class="dashboard-account-name">{{ session.get('username', 'Account') }}</span>
+                            <span class="dashboard-account-name">{{ session.get('display_name', 'Account') }}</span>
                             <span class="dashboard-account-chevron" aria-hidden="true"></span>
                         </summary>
                         <div class="dashboard-account-menu">
-                            <p>{{ session.get('username', 'Account') }}</p>
+                            <p>{{ session.get('display_name', 'Account') }}</p>
                             <a href="{{ url_for('dashboard.settings') }}">Account</a>
                             <form method="post" action="{{ url_for('auth.logout') }}">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">

@@ -82,7 +82,7 @@
                     <label for="admin-sort">Sort by</label>
                     <div class="admin-sort-controls">
                         <select id="admin-sort" aria-controls="user-list">
-                            <option value="username">Username</option>
+                            <option value="displayName">Name</option>
                             <option value="email">Email</option>
                             <option value="role">Role</option>
                             <option value="joined">Join date</option>
@@ -95,8 +95,8 @@
                 <caption class="admin-sr-only">Registered BuildBetter user accounts</caption>
                 <thead>
                     <tr>
-                        <th scope="col" aria-sort="ascending" data-sort-column="username">
-                            <button type="button" data-sort="username">User <span data-sort-indicator="username" aria-hidden="true">&uarr;</span></button>
+                        <th scope="col" aria-sort="ascending" data-sort-column="displayName">
+                            <button type="button" data-sort="displayName">User <span data-sort-indicator="displayName" aria-hidden="true">&uarr;</span></button>
                         </th>
                         <th scope="col" aria-sort="none" data-sort-column="role">
                             <button type="button" data-sort="role">Role <span data-sort-indicator="role" aria-hidden="true">&updownarrow;</span></button>
@@ -110,13 +110,13 @@
                 </thead>
                 <tbody id="user-list">
                     {% for user in users %}
-                        <tr class="admin-user-row" data-user-id="{{ user.id }}" data-username="{{ user.username }}" data-email="{{ user.email }}" data-role="{{ user.permission_level }}" data-status="{{ user.status }}" data-joined="{{ user.created_at or '' }}">
+                        <tr class="admin-user-row" data-user-id="{{ user.id }}" data-display-name="{{ user.display_name }}" data-email="{{ user.email }}" data-role="{{ user.permissions }}" data-status="{{ user.accountStatus }}" data-joined="{{ user.dateCreated or '' }}">
                             <td class="admin-user-cell">
                                 <div class="admin-user-identity">
-                                    <span class="admin-avatar" aria-hidden="true">{{ (user.username or '?')[:1]|upper }}</span>
+                                    <span class="admin-avatar" aria-hidden="true">{{ (user.display_name or '?')[:1]|upper }}</span>
                                     <div>
                                         <div class="admin-user-name">
-                                            {{ user.username }}
+                                            {{ user.display_name }}
                                             {% if user.id == session.get('user_id') %}
                                                 <span class="admin-you">You</span>
                                             {% endif %}
@@ -125,36 +125,36 @@
                                     </div>
                                 </div>
                             </td>
-                            <td class="admin-role-cell"><span class="admin-role-badge {{ 'admin-role-admin' if user.permission_level == 'admin' else 'admin-role-user' }}">{{ 'Admin' if user.permission_level == 'admin' else 'User' }}</span></td>
+                            <td class="admin-role-cell"><span class="admin-role-badge {{ 'admin-role-admin' if user.permissions == 'admin' else 'admin-role-user' }}">{{ 'Admin' if user.permissions == 'admin' else 'User' }}</span></td>
                             <td class="admin-status-cell">
-                                {% if user.status == 'disabled' %}
+                                {% if user.accountStatus == 'disabled' %}
                                     <span class="admin-status-badge admin-status-disabled">Disabled</span>
                                 {% else %}
                                     <span class="admin-status-badge admin-status-active">Active</span>
                                 {% endif %}
                             </td>
                             <td class="admin-joined-cell">
-                                <time data-user-date>{% if user.created_at %}{{ user.created_at }}{% else %}&mdash;{% endif %}</time>
+                                <time data-user-date>{% if user.dateCreated %}{{ user.dateCreated }}{% else %}&mdash;{% endif %}</time>
                             </td>
                             <td class="admin-actions-cell">
                                 <div class="admin-row-actions">
-                                    <button class="admin-row-button" type="button" data-view-user aria-label="View details for {{ user.username }}">
+                                    <button class="admin-row-button" type="button" data-view-user aria-label="View details for {{ user.display_name }}">
                                         <svg class="dashboard-icon" aria-hidden="true">
                                             <use href="#icon-eye"/>
                                         </svg>
                                         Details
                                     </button>
                                     {% if user.id != session.get('user_id') %}
-                                        {% if user.status == 'disabled' %}
+                                        {% if user.accountStatus == 'disabled' %}
                                             <form method="post" action="{{ url_for('dashboard.change_user_status', user_id=user.id) }}">
                                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                                 <input type="hidden" name="status" value="active">
-                                                <button class="admin-row-button" type="submit" aria-label="Enable account for {{ user.username }}">Enable Account</button>
+                                                <button class="admin-row-button" type="submit" aria-label="Enable account for {{ user.display_name }}">Enable Account</button>
                                             </form>
                                         {% else %}
-                                            <button class="admin-row-button" type="button" data-disable-user data-status-url="{{ url_for('dashboard.change_user_status', user_id=user.id) }}" aria-label="Disable account for {{ user.username }}">Disable Account</button>
+                                            <button class="admin-row-button" type="button" data-disable-user data-status-url="{{ url_for('dashboard.change_user_status', user_id=user.id) }}" aria-label="Disable account for {{ user.display_name }}">Disable Account</button>
                                         {% endif %}
-                                        <button class="admin-row-button admin-row-danger" type="button" data-delete-user data-delete-url="{{ url_for('dashboard.delete_user', user_id=user.id) }}" aria-label="Delete {{ user.username }} completely">
+                                        <button class="admin-row-button admin-row-danger" type="button" data-delete-user data-delete-url="{{ url_for('dashboard.delete_user', user_id=user.id) }}" aria-label="Delete {{ user.display_name }} completely">
                                             <svg class="dashboard-icon" aria-hidden="true">
                                                 <use href="#icon-trash"/>
                                             </svg>
@@ -206,13 +206,18 @@
             <form class="admin-account-form" id="admin-add-form" method="post" action="{{ url_for('dashboard.dashboard') }}" data-password-digits="{{ password_digits }}" novalidate>
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div class="admin-form-field">
-                    <label for="admin-username">Username</label>
-                    <input id="admin-username" name="username" type="text" autocomplete="off" maxlength="50" required aria-describedby="admin-username-error">
-                    <span class="admin-field-error" id="admin-username-error" aria-live="polite"></span>
+                    <label for="admin-firstName">First name</label>
+                    <input id="admin-firstName" name="firstName" type="text" autocomplete="off" maxlength="50" required aria-describedby="admin-firstName-error">
+                    <span class="admin-field-error" id="admin-firstName-error" aria-live="polite"></span>
+                </div>
+                <div class="admin-form-field">
+                    <label for="admin-lastName">Last name</label>
+                    <input id="admin-lastName" name="lastName" type="text" autocomplete="family-name" maxlength="50" required aria-describedby="admin-lastName-error">
+                    <span class="admin-field-error" id="admin-lastName-error" aria-live="polite"></span>
                 </div>
                 <div class="admin-form-field">
                     <label for="admin-email">Email address</label>
-                    <input id="admin-email" name="email" type="email" autocomplete="off" maxlength="254" required aria-describedby="admin-email-error">
+                    <input id="admin-email" name="email" type="email" autocomplete="off" maxlength="100" required aria-describedby="admin-email-error">
                     <span class="admin-field-error" id="admin-email-error" aria-live="polite"></span>
                 </div>
                 <div class="admin-form-field">
@@ -269,8 +274,8 @@
             </div>
             <dl class="dashboard-detail-list admin-details-list">
                 <div>
-                    <dt>Username</dt>
-                    <dd id="admin-detail-username"></dd>
+                    <dt>Name</dt>
+                    <dd id="admin-detail-displayName"></dd>
                 </div>
                 <div>
                     <dt>Email</dt>
@@ -299,7 +304,7 @@
         </dialog>
         <dialog class="dashboard-dialog admin-dialog admin-delete-dialog" id="admin-disable-dialog" aria-labelledby="admin-disable-title">
             <div class="admin-dialog-heading">
-                <h2 id="admin-disable-title">Disable <span id="admin-disable-username"></span>?</h2>
+                <h2 id="admin-disable-title">Disable <span id="admin-disable-displayName"></span>?</h2>
                 <button type="button" class="admin-dialog-close" data-close-admin-dialog aria-label="Close Disable Account">&times;</button>
             </div>
             <p>This signs them out and blocks login. You can enable the account again.</p>
@@ -315,7 +320,7 @@
         {# Deletion needs a warning and a typed DELETE confirmation. #}
         <dialog class="dashboard-dialog admin-dialog admin-delete-dialog" id="admin-delete-dialog" aria-labelledby="admin-delete-title">
             <div class="admin-dialog-heading">
-                <h2 id="admin-delete-title">Delete <span id="admin-delete-username"></span> completely?</h2>
+                <h2 id="admin-delete-title">Delete <span id="admin-delete-displayName"></span> completely?</h2>
                 <button type="button" class="admin-dialog-close" data-close-admin-dialog aria-label="Close Delete Completely">&times;</button>
             </div>
             <div id="admin-delete-step-1">

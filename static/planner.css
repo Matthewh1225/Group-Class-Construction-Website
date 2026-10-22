@@ -779,6 +779,20 @@
 .plan-status-neutral { color: var(--muted); background: var(--panel-raised); }
 .plan-refresh { display: inline-block; margin-top: 16px; }
 
+.plan-stages { margin-top: 20px; }
+.plan-stage-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin: 12px 0 0; padding: 0; list-style: none; }
+.plan-stage { display: grid; gap: 6px; padding: 14px 16px; border: 1px solid var(--plan-border); border-radius: var(--radius); background: var(--panel); }
+.plan-stage strong { font-size: 15px; }
+.plan-stage [data-stage-status] { display: flex; align-items: center; gap: 8px; color: var(--plan-muted); font-size: 14px; }
+.plan-stage [data-stage-status]::before { content: ""; width: 8px; height: 8px; border: 1px solid currentColor; border-radius: 50%; }
+.plan-stage[data-state="processing"] { border-color: var(--amber); background: var(--amber-tint); }
+.plan-stage[data-state="processing"] [data-stage-status] { color: var(--amber-bright); }
+.plan-stage[data-state="done"] { border-color: var(--success-border); }
+.plan-stage[data-state="done"] [data-stage-status] { color: var(--success); }
+.plan-stage[data-state="failed"] { border-color: var(--danger-border); background: var(--danger-bg); }
+.plan-stage[data-state="failed"] [data-stage-status] { color: var(--danger); }
+.plan-stage:is([data-state="processing"], [data-state="done"], [data-state="failed"]) [data-stage-status]::before { background: currentColor; }
+
 .plan-button, .plan-button-secondary {
     display: inline-flex; align-items: center; justify-content: center;
     padding: 11px 20px; border: 1px solid var(--plan-accent); border-radius: var(--radius);

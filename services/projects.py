@@ -1,4 +1,4 @@
-"Saved project helpers are not written yet."
+"TODO: saved projects are not written yet. Every function returns None, so My Projects shows an error page."
 
 
 def can_save(job):

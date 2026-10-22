@@ -171,7 +171,9 @@ def planning_job_save(job_id):
 @planner_bp.get("/planner/jobs/<job_id>/status")
 def planning_job_status(job_id):
     job = owned_job(job_id)
-    status = {"id": job["id"], "status": job["status"], "phase": job["phase"], "error": job["error"]}
+    label, tone = status_label(job)
+    status = {"id": job["id"], "status": job["status"], "label": label, "error": job["error"],
+              "stages": job.get("stages", {})}
     return status, 200, {"Cache-Control": "no-store"}
 
 

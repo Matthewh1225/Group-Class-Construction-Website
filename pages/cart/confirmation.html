@@ -42,19 +42,7 @@
                 {% endfor %}
             </ul>
             <h2>Shipping address</h2>
-            <address>
-                {{ verified_order.shipping_address.name }}
-                <br>
-                {{ verified_order.shipping_address.street }}
-                {% if verified_order.shipping_address.apartment %}
-                    <br>
-                    {{ verified_order.shipping_address.apartment }}
-                {% endif %}
-                <br>
-                {{ verified_order.shipping_address.city }}, {{ verified_order.shipping_address.state }} {{ verified_order.shipping_address.zip_code }}
-                <br>
-                {{ verified_order.shipping_address.country }}
-            </address>
+            <address>{{ verified_order.shipping or "No shipping address recorded." }}</address>
         </section>
     {% else %}
         <section class="shopping-panel shopping-empty shopping-confirmation" aria-labelledby="confirmation-title">

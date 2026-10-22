@@ -1,5 +1,3 @@
-// Clicks and keyboard controls work alongside the CSS hover menu.
-
 const moreCategories = document.querySelector(".category-more");
 const moreButton = moreCategories.querySelector(".category-more-button");
 
@@ -33,6 +31,7 @@ document.addEventListener("click", function (event) {
     }
 });
 
+// Load a category's products without reloading the whole page.
 let categoryRequest;
 
 async function filterCategory(url, addHistory = true) {

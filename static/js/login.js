@@ -9,6 +9,6 @@ loginForm.addEventListener("submit", function (event) {
     event.preventDefault();
     message.textContent = "";
     const data = Object.fromEntries(new FormData(loginForm));
-    data.username = data.username.trim();
+    data.email = data.email.trim();
     submitAccountForm(loginForm, message, data);
 });

@@ -25,6 +25,26 @@
         {% endif %}
     </header>
 
+    {% if job.stages or job.status in ['queued', 'running'] %}
+        {% set stage_labels = {'interpreter': 'Interpreter', 'planner': 'Planner', 'second_planner': 'Planner 2', 'auditor': 'Auditor'} %}
+        {% set status_labels = {'pending': 'Pending', 'processing': 'Processing', 'done': 'Done', 'failed': 'Failed', 'cancelled': 'Cancelled'} %}
+        {% set stages = job.stages|default({}) %}
+        <section class="plan-stages" aria-label="AI stage progress" aria-live="polite">
+            {% if job.tier == 'pro' %}<p class="plan-muted">The two planners run at the same time.</p>{% endif %}
+            <ol class="plan-stage-list">
+                {% for stage, label in stage_labels.items() %}
+                    {% if stage != 'second_planner' or job.tier == 'pro' %}
+                        {% set state = stages.get(stage, 'pending') %}
+                        <li class="plan-stage" data-stage="{{ stage }}" data-state="{{ state }}">
+                            <strong>{{ label }}</strong>
+                            <span data-stage-status>{{ status_labels[state] }}</span>
+                        </li>
+                    {% endif %}
+                {% endfor %}
+            </ol>
+        </section>
+    {% endif %}
+
     {% if job.status in ['queued', 'running'] %}
         <a class="plan-refresh" href="{{ url_for('planner.planning_job', job_id=job.id) }}">Refresh progress</a>
     {% endif %}
@@ -83,16 +103,6 @@
                 </div>
             </div>
 
-            {% if job.status == 'partial' %}
-                <div class="plan-alert plan-alert-info" id="recalculate-plan">
-                    <p>This older plan has missing quantities. Recalculate it using your saved details and answers.</p>
-                    <form method="post" action="{{ url_for('planner.planning_job_restart', job_id=job.id) }}" data-submit-once>
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <button class="plan-button" type="submit">Recalculate plan</button>
-                    </form>
-                </div>
-            {% endif %}
-
             {% if materials %}
                 <div class="plan-filter" id="material-filter" hidden>
                     <label for="material-search">Find a material</label>
@@ -119,11 +129,7 @@
                                     {% if item.specification %}<small>{{ item.specification|truncate(120, true) }}</small>{% endif %}
                                 </th>
                                 <td data-label="You need">
-                                    {% if item.quantity is none or item.quantity <= 0 %}
-                                        <a href="#recalculate-plan">Recalculate plan for this quantity</a>
-                                    {% else %}
-                                        <span class="plan-number">{{ amount(item.quantity) }}</span> {{ item.unit }}
-                                    {% endif %}
+                                    <span class="plan-number">{{ amount(item.quantity) }}</span> {{ item.unit }}
                                     {% if item.notes %}<small>{{ item.notes }}</small>{% endif %}
                                 </td>
                                 <td data-label="Store product">

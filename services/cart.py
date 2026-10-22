@@ -25,9 +25,9 @@ def read_quantity(text):
 def get_cart_product(cursor, product_id):
     # Keep this product locked until the cart change is saved.
     cursor.execute("""
-        SELECT name, unit, price AS unit_price, itemQty AS available_quantity,
-               isActive AS is_active, purchaseIncrement AS purchase_increment
-        FROM Product WHERE Id = %s FOR UPDATE
+        SELECT name, unit, price AS unit_price, stockQty AS available_quantity,
+               isActive AS is_active
+        FROM Product WHERE id = %s FOR UPDATE
     """, (product_id,))
     return cursor.fetchone()
 
@@ -38,9 +38,6 @@ def check_cart_product(product, quantity):
     price = product["unit_price"]
     if price is None or price < 0:
         raise ValueError("This product does not have a valid price.")
-    increment = product["purchase_increment"]
-    if increment <= 0 or quantity % increment != 0:
-        raise ValueError(f"Order this product in multiples of {increment} {product['unit']}.")
     stock = product["available_quantity"]
     if stock is None:
         stock = 0
@@ -51,13 +48,12 @@ def check_cart_product(product, quantity):
 def get_cart_items(user_id):
     with database_cursor() as cursor:
         cursor.execute("""
-            SELECT c.product_id, c.quantity, p.name, p.unit, p.price AS unit_price,
-                   p.itemQty AS available_quantity, p.isActive AS is_active,
-                   p.purchaseIncrement AS purchase_increment
+            SELECT c.productId AS product_id, c.itemQty AS quantity, p.name, p.unit, p.price AS unit_price,
+                   p.stockQty AS available_quantity, p.isActive AS is_active
             FROM Cart_item c
-            JOIN Product p ON p.Id = c.product_id
-            WHERE c.user_id = %s
-            ORDER BY p.name, p.Id
+            JOIN Product p ON p.id = c.productId
+            WHERE c.userId = %s
+            ORDER BY p.name, p.id
         """, (user_id,))
         items = cursor.fetchall()
     for item in items:
@@ -79,17 +75,17 @@ def add_cart_item(user_id, product_id, quantity):
     quantity = read_quantity(quantity)
     with database_cursor() as cursor:
         product = get_cart_product(cursor, product_id)
-        cursor.execute("SELECT quantity FROM Cart_item WHERE user_id = %s AND product_id = %s FOR UPDATE",
+        cursor.execute("SELECT itemQty AS quantity FROM Cart_item WHERE userId = %s AND productId = %s FOR UPDATE",
                        (user_id, product_id))
         existing = cursor.fetchone()
         if existing:
             quantity += existing["quantity"]
         check_cart_product(product, quantity)
         if existing:
-            cursor.execute("UPDATE Cart_item SET quantity = %s WHERE user_id = %s AND product_id = %s",
+            cursor.execute("UPDATE Cart_item SET itemQty = %s WHERE userId = %s AND productId = %s",
                            (quantity, user_id, product_id))
         else:
-            cursor.execute("INSERT INTO Cart_item (user_id, product_id, quantity) VALUES (%s, %s, %s)",
+            cursor.execute("INSERT INTO Cart_item (userId, productId, itemQty) VALUES (%s, %s, %s)",
                            (user_id, product_id, quantity))
     return product["name"]
 
@@ -99,17 +95,17 @@ def update_cart_quantity(user_id, product_id, quantity):
     with database_cursor() as cursor:
         product = get_cart_product(cursor, product_id)
         check_cart_product(product, quantity)
-        cursor.execute("SELECT quantity FROM Cart_item WHERE user_id = %s AND product_id = %s FOR UPDATE",
+        cursor.execute("SELECT itemQty AS quantity FROM Cart_item WHERE userId = %s AND productId = %s FOR UPDATE",
                        (user_id, product_id))
         if cursor.fetchone() is None:
             raise ValueError("This product is not in your cart.")
-        cursor.execute("UPDATE Cart_item SET quantity = %s WHERE user_id = %s AND product_id = %s",
+        cursor.execute("UPDATE Cart_item SET itemQty = %s WHERE userId = %s AND productId = %s",
                        (quantity, user_id, product_id))
 
 
 def remove_cart_item(user_id, product_id):
     with database_cursor() as cursor:
-        cursor.execute("DELETE FROM Cart_item WHERE user_id = %s AND product_id = %s",
+        cursor.execute("DELETE FROM Cart_item WHERE userId = %s AND productId = %s",
                        (user_id, product_id))
         return cursor.rowcount > 0
 
@@ -122,13 +118,3 @@ def calculate_cart_subtotal(user_id):
             raise ValueError(item["error"])
         subtotal += Decimal(item["total_cents"]) / CENTS_PER_DOLLAR
     return subtotal
-
-
-def add_material_list_to_cart(user_id, material_list_id):
-    "Use the user's materials and round amounts to store pack sizes."
-    pass
-
-
-def clear_cart(user_id):
-    "Checkout clears the cart as part of saving the order."
-    pass

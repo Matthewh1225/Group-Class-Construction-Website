@@ -15,12 +15,16 @@
     <form id="register-form" class="account-form" method="post" action="{{ url_for('auth.register') }}" data-password-digits="{{ password_digits }}">
         <h2>Create an account</h2>
         <div class="form-field">
-            <label for="username">Username</label>
-            <input type="text" id="username" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="JohnDoe123" maxlength="50" required>
+            <label for="firstName">First name</label>
+            <input type="text" id="firstName" name="firstName" autocomplete="given-name" autocapitalize="none" spellcheck="false" maxlength="50" required>
+        </div>
+        <div class="form-field">
+            <label for="lastName">Last name</label>
+            <input type="text" id="lastName" name="lastName" autocomplete="family-name" maxlength="50" required>
         </div>
         <div class="form-field">
             <label for="email">Email</label>
-            <input type="email" id="email" name="email" autocomplete="email" placeholder="jd@example.com" maxlength="254" required>
+            <input type="email" id="email" name="email" autocomplete="email" placeholder="jd@example.com" maxlength="100" required>
         </div>
         <div class="form-field">
             <label for="password">Password</label>

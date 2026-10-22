@@ -22,7 +22,7 @@
                                 {% else %}
                                     <span class="product-status product-status-available">In stock</span>
                                 {% endif %}
-                                {% if product.unit_price is not none and product.available_quantity and product.available_quantity >= product.purchase_increment %}
+                                {% if product.unit_price is not none and product.available_quantity and product.available_quantity >= 1 %}
                                     <form class="product-cart-form" method="post" action="{{ url_for('cart_add') }}">
                                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                         <input type="hidden" name="product_id" value="{{ product.product_id }}">
@@ -31,7 +31,7 @@
                                         <input type="hidden" name="q" value="{{ search }}">
                                         <input type="hidden" name="page" value="{{ page }}">
                                         <label for="quantity-{{ product.product_id }}">Quantity ({{ product.unit }})</label>
-                                        <input id="quantity-{{ product.product_id }}" name="quantity" type="number" min="{{ product.purchase_increment }}" step="{{ product.purchase_increment }}" max="{{ product.available_quantity }}" value="{{ product.purchase_increment }}" required>
+                                        <input id="quantity-{{ product.product_id }}" name="quantity" type="number" min="1" step="1" max="{{ product.available_quantity }}" value="1" required>
                                         <button class="btn btn-primary" type="submit">Add to Cart</button>
                                     </form>
                                 {% else %}

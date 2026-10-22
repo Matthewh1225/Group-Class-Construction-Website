@@ -1,5 +1,3 @@
-# Payment and subscription services are not written yet.
-
 from flask import Blueprint, render_template, request, session
 
 from planning.ai_config import WORKFLOW_TIERS
@@ -17,7 +15,7 @@ def about_pro():
 @subscription_bp.route("/subscription/checkout", methods=["GET", "POST"])
 @dashboard_login_required
 def checkout():
-    # Payments stay disabled until the subscription service is finished.
+    # TODO: subscribing is not built yet, so a POST always shows the error page.
     failed = request.method == "POST"
     return render_template(
         "subscription/checkout.html", tiers=WORKFLOW_TIERS,
