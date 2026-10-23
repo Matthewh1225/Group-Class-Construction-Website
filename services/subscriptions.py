@@ -6,21 +6,21 @@ PRO_PLANS = {
         "billing": "Billed monthly",
         "badge": "Stay flexible", "frequency": "per month",
         "detail": "Renews every month", "button_label": "Subscribe to Pro",
-        "terms": "Renews at $19.99 every month until canceled. Cancel before your next renewal to stop future charges.",
+        "terms": "Renews at $19.99 every month until canceled."
     },
     "yearly": {
         "name": "Yearly Pro", "amount_cents": 19200, "interval": "year",
-        "billing": "Billed yearly, paid upfront",
+        "billing": "Billed yearly",
         "badge": "Save about 20%", "frequency": "per year",
         "button_label": "Subscribe to Pro",
-        "terms": "Pay $192.00 upfront for one year. Renews at $192.00 each year until canceled.",
+        "terms": "Renews until canceled.",
     },
     "lifetime": {
         "name": "Lifetime Pro", "amount_cents": 100000000, "interval": "once",
         "billing": "One-time payment",
         "badge": "One payment", "frequency": "One-time purchase",
         "detail": "No recurring charges", "button_label": "Complete purchase",
-        "terms": "Pay $1,000,000.00 once for lifetime Pro access. No renewals or recurring charges.",
+        "terms": "Pay $1,000,000.00 once for lifetime Pro access.",
     },
 }
 

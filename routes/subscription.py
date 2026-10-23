@@ -40,8 +40,7 @@ def subscribe():
             monthly_cents = plan["amount_cents"] / 12
             monthly_price = "${:,.2f}".format(monthly_cents / 100)
             plan["detail"] = monthly_price + "/month equivalent"
-            plan["monthly_equivalent"] = "Equivalent to " + monthly_price + "/month, billed yearly."
-            plan["savings_cents"] = PRO_PLANS["monthly"]["amount_cents"] * 12 - plan["amount_cents"]
+            plan["savings_cents"] = (PRO_PLANS["monthly"]["amount_cents"] *12 - PRO_PLANS["yearly"]["amount_cents"])*-1;
         plans[key] = plan
     return render_template(
         "subscription/checkout.html", tiers=WORKFLOW_TIERS, plans=plans,
