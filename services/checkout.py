@@ -1,7 +1,7 @@
 
 
 def check_checkout_form(checkout_data):
-    # TODO: Check the contact and delivery fields, clean them up, and explain any missing or invalid details.
+    # TODO: Clean up contact and delivery details, and report missing or invalid fields.
     pass
 
 def calculate_totals(cart_items):

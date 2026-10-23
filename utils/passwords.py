@@ -13,7 +13,7 @@ def validate_password(password):
         raise ValueError(f"Password must be at least {MIN_PASSWORD_LENGTH} characters.")
     if len(password) > MAX_PASSWORD_LENGTH:
         raise ValueError(f"Password must be at most {MAX_PASSWORD_LENGTH} characters.")
-    # Only 0-9 count as a number. The register form checks the same rule.
+    # Match the registration form's 0-9 rule.
     if not any(char in "0123456789" for char in password):
         raise ValueError("Password must contain at least one number.")
 

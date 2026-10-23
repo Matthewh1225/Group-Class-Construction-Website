@@ -67,7 +67,6 @@ def project_spec_rows(project):
     return rows
 
 
-# Other spellings of a unit that mean the same thing. This is only read, never changed.
 UNIT_ALIASES = {"feet": "ft", "foot": "ft", "inches": "in", "inch": "in",
                 "meters": "m", "metres": "m", "square feet": "sq_ft", "sq ft": "sq_ft",
                 "square meters": "sq_m", "sq m": "sq_m", "layers": "count",
@@ -76,13 +75,12 @@ UNIT_ALIASES = {"feet": "ft", "foot": "ft", "inches": "in", "inch": "in",
                 "rolls": "roll", "screws": "screw", "boxes": "box", "bags": "bag"}
 
 
-# Plan units and store units must match before a product can be bought.
 def normalize_unit(unit):
     text = unit.strip().lower()
     return UNIT_ALIASES.get(text, text)
 
 
-# Products are purchased as whole sellable units (boxes, bags, pieces, etc.).
+# Buy whole boxes, bags, or pieces, even when the estimate needs a fraction.
 def round_up_quantity(needed):
     return needed.to_integral_value(rounding=ROUND_CEILING)
 
@@ -95,7 +93,6 @@ def buy_quantity(material, product):
     return round_up_quantity(Decimal(str(material["quantity"])))
 
 
-# Use current store prices and stock when showing a plan.
 def add_store_details(materials):
     product_ids = []
     for material in materials:
@@ -146,8 +143,8 @@ def add_store_details(materials):
 
 # Add matching amounts before rounding so shared packs are not bought twice.
 def cart_items(rows):
-    needed = {}    # amounts by product ID
-    products = {}  # products by ID
+    needed = {}
+    products = {}
     for row in rows:
         if not row["can_add"]:
             continue

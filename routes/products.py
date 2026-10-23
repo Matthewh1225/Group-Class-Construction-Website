@@ -21,8 +21,7 @@ PRODUCT_CATEGORIES = [
     {"url_name": "doors-windows", "code": "MAT-12", "name": "Doors & Windows"},
 ]
 
-# Every product in a category shares one picture (paths are inside the static folder).
-# Use the category images in static/images; missing images use the placeholder.
+# Products share a category image; paths are relative to static/.
 PLACEHOLDER_IMAGE = "images/categories/placeholder.png"
 CATEGORY_IMAGES = {
     "lumber": "images/Lumber & Building Materials.png",
@@ -48,21 +47,18 @@ def find_category(url_name):
     return None
 
 
-# Reads the manufacturer, search text and page number from the URL, then fetches
-# one page of products. Both catalog pages pass the returned values to their template.
 def load_product_page(category_url_name):
     manufacturer_id = request.args.get("manufacturer", type=int)
     if "manufacturer" in request.args and (manufacturer_id is None or manufacturer_id < 1):
         abort(404)
     search = request.args.get("q", "").strip()[:200]
-    # A missing, non-numeric or too small page number shows page 1.
     page = max(1, request.args.get("page", 1, type=int))
 
     manufacturer = None
     product_list = []
     total_pages = 1
     catalog_error = False
-    # If the database fails, still show the page so the category links stay visible.
+    # Keep category links visible even when the product query fails.
     try:
         if manufacturer_id is not None:
             manufacturer = get_manufacturer(manufacturer_id)

@@ -131,7 +131,6 @@ def planning_job_add_to_cart(job_id):
 
 @planner_bp.post("/planner/jobs/<job_id>/save")
 def planning_job_save(job_id):
-    # Saving the same job again should update its project.
     job = get_user_job(job_id)
     try:
         project_id = save_job_as_project(session["user_id"], job, request.form.get("name"))
@@ -176,7 +175,6 @@ def planning_job_cancel(job_id):
     return redirect(url_for("planner.planning_job", job_id=job_id), code=303)
 
 
-# A failed job restarts as a new job with the same inputs and answers.
 @planner_bp.post("/planner/jobs/<job_id>/restart")
 @limiter.limit("4 per minute; 30 per hour", methods=["POST"])
 def planning_job_restart(job_id):

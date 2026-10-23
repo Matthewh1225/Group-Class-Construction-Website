@@ -12,7 +12,7 @@ errorlog = "-"
 
 
 def _embedded_enabled():
-    # Render sets RENDER=true.
+    # Run the planner on Render unless explicitly disabled.
     value = os.getenv("PLANNER_EMBEDDED_WORKER", os.getenv("RENDER", "false"))
     return value.strip().lower() == "true"
 
@@ -26,7 +26,7 @@ def post_worker_init(worker):
     if existing is not None and existing.is_alive():
         return
 
-    # Wait until the app and worker are ready before importing the planner.
+    # The app must load .env before the planner creates its AI clients.
     from planning.worker import run_worker
 
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
@@ -49,5 +49,4 @@ def worker_exit(server, worker):
     stop_event.set()
     worker.planner_thread.join(timeout=5)
     if worker.planner_thread.is_alive():
-        # An unfinished job fails when its time limit runs out.
         worker.log.info("Planner is still finishing a call; an unfinished job is marked failed when its lease runs out.")

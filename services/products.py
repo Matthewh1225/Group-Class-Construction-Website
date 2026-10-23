@@ -1,4 +1,3 @@
-"""Product catalog queries shared by shopping and the AI planner."""
 from utils.database import database_cursor
 
 PAGE_SIZE = 12
@@ -26,7 +25,7 @@ def get_manufacturer(manufacturer_id):
 
 
 def search_products(search=None, category_url_name=None, page=1, manufacturer_id=None):
-    "Return (products, total_pages), sorted by name with matching filter counts."
+    "Return (products, total_pages) using the same filters for both."
     sql = """
         SELECT p.id AS product_id, p.name AS product_name, p.details AS specification,
                p.sku, p.unit, p.category,
@@ -69,7 +68,6 @@ def search_products(search=None, category_url_name=None, page=1, manufacturer_id
 
 
 def get_planner_catalog():
-    "Return active products and specifications for the final AI auditor to match materials."
 
     sql = """
         SELECT p.id AS product_id, p.name AS product_name, p.unit, p.details AS specification
@@ -84,7 +82,6 @@ def get_planner_catalog():
 
 
 def get_products_by_ids(product_ids):
-    "Return current product details by ID."
     # Read current store data instead of saving prices in the AI plan.
     product_ids = sorted(set(product_ids))
     if not product_ids:

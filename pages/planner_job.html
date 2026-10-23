@@ -27,9 +27,6 @@
 
     {% if job.stages or job.status in ['queued', 'running'] %}
         <section class="plan-stages" aria-label="AI stage progress" aria-live="polite">
-            {% if job.tier == 'pro' %}
-                <p class="plan-muted">The two planners run at the same time.</p>
-            {% endif %}
             <ol class="plan-stage-list">
                 {% for stage in stage_rows %}
                     <li class="plan-stage" data-stage="{{ stage.name }}" data-state="{{ stage.state }}">

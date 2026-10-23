@@ -15,7 +15,7 @@ def database_settings():
     }
 
 def close_database(error=None):
-    """Release this request's connection, including after failed requests."""
+    """Flask calls this after each request, even if the request fails."""
     connection = g.pop("database_connection", None)
     if connection is not None:
         connection.close()

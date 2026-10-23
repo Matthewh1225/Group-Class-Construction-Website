@@ -15,7 +15,7 @@ from utils.users import create_user, delete_user_completely, get_all_users, set_
 dashboard_bp = Blueprint("dashboard", __name__)
 
 
-# The sign-in check refreshes the role each request.
+# Roles are refreshed from the database before each request.
 @dashboard_bp.route("/dashboard", methods=["GET", "POST"])
 @login_required
 def dashboard():
@@ -40,7 +40,6 @@ def dashboard():
         return redirect(url_for("dashboard.dashboard"))
 
     if permission_level == "admin":
-        # An empty list means no users but users_error means the query failed.
         users_error = False
         try:
             users = get_all_users()
@@ -247,7 +246,7 @@ def delete_user(user_id):
 
     try:
         deleted = delete_user_completely(user_id)
-    # Planner jobs are deleted from SQLite, so its errors count too.
+    # Account deletion also removes planner data from SQLite.
     except (Error, sqlite3.Error):
         current_app.logger.exception("Deleting user %s failed", user_id)
         flash("Unable to delete user. Nothing was removed.", "error")

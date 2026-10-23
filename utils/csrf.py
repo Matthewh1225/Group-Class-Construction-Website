@@ -11,7 +11,6 @@ def csrf_token():
 
 
 def check_csrf():
-    # Reject POSTs with a missing or incorrect token before running the route.
     if request.method != "POST":
         return None
     expected = session.get("csrf_token", "")

@@ -22,7 +22,7 @@ PRODUCT_COLUMNS = (
 
 
 def load_products(path=ROOT / "sql" / "catalog_products.csv"):
-    """Check the editable CSV before connecting to the database."""
+    """Check the CSV before connecting to the database."""
     with path.open(encoding="utf-8", newline="") as source:
         products = list(csv.DictReader(source))
     schema = (ROOT / "sql" / "erd_schema.sql").read_text(encoding="utf-8")
@@ -72,7 +72,7 @@ def load_products(path=ROOT / "sql" / "catalog_products.csv"):
 
 
 def seed_catalog(cursor, products, apply=False):
-    """Preserve existing IDs and unrelated products; the caller owns the transaction."""
+    """Keep existing IDs and unrelated products; let the caller commit or roll back."""
     cursor.execute("SELECT id, sku, name, category, unit, isActive FROM Product")
     existing = cursor.fetchall()
     by_sku = {}

@@ -2,7 +2,7 @@ from planning.jobs import delete_planner_jobs
 from utils.database import database_cursor
 from utils.passwords import check_password, hash_password, validate_password
 
-# match the User table.
+# Match the User table's field limits.
 MAX_NAME_LENGTH = 50
 MAX_EMAIL_LENGTH = 100
 
@@ -18,12 +18,10 @@ def looks_like_email(email):
     return True
 
 
-# A last name is optional in old data, so this never leaves a trailing space.
 def full_name(first_name, last_name):
     return (first_name + " " + last_name).strip()
 
 
-# The signed-in user's name, role and account status, or None if the account no longer exists.
 def get_account(user_id):
     with database_cursor() as cursor:
         cursor.execute(
@@ -34,9 +32,7 @@ def get_account(user_id):
         return cursor.fetchone()
 
 
-# Returns the user if the email and password are both right, otherwise None.
-# It does not look at accountStatus. The caller checks that afterwards, so a disabled
-# account is only revealed to someone who knows the password.
+# Check the password before the route reveals whether the account is disabled.
 def check_login(email, password):
     with database_cursor() as cursor:
         cursor.execute(

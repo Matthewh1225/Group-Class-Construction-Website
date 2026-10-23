@@ -27,7 +27,6 @@ for model_name, settings in MODELS.items():
         "client": make_client(settings["provider"], settings["api_key"]),
         "model": os.getenv(settings["model_env"]) or settings["default"],
     }
-    # Gemini 3.5 Flash Lite is used in place of Gemini 3.8 Flash on purpose.
     if AI_MODELS[model_name]["model"] == "gemini-3.8-flash":
         AI_MODELS[model_name]["model"] = "gemini-3.5-flash-lite"
 
@@ -83,11 +82,8 @@ def call_groq(model, prompt, thinking_level, system_instruction, response_schema
             timeout=AI_TIMEOUT,
         )
     except BadRequestError as error:
-      
         if "json_validate_failed" in str(error.body):
-            raise BadAnswer("The last answer did not match the required JSON schema. Return one "
-                            "complete JSON object with every required field, the correct types "
-                            "and no extra keys.") from error
+            raise BadAnswer("the AI answer did not match the required format") from error
         raise
     if not response.choices:
         raise BadAnswer("the AI provider returned an empty answer")
@@ -103,7 +99,7 @@ def call_openrouter(model, prompt, thinking_level, system_instruction, response_
         "model": model["model"],
         "messages": make_messages(system_instruction, prompt),
         "reasoning": {"effort": thinking_level, "exclude": True},
-        "provider": {"require_parameters": True},
+        "provider": {"require_parameters": True, "allow_fallbacks": False},
         "max_tokens": output_tokens,
         "stream": False,
         "timeout_ms": AI_TIMEOUT * 1000,

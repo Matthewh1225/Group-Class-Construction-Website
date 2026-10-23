@@ -94,7 +94,6 @@ def pro_access_allowed(owner):
     return has_active_pro(owner)
 
 
-# A job gets fresh stages each time it is queued.
 def pending_stages(tier):
     stages = {"interpreter": "pending", "planner": "pending"}
     if tier == "pro":
@@ -103,8 +102,7 @@ def pending_stages(tier):
     return stages
 
 
-# Used when a job fails, is interrupted or is cancelled.
-# Jobs saved before stages existed have none.
+# Older jobs may not have stage details.
 def stop_running_stages(job, new_state):
     for stage, state in job.get("stages", {}).items():
         if state == "processing":
@@ -139,7 +137,6 @@ def check_queue_capacity(database, owner):
 
 
 # Reusing a submission key returns the first job.
-# Restarts can include earlier answers.
 def submit_job(owner, submission_key, project, tier="fast", answers=None):
     if answers is None:
         answers = []
@@ -161,7 +158,6 @@ def submit_job(owner, submission_key, project, tier="fast", answers=None):
             if existing["request_hash"] != request_hash:
                 raise ValueError("This submission key already belongs to another request.")
             return decode(existing)
-        # Each tier has its own daily limit.
         jobs_today = database.execute(
             "SELECT COUNT(*) FROM planner_jobs WHERE owner = ? AND tier = ? AND created >= ?",
             (owner, tier, now - ONE_DAY),
@@ -253,7 +249,6 @@ def save_job(job, worker):
             raise LeaseLost("This worker no longer owns the job, or the job was cancelled.")
 
 
-# Rerun the job with the user's answers.
 def answer_job(job_id, owner, answers):
     with connection() as database:
         database.execute("BEGIN IMMEDIATE")

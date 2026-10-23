@@ -1,9 +1,8 @@
-"""AI answer formats and the planner's two errors."""
 
 from pydantic import BaseModel, ConfigDict, Field
 
 
-# A bad AI answer. The workflow sends the message back to the AI on its second try.
+# A bad AI answer stops the current planning job.
 class BadAnswer(Exception):
     pass
 
@@ -13,7 +12,6 @@ class PlanningError(Exception):
     pass
 
 
-# These classes tell the AI what to return and check its answer.
 class Record(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False,
                               str_strip_whitespace=True)

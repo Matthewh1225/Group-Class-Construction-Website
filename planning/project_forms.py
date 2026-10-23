@@ -158,7 +158,6 @@ PROJECT_TEMPLATES = {
 }
 
 
-# Turns the planner form into the project data the AI plans from.
 def build_project(form):
     project_mode = form.get("projectMode")
     project_size = form.get("projectSize")

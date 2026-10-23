@@ -2,7 +2,7 @@ MAX_QUANTITY = 2_147_483_647
 
 
 def read_quantity(quantity):
-    # TODO: Check that the quantity is a whole number of at least one and is not too large.
+    # TODO: Check for a positive whole number within the quantity limit.
     pass
 
 
@@ -22,7 +22,7 @@ def get_cart(user_id):
 
 
 def add_item(user_id, product_id, quantity):
-    # TODO: Add the product to the user's cart, checking the combined quantity if it is already there.
+    # TODO: Add the product, checking the total quantity if it's already in the cart.
     pass
 
 

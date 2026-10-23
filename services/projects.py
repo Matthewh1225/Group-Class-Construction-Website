@@ -14,7 +14,7 @@ def save_job_as_project(user_id, job, name):
 
 
 def get_project_list(user_id, limit=None, search="", status=""):
-    # TODO: Get the user's saved plans, apply the search and status filters, and show recent ones first.
+    # TODO: Get the user's saved plans with search and status filters, newest first.
     pass
 
 
@@ -44,7 +44,7 @@ def set_project_completed(project_id, user_id, completed):
 
 
 def save_project_crew(project_id, user_id, crew):
-    # TODO: Check and save the crew for the user's project
+    # TODO: Check and save the crew for the user's project.
     pass
 
 

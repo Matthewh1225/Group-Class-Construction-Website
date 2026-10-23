@@ -41,7 +41,7 @@ def renew_subscription(user_id):
 
 
 def activate_pro(user_id, plan):
-    # TODO: Set the paid-through date after payment is verified; Lifetime uses 9999-12-31.
+    # TODO: Set the Pro end date after confirmed payment; Lifetime uses 9999-12-31.
     pass
 
 
@@ -52,7 +52,6 @@ def has_active_pro(user_id):
         return cursor.fetchone() is not None
 
 
-# No expiry date means there is no subscription.
 def get_user_subscription(user_id):
     with database_cursor() as cursor:
         cursor.execute("SELECT proDate, proDate >= CURDATE() AS active FROM Customer WHERE userId = %s", (user_id,))

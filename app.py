@@ -23,9 +23,8 @@ from services.products import get_all_manufacturers
 
 app = Flask(__name__, template_folder="pages")
 app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")
-# Old sessions may contain test-database user IDs. Require a fresh sign-in.
 app.config["SESSION_COOKIE_NAME"] = "buildbetter_session"
-# Lax stops other sites from sending this cookie with their form posts
+# Lax keeps this cookie out of form posts from other sites.
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 # Set SESSION_COOKIE_SECURE=true when using HTTPS.
 app.config["SESSION_COOKIE_SECURE"] = os.getenv("SESSION_COOKIE_SECURE", "").lower() == "true"
@@ -82,5 +81,5 @@ def manufacturers():
 
 
 if __name__ == "__main__":
-    # Port 5000 is used by macOS AirPlay Receiver and can return an AirTunes 403.
+    # Avoid port 5000, which macOS may use for AirPlay.
     app.run(debug=True, port=5001)

@@ -1,6 +1,5 @@
 const jobPage = document.getElementById("planning-job");
 const progress = document.getElementById("job-progress");
-let failures = 0;
 const stageLabels = JSON.parse(document.getElementById("stage-status-labels").textContent);
 
 async function updateJob() {
@@ -10,7 +9,6 @@ async function updateJob() {
             throw new Error("Progress is unavailable.");
         }
         const job = await response.json();
-        failures = 0;
         if (job.stages) {
             for (const stage of document.querySelectorAll("[data-stage]")) {
                 const state = job.stages[stage.dataset.stage];
@@ -27,13 +25,7 @@ async function updateJob() {
         progress.textContent = job.label;
         window.setTimeout(updateJob, 2000);
     } catch {
-        // Retry twice, 4 seconds apart.
-        failures += 1;
-        if (failures < 3) {
-            window.setTimeout(updateJob, 4000);
-        } else {
-            progress.textContent = "Progress unavailable. Refresh to try again.";
-        }
+        progress.textContent = "Progress unavailable. Refresh to check the job.";
     }
 }
 

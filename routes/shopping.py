@@ -92,7 +92,7 @@ def checkout():
             error = "Placing orders is not available yet."
 
     items = get_cart(user_id)
-    # TODO: create_order must reject a reused checkout key so a double submit places one order.
+    # TODO: Reject reused keys in create_order so double clicks create only one order.
     checkout_key = form_data.get("checkout_key") or secrets.token_urlsafe(24)
     page = render_template("cart/checkout.html", cart_items=items, totals=calculate_totals(items),
                            form_data=form_data, error=error, checkout_key=checkout_key)
@@ -101,7 +101,6 @@ def checkout():
     return page
 
 
-# Without an order number the page shows its "no order" message.
 @shopping_bp.route("/order-confirmation", defaults={"order_id": None})
 @shopping_bp.route("/order-confirmation/<int:order_id>")
 @login_required

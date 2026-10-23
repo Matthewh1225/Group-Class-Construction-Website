@@ -10,8 +10,8 @@ from utils.users import check_login, create_user, full_name, get_account
 auth_bp = Blueprint("auth", __name__)
 
 
-#@wraps makes it so every route needing login to see does not repeat code
 def login_required(view):
+    # Keep each route's name so Flask can tell the wrapped views apart.
     @wraps(view)
     def check_login_before_view(*args, **kwargs):
         is_logged_in = "user_id" in session
@@ -24,7 +24,7 @@ def login_required(view):
 
 
 def start_session(user_id, display_name, permission_level):
-    # Clear the old login and CSRF token first.
+    # A new login needs a fresh CSRF token.
     session.clear()
     session["user_id"] = user_id
     session["display_name"] = display_name
