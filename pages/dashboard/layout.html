@@ -114,14 +114,12 @@
                     </svg>
                     Subscription
                 </a>
-                {% if not admin_nav %}
-                    <a href="{{ url_for('dashboard.settings') }}" {% if request.endpoint == 'dashboard.settings' %}aria-current="page"{% endif %}>
-                        <svg class="dashboard-icon" aria-hidden="true">
-                            <use href="#icon-settings"/>
-                        </svg>
-                        Profile &amp; Settings
-                    </a>
-                {% endif %}
+                <a href="{{ url_for('dashboard.settings') }}" {% if request.endpoint == 'dashboard.settings' %}aria-current="page"{% endif %}>
+                    <svg class="dashboard-icon" aria-hidden="true">
+                        <use href="#icon-settings"/>
+                    </svg>
+                    {% if admin_nav %}Account{% else %}Profile &amp; Settings{% endif %}
+                </a>
             </nav>
             <div class="dashboard-sidebar-bottom">
                 <a href="{{ url_for('home') }}"><span aria-hidden="true">&larr;</span>Back to Store</a>
@@ -181,7 +179,9 @@
                         </summary>
                         <div class="dashboard-account-menu">
                             <p>{{ session.get('display_name', 'Account') }}</p>
-                            <a href="{{ url_for('dashboard.settings') }}">Account</a>
+                            {% if not admin_nav %}
+                                <a href="{{ url_for('dashboard.settings') }}">Account</a>
+                            {% endif %}
                             <form method="post" action="{{ url_for('auth.logout') }}">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <button type="submit">Logout</button>

@@ -260,6 +260,10 @@
     background: var(--panel);
 }
 
+.crew-footer .crews-note {
+    flex-basis: 100%;
+}
+
 .crew-summary {
     display: flex;
     flex-wrap: wrap;

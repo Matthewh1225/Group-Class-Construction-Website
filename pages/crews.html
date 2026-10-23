@@ -9,7 +9,7 @@
     <header class="crews-header">
         <p class="sheet-tag"><span>C-01</span>Crews</p>
         <h1 id="crew-title">Build your crew</h1>
-        <p class="crews-lede">Choose workers and a project duration for the whole crew. All roles use these days, based on an {{ hours_per_day }}-hour working day.</p>
+        <p class="crews-lede">Choose workers and a project duration.</p>
         {% if project %}
             <p class="crews-project">Saving to <strong>{{ project.name }}</strong> &middot; <a href="{{ url_for('dashboard.project_detail', project_id=project.id, _anchor='crew') }}">Back to project</a></p>
         {% endif %}
@@ -20,8 +20,8 @@
         <input type="hidden" name="crew" id="crew-input">
         <div class="crew-fields">
             <label class="crew-name"><span>Crew name</span><input id="crew-label" maxlength="120" required value="Custom crew"></label>
-            <label><span>Project days (min)</span><input id="project-days-min" type="number" min="1" max="{{ max_days }}" step="1" required value="1"></label>
-            <label><span>Project days (max)</span><input id="project-days-max" type="number" min="1" max="{{ max_days }}" step="1" required value="1"></label>
+            <label><span>days(min)</span><input id="project-days-min" type="number" min="1" max="{{ max_days }}" step="1" required value="1"></label>
+            <label><span>days(max)</span><input id="project-days-max" type="number" min="1" max="{{ max_days }}" step="1" required value="1"></label>
         </div>
         <div class="crew-table-wrap" tabindex="0" role="region" aria-label="Crew workers by role">
             <table class="crew-table">
@@ -56,6 +56,7 @@
                 <button id="save-crew" class="btn btn-primary" type="submit" formaction="{{ url_for('dashboard.project_crew', project_id=project.id) }}" disabled>Save crew to project</button>
             {% endif %}
             <button id="add-crew-to-cart" class="btn btn-primary" type="submit" disabled>Add Crew to Cart</button>
+            <p class="crews-note">Based on {{ hours_per_day }}-hour days.</p>
         </div>
     </form>
 </section>

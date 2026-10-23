@@ -14,7 +14,6 @@
     </div>
 
     <section class="dashboard-card dashboard-detail-card sub-card" aria-labelledby="current-plan-title">
-        <div class="sub-card-head"><h2 id="current-plan-title">Plan status</h2></div>
         {% if subscription %}
             <dl class="dashboard-detail-list">
                 <div><dt>Plan</dt><dd>{{ tiers.pro.label if subscription.plan_name == 'Pro' else subscription.plan_name }}</dd></div>

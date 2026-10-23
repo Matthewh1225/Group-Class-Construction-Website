@@ -19,7 +19,6 @@
             {% if pro_allowed %}
                 <span class="planner-pro-badge"><span aria-hidden="true">&#9733;</span> Pro member</span>
             {% endif %}
-            <a class="planner-history" href="{{ url_for('dashboard.projects') }}">Saved Projects <span aria-hidden="true">&rarr;</span></a>
         </div>
     </header>
 
@@ -44,33 +43,21 @@
             <h2 class="sr-only" tabindex="-1">Choose how to start</h2>
             <div class="planner-methods">
                 <button id="choose-template" class="planner-method" type="button">
-                    <span class="method-number" aria-hidden="true">A / GUIDED</span>
                     <svg class="method-drawing" viewBox="0 0 240 130" fill="none" aria-hidden="true">
                         <path class="drawing-guide" d="M18 115H222M40 121V27M200 121V27M34 33H206M34 27V39M206 27V39"/>
                         <path d="M55 109V66L120 26L185 66V109H55ZM45 69L120 20L195 69M108 109V78H132V109M69 73H91V91H69ZM149 73H171V91H149Z"/>
                         <path class="drawing-guide" d="M120 12V120M25 109H214"/>
                     </svg>
                     <strong>Start from a template</strong>
-                    <span class="method-text">Answer a short form made for that kind of project. The sizes and options it needs are asked for you.</span>
-                    <span class="method-examples">
-                        {% for template in project_templates.values() %}
-                            <span>{{ template.title }}</span>
-                        {% endfor %}
-                    </span>
                     <span class="method-action">Choose a template <span aria-hidden="true">&rarr;</span></span>
                 </button>
                 <button id="choose-custom" class="planner-method" type="button">
-                    <span class="method-number" aria-hidden="true">B / OPEN description</span>
                     <svg class="method-drawing" viewBox="0 0 240 130" fill="none" aria-hidden="true">
                         <path class="drawing-guide" d="M45 18H166V112H45ZM59 38H132M59 50H115M59 100H151M35 112H205M45 8V122"/>
                         <path d="M100 93L107 71L172 15L187 31L122 87L100 93ZM107 71L122 87M164 22L179 38M100 93L111 90"/>
                         <path class="drawing-guide" d="M143 104H198M170 75V116M191 87V116"/>
                     </svg>
-                    <strong>Describe a custom project</strong>
-                    <span class="method-text">Pick a size and write about anything you want to build. If something important is missing, the AI asks you once.</span>
-                    <span class="method-examples">
-                        <span>Workbench</span><span>Fence run</span><span>Garage</span><span>Planter</span>
-                    </span>
+                    <strong>Custom project</strong>
                     <span class="method-action">write your description <span aria-hidden="true">&rarr;</span></span>
                 </button>
             </div>
