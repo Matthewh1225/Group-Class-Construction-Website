@@ -39,6 +39,7 @@
         <button class="btn btn-primary" type="submit" data-busy-label="Logging in&hellip;">Log in <span class="arrow" aria-hidden="true">&rarr;</span></button>
         <p class="auth-switch">New to BuildBetter? <a href="{{ url_for('auth.register') }}">Create an account</a></p>
     </form>
-    <script src="https://accounts.google.com/gsi/client" async></script>
     <script src="{{ url_for('static', filename='js/login.js') }}" type="module"></script>
+    {# Load Google after the page script so handleGoogleSignIn already exists. #}
+    <script src="https://accounts.google.com/gsi/client" defer></script>
 {% endblock %}

@@ -59,6 +59,7 @@
         <button class="btn btn-primary" type="submit" data-busy-label="Creating account&hellip;">Create account <span class="arrow" aria-hidden="true">&rarr;</span></button>
         <p class="auth-switch">Already have an account? <a href="{{ url_for('auth.login') }}">Log in</a></p>
     </form>
-    <script src="https://accounts.google.com/gsi/client" async></script>
     <script src="{{ url_for('static', filename='js/register.js') }}" type="module"></script>
+    {# Load Google after the page script so handleGoogleSignIn already exists. #}
+    <script src="https://accounts.google.com/gsi/client" defer></script>
 {% endblock %}
