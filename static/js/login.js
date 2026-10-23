@@ -8,7 +8,9 @@ setupPasswordToggles(loginForm);
 loginForm.addEventListener("submit", function (event) {
     event.preventDefault();
     message.textContent = "";
-    const data = Object.fromEntries(new FormData(loginForm));
-    data.email = data.email.trim();
+    const data = {
+        email: loginForm.elements.email.value.trim(),
+        password: loginForm.elements.password.value,
+    };
     submitAccountForm(loginForm, message, data);
 });

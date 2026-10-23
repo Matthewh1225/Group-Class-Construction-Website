@@ -1,35 +1,10 @@
-<section
-    id="residential_building-questions-step"
-    class="planner-step template-questions"
-    {% if project_mode != "template" or project_template != "residential_building" %}hidden{% endif %}
->
-    <button class="template-back step-back" type="button">&larr; All templates</button>
-    <h2 tabindex="-1">Residential building details</h2>
-    <form method="post" action="{{ url_for('planner.submit_planning_job') }}">
-        <input type="hidden" name="projectMode" value="template">
-        <input type="hidden" name="projectTemplate" value="{{ template_id }}">
-        <fieldset class="field-group">
-            <legend>Layout</legend>
-            <div class="field-row">
-                <div class="form-field">
-                    <label for="residential-footprint">Footprint <span class="sr-only">in square feet</span></label>
-                    <div class="unit-input">
-                        <input id="residential-footprint" name="footprintSqFt" type="number" inputmode="numeric" min="1" step="1" value="{{ form_data.get('footprintSqFt', '') }}" required>
-                        <span aria-hidden="true">sq ft</span>
-                    </div>
-                </div>
-                {% for field_id, name, label in [('residential-floors', 'floors', 'Floors'), ('residential-bedrooms', 'bedrooms', 'Bedrooms'), ('residential-bathrooms', 'bathrooms', 'Bathrooms')] %}
-                    <div class="form-field">
-                        <label for="{{ field_id }}">{{ label }}</label>
-                        <input id="{{ field_id }}" name="{{ name }}" type="number" inputmode="numeric" min="{{ 1 if name == 'floors' else 0 }}" step="1" value="{{ form_data.get(name, '') }}" required>
-                    </div>
-                {% endfor %}
-            </div>
-        </fieldset>
-        <div class="form-field">
-            <label for="residential-description">Additional description <span class="optional">(optional)</span></label>
-            <textarea id="residential-description" class="planner-input" name="userInput" placeholder="Style, foundation type, finishes...">{{ form_data.get('userInput', '') }}</textarea>
-        </div>
-        {% include "project_forms/plan_buttons.html" %}
-    </form>
-</section>
+<fieldset class="field-group">
+    <legend>Building size and rooms</legend>
+    <div class="field-row">
+        {{ number_field('footprintSqFt', 'Ground-floor area', unit='sq ft') }}
+        {{ number_field('floors', 'Floors', default=1, whole=True, required=False) }}
+        {{ number_field('bedrooms', 'Total bedrooms', minimum=0, whole=True) }}
+        {{ number_field('bathrooms', 'Total bathrooms', minimum=0, whole=True) }}
+    </div>
+    <p class="optional">Ground-floor area is the space the building covers before adding extra floors.</p>
+</fieldset>

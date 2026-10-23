@@ -1,11 +1,4 @@
 
-{# Up to 2 decimals without trailing zeros (2.50 shows as 2.5); tiny amounts keep their digits. #}
-{% macro amount(value) -%}
-    {%- if value is none -%}Unknown
-    {%- elif 0 < value|float < 0.01 -%}{{ '{:g}'.format(value|float) }}
-    {%- else -%}{{ '{:,.2f}'.format(value|float).rstrip('0').rstrip('.') }}{%- endif -%}
-{%- endmacro %}
-
 {% macro money(value) -%}
     ${{ '{:,.2f}'.format(value|float) }}
 {%- endmacro %}
@@ -14,32 +7,20 @@
     {% if result.notes %}
         <details>
             <summary>Planning notes</summary>
-            <ul>{% for note in result.notes %}<li>{{ note }}</li>{% endfor %}</ul>
+            <ul>
+                {% for note in result.notes %}
+                    <li>{{ note }}</li>
+                {% endfor %}
+            </ul>
         </details>
     {% endif %}
 {%- endmacro %}
 
-{% macro project_specs(project) -%}
-    {% for name, value in (project.dimensions or {}).items() %}
-        <div><dt>{{ name|replace('_', ' ')|capitalize }}</dt><dd>{{ amount(value) }}</dd></div>
-    {% endfor %}
-    {% set hidden_fields = ['dimensions', 'description', 'project_type', 'project_mode', 'project_size', 'project_template'] %}
-    {% for name, value in project.items() %}
-        {% if name not in hidden_fields and value is not none %}
-            <div>
-                <dt>{{ name|replace('_', ' ')|capitalize }}</dt>
-                <dd>
-                    {% if value is sameas true %}
-                        Yes
-                    {% elif value is sameas false %}
-                        No
-                    {% elif value is number %}
-                        {{ amount(value) }}
-                    {% else %}
-                        {{ value }}
-                    {% endif %}
-                </dd>
-            </div>
-        {% endif %}
+{% macro project_specs(rows) -%}
+    {% for row in rows %}
+        <div>
+            <dt>{{ row.label }}</dt>
+            <dd>{{ row.value }}</dd>
+        </div>
     {% endfor %}
 {%- endmacro %}

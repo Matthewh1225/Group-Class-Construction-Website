@@ -89,19 +89,12 @@
                         </svg>
                         Users
                     </a>
-                {% else %}
-                    <a href="{{ url_for('dashboard.dashboard') }}" {% if request.endpoint == 'dashboard.dashboard' %}aria-current="page"{% endif %}>
-                        <svg class="dashboard-icon" aria-hidden="true">
-                            <use href="#icon-grid"/>
-                        </svg>
-                        Overview
-                    </a>
                 {% endif %}
                 <a href="{{ url_for('dashboard.projects') }}" {% if request.endpoint in ['dashboard.projects', 'dashboard.project_detail'] %}aria-current="page"{% endif %}>
                     <svg class="dashboard-icon" aria-hidden="true">
                         <use href="#icon-folder"/>
                     </svg>
-                    My Projects
+                    Saved Projects
                 </a>
                 <a href="{{ url_for('planner.planning_history') }}" {% if request.endpoint == 'planner.planning_history' %}aria-current="page"{% endif %}>
                     <svg class="dashboard-icon" aria-hidden="true">
@@ -115,7 +108,7 @@
                     </svg>
                     Orders
                 </a>
-                <a href="{{ url_for('subscription.manage') }}" {% if request.endpoint == 'subscription.manage' %}aria-current="page"{% endif %}>
+                <a href="{{ url_for('subscription.manage_subscription') }}" {% if request.endpoint == 'subscription.manage_subscription' %}aria-current="page"{% endif %}>
                     <svg class="dashboard-icon" aria-hidden="true">
                         <use href="#icon-spark"/>
                     </svg>
@@ -138,13 +131,13 @@
         </div>
         <div class="dashboard-main">
             {% set dashboard_sections = {
-                'dashboard.dashboard': 'Overview',
-                'dashboard.projects': 'My Projects',
-                'dashboard.project_detail': 'My Projects',
+                'dashboard.dashboard': 'Saved Projects',
+                'dashboard.projects': 'Saved Projects',
+                'dashboard.project_detail': 'Saved Projects',
                 'dashboard.orders': 'Orders',
                 'dashboard.order_detail': 'Orders',
                 'dashboard.settings': 'Settings',
-                'subscription.manage': 'Subscription',
+                'subscription.manage_subscription': 'Subscription',
                 'planner.planning_history': 'Planning History'
             } %}
             <header class="dashboard-topbar">
@@ -157,7 +150,7 @@
                     <div class="dashboard-header-breadcrumb">
                         <span class="dashboard-header-area">{{ 'Admin' if is_admin else 'Dashboard' }}</span>
                         <span class="dashboard-topbar-slash" aria-hidden="true">/</span>
-                        <span id="dashboard-header-section">{{ 'Users' if is_admin else dashboard_sections.get(request.endpoint, 'Overview') }}</span>
+                        <span id="dashboard-header-section">{{ 'Users' if is_admin else dashboard_sections.get(request.endpoint, 'Saved Projects') }}</span>
                     </div>
                 </div>
                 <div class="dashboard-header-utilities">
@@ -170,7 +163,7 @@
                             <path class="theme-moon" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M20 15.5A8.5 8.5 0 0 1 8.5 4 8.5 8.5 0 1 0 20 15.5Z"/>
                         </svg>
                     </button>
-                    <a class="dashboard-utility" href="{{ cart_url|default(url_for('cart'), true) }}" aria-label="Shopping cart">
+                    <a class="dashboard-utility" href="{{ cart_url|default(url_for('shopping.show_cart'), true) }}" aria-label="Shopping cart">
                         <svg class="dashboard-icon" aria-hidden="true">
                             <use href="#icon-bag"/>
                         </svg>

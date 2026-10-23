@@ -1,7 +1,7 @@
 const jobPage = document.getElementById("planning-job");
 const progress = document.getElementById("job-progress");
 let failures = 0;
-const stageLabels = { pending: "Pending", processing: "Processing", done: "Done", failed: "Failed", cancelled: "Cancelled" };
+const stageLabels = JSON.parse(document.getElementById("stage-status-labels").textContent);
 
 async function updateJob() {
     try {

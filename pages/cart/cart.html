@@ -11,11 +11,11 @@
     <section class="shopping-panel" aria-label="Cart items">
         {% for item in cart_items %}
         {# The quantity and Remove controls use these forms through their form attributes. #}
-        <form id="update-{{ item.product_id }}" method="post" action="{{ url_for('cart_update') }}">
+        <form id="update-{{ item.product_id }}" method="post" action="{{ url_for('shopping.update_cart') }}">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="hidden" name="product_id" value="{{ item.product_id }}">
         </form>
-        <form id="remove-{{ item.product_id }}" method="post" action="{{ url_for('cart_remove') }}">
+        <form id="remove-{{ item.product_id }}" method="post" action="{{ url_for('shopping.remove_from_cart') }}">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="hidden" name="product_id" value="{{ item.product_id }}">
         </form>
@@ -42,7 +42,7 @@
     </section>
     {{ order_summary(cart_items, totals=totals) }}
 </div>
-{% else %}
+{% elif not crew_items %}
 <section class="shopping-panel shopping-empty">
     <svg class="shopping-empty-art" viewBox="0 0 160 100" aria-hidden="true" focusable="false">
         <path class="shopping-art-marks" d="M8 88H152M24 18H136M24 14V22M136 14V22"/>
@@ -53,6 +53,27 @@
         <a class="shopping-button shopping-primary" href="{{ url_for('products.products') }}">Browse products</a>
         <a class="shopping-button shopping-secondary" href="{{ url_for('planner.planner') }}">Plan a project</a>
     </div>
+</section>
+{% endif %}
+{% if crew_items %}
+<section class="shopping-panel shopping-crew-cart" aria-labelledby="crew-cart-title">
+    <h2 id="crew-cart-title">Crew estimates</h2>
+    {% for item in crew_items %}
+        <article class="shopping-crew-selection">
+            <h3>{{ item.estimate.label }}</h3>
+            <p>{{ item.estimate.workers }} workers &middot; {{ item.estimate.days }} &middot; {{ item.estimate.hourly }} per hour</p>
+            <ul>
+                {% for member in item.estimate.rows %}
+                    <li>{{ member.name }}: {{ member.workers }} workers at {{ member.rate }}/hour, {{ member.days }} &mdash; {{ member.cost }}</li>
+                {% endfor %}
+            </ul>
+            <p><strong>Estimated labor total: {{ item.estimate.cost }}</strong></p>
+            <form method="post" action="{{ url_for('shopping.remove_crew_from_cart', crew_id=item.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="shopping-button shopping-secondary" type="submit">Remove crew</button>
+            </form>
+        </article>
+    {% endfor %}
 </section>
 {% endif %}
 {% endblock %}

@@ -4,7 +4,7 @@ from copy import deepcopy
 from unittest.mock import patch
 
 import httpx
-from groq import APIResponseValidationError, AuthenticationError, Groq
+from groq import APIResponseValidationError, APIStatusError, AuthenticationError, Groq, InternalServerError
 
 from planning import ai_config, ai_planner, workflow
 from planning.schemas import AuditedEstimate, DraftEstimate, Specification
@@ -22,6 +22,11 @@ RESPONSE = {
         "finish_reason": "stop",
     }],
 }
+
+
+# A complete answer from the auditor, used by the fallback tests.
+AUDITED = {"summary": "Room", "notes": [], "materials": DRAFT["materials"],
+           "crew": {"days": [1, 2], "members": [{"role": "general", "workers": 1, "days": [1, 2]}]}}
 
 
 class GroqTests(unittest.TestCase):
@@ -49,8 +54,7 @@ class GroqTests(unittest.TestCase):
     def stage(self, tier="standard", role="planner"):
         return workflow.run_stage(tier, role, DraftEstimate, {
             "project": {"description": "Drywall a room"}, "answers": [], "details": [],
-            "catalog": [],
-        }, ai_config.PLANNER_PROMPT, set())
+        }, ai_config.PLANNER_PROMPT)
 
     def test_groq_tiers_send_schema_and_keep_settings(self):
         for tier, role in (("fast", "planner"), ("standard", "planner"), ("pro", "second_planner")):
@@ -82,9 +86,10 @@ class GroqTests(unittest.TestCase):
     def test_prompts_name_the_inputs_they_receive(self):
         for name in ("project", "answers", "details", "problem_with_last_answer"):
             self.assertIn(name, ai_config.SHARED_RULES)
-        for name in ("catalog", "product_id"):
-            self.assertIn(name, ai_config.ESTIMATE_RULES)
-        for name in ("estimates", "available_crew_roles", "hours_per_day",
+        self.assertNotIn("catalog", ai_config.ESTIMATE_RULES)
+        self.assertNotIn("catalog", ai_config.PLANNER_PROMPT)
+        self.assertIn("product_id to null for every material", ai_config.PLANNER_PROMPT)
+        for name in ("catalog", "product_id", "estimates", "available_crew_roles", "hours_per_day",
                      "max_workers_per_role", "max_working_days"):
             self.assertIn(name, ai_config.AUDITOR_PROMPT)
         self.assertIn("questions", ai_config.INTERPRETER_PROMPT)
@@ -128,11 +133,20 @@ class GroqTests(unittest.TestCase):
             {**DRAFT["materials"][0], "quantity": None},
             {**DRAFT["materials"][0], "notes": ["Use nine sheets"]},
         ]
-        answers = [json.dumps({"materials": [material]}) for material in bad_materials]
-        answers.extend(["", '{"materials": [', '```json\n' + json.dumps(DRAFT) + '\n```',
-                        json.dumps({**DRAFT, "summary": "Extra field"}),
-                        json.dumps(DRAFT["materials"])])
-        cases = [(answer, "stop") for answer in answers] + [(json.dumps(DRAFT), "length")]
+        answers = []
+        for material in bad_materials:
+            answers.append(json.dumps({"materials": [material]}))
+        answers.append("")
+        answers.append('{"materials": [')
+        answers.append('```json\n' + json.dumps(DRAFT) + '\n```')
+        answers.append(json.dumps({**DRAFT, "summary": "Extra field"}))
+        answers.append(json.dumps(DRAFT["materials"]))
+
+        # Each answer finishes normally ("stop"); the last one is a valid answer that was cut off.
+        cases = []
+        for answer in answers:
+            cases.append((answer, "stop"))
+        cases.append((json.dumps(DRAFT), "length"))
         for answer, finish_reason in cases:
             with self.subTest(answer=answer, finish_reason=finish_reason):
                 bad = deepcopy(RESPONSE)
@@ -172,18 +186,58 @@ class GroqTests(unittest.TestCase):
                     self.stage()
                 self.assertEqual(len(self.requests), before + 1)
                 self.assertNotIn("test-secret", str(caught.exception))
+                # Nothing to wait for: the same model would fail the same way.
+                self.sleep.assert_not_called()
 
     def test_pro_auditor_uses_its_fallback_for_the_second_try(self):
         response = httpx.Response(401, request=httpx.Request("POST", "https://example.test"))
         error = AuthenticationError("bad key", response=response, body=None)
-        result = {"summary": "Room", "notes": [], "materials": DRAFT["materials"],
-                  "crew": {"days": [1, 2], "members": [{"role": "general", "workers": 1, "days": [1, 2]}]}}
-        with patch.object(workflow, "ask_model", side_effect=[error, json.dumps(result)]) as ask:
+        with patch.object(workflow, "ask_model", side_effect=[error, json.dumps(AUDITED)]) as ask:
             output = workflow.run_stage("pro", "auditor", AuditedEstimate, {},
-                                        ai_config.AUDITOR_PROMPT, set())
+                                        ai_config.AUDITOR_PROMPT)
         self.assertEqual(output["crew"]["label"], "AI-estimated crew")
         models = [call.args[0] for call in ask.call_args_list]
-        self.assertEqual(models, ["nemotron", "gemini_strong"])
+        self.assertEqual(models, ["nemotron", "gemini_fallback"])
+        # A bad key will not fix itself, so there is no wait before the fallback.
+        self.sleep.assert_not_called()
+        # The provider's fault is not the AI's, so no feedback is sent.
+        self.assertNotIn("problem_with_last_answer", json.loads(ask.call_args.args[1]))
+
+    def test_pro_auditor_waits_before_the_fallback_when_the_error_may_clear_up(self):
+        response = httpx.Response(503, request=httpx.Request("POST", "https://example.test"))
+        error = InternalServerError("busy", response=response, body=None)
+        with patch.object(workflow, "ask_model", side_effect=[error, json.dumps(AUDITED)]) as ask:
+            workflow.run_stage("pro", "auditor", AuditedEstimate, {}, ai_config.AUDITOR_PROMPT)
+        models = [call.args[0] for call in ask.call_args_list]
+        self.assertEqual(models, ["nemotron", "gemini_fallback"])
+        self.sleep.assert_called_once_with(workflow.RETRY_DELAY)
+
+    def test_account_and_request_errors_never_wait_before_the_fallback(self):
+        for status in workflow.DO_NOT_RETRY:
+            with self.subTest(status=status):
+                self.sleep.reset_mock()
+                response = httpx.Response(status, request=httpx.Request("POST", "https://example.test"))
+                error = APIStatusError("rejected", response=response, body=None)
+                with patch.object(workflow, "ask_model", side_effect=[error, json.dumps(AUDITED)]) as ask:
+                    workflow.run_stage("pro", "auditor", AuditedEstimate, {}, ai_config.AUDITOR_PROMPT)
+                self.assertEqual([call.args[0] for call in ask.call_args_list], ["nemotron", "gemini_fallback"])
+                self.sleep.assert_not_called()
+
+    def test_pro_auditor_bad_answer_is_retried_on_the_fallback_without_waiting(self):
+        with patch.object(workflow, "ask_model", side_effect=["{}", json.dumps(AUDITED)]) as ask:
+            workflow.run_stage("pro", "auditor", AuditedEstimate, {}, ai_config.AUDITOR_PROMPT)
+        models = [call.args[0] for call in ask.call_args_list]
+        self.assertEqual(models, ["nemotron", "gemini_fallback"])
+        self.assertIn("problem_with_last_answer", json.loads(ask.call_args.args[1]))
+        self.sleep.assert_not_called()
+
+    def test_provider_errors_on_both_tries_wait_once_then_fail(self):
+        self.responses.extend([(503, {"error": {"message": "Unavailable"}})] * 2)
+        with self.assertRaisesRegex(workflow.PlanningError, "request failed or timed out"):
+            self.stage()
+        self.assertEqual(len(self.requests), 2)
+        # No wait after the last try.
+        self.sleep.assert_called_once_with(workflow.RETRY_DELAY)
 
     def test_missing_api_key_fails_without_a_request(self):
         with patch.dict(ai_planner.AI_MODELS["gpt_oss"], {"client": None}):
@@ -192,19 +246,21 @@ class GroqTests(unittest.TestCase):
         self.assertEqual(self.requests, [])
         self.sleep.assert_not_called()
         # Pro's auditor still gets its fallback model.
-        with patch.dict(ai_planner.AI_MODELS["nemotron"], {"client": None}), \
-                patch.object(ai_planner, "call_gemini", return_value={
-                    "text": "{}", "finish_reason": "STOP"}) as gemini, \
-                patch.dict(ai_planner.AI_MODELS["gemini_strong"], {"client": object()}):
-            with self.assertRaises(workflow.PlanningError):
-                workflow.run_stage("pro", "auditor", AuditedEstimate, {}, "", set())
+        gemini_answer = {"text": "{}", "finish_reason": "STOP"}
+        with patch.dict(ai_planner.AI_MODELS["nemotron"], {"client": None}):
+            with patch.dict(ai_planner.AI_MODELS["gemini_fallback"], {"client": object()}):
+                with patch.object(ai_planner, "call_gemini", return_value=gemini_answer) as gemini:
+                    with self.assertRaises(workflow.PlanningError):
+                        workflow.run_stage("pro", "auditor", AuditedEstimate, {}, "")
         self.assertEqual(gemini.call_count, 1)
+        # A missing key is not a provider error, so there is no wait before the fallback.
+        self.sleep.assert_not_called()
 
     def test_interpreter_feedback_does_not_ask_for_material_quantities(self):
         good = {"details": ["A room"], "questions": []}
         with patch.object(workflow, "ask_model", side_effect=["{}", json.dumps(good)]) as ask:
             self.assertEqual(workflow.run_stage(
-                "fast", "interpreter", Specification, {}, ai_config.INTERPRETER_PROMPT, set()), good)
+                "fast", "interpreter", Specification, {}, ai_config.INTERPRETER_PROMPT), good)
         feedback = json.loads(ask.call_args.args[1])["problem_with_last_answer"]
         self.assertIn("details", feedback)
         self.assertIn("questions", feedback)

@@ -2,11 +2,8 @@ const methodStep = document.getElementById("method-step");
 const templateStep = document.getElementById("template-step");
 const sizeStep = document.getElementById("size-step");
 const plannerStep = document.getElementById("planner-form");
-const templateQuestionSteps = document.querySelectorAll(".template-questions");
-const steps = [methodStep, templateStep, sizeStep, plannerStep, ...templateQuestionSteps];
-const modeInput = document.getElementById("project-mode");
+const steps = document.querySelectorAll(".planner-step, .planner-container");
 const sizeInput = document.getElementById("project-size");
-const templateInput = document.getElementById("project-template");
 const progressSteps = document.querySelectorAll(".planner-progress li");
 
 function showProgress(stage) {
@@ -24,56 +21,49 @@ function showStep(selectedStep) {
         step.hidden = step !== selectedStep;
     }
     const hasDetails = selectedStep === plannerStep || selectedStep.classList.contains("template-questions");
-    showProgress(hasDetails ? "details" : "project");
+    if (hasDetails) {
+        showProgress("details");
+    } else {
+        showProgress("project");
+    }
     const heading = selectedStep.querySelector("h2") || selectedStep.querySelector("button");
     if (heading) heading.focus({ preventScroll: true });
     document.querySelector(".planner-progress").scrollIntoView({ block: "nearest" });
 }
 
 document.getElementById("choose-template").addEventListener("click", function () {
-    modeInput.value = "template";
     showStep(templateStep);
 });
 
 document.getElementById("choose-custom").addEventListener("click", function () {
-    modeInput.value = "custom";
-    templateInput.value = "";
     showStep(sizeStep);
 });
 
-document.querySelectorAll(".project-option").forEach(function (button) {
+for (const button of document.querySelectorAll(".project-option")) {
     button.addEventListener("click", function () {
         sizeInput.value = button.dataset.size;
-        templateInput.value = "";
         showStep(plannerStep);
     });
-});
+}
 
-document.querySelectorAll(".template-option").forEach(function (button) {
+for (const button of document.querySelectorAll(".template-option")) {
     button.addEventListener("click", function () {
-        const templateName = button.dataset.template;
-        templateInput.value = templateName;
-        sizeInput.value = button.dataset.size;
-        showStep(document.getElementById(`${templateName}-questions-step`));
+        showStep(document.getElementById(`${button.dataset.template}-questions-step`));
     });
-});
+}
 
-document.querySelectorAll(".template-back").forEach(function (button) {
+for (const button of document.querySelectorAll(".template-back")) {
     button.addEventListener("click", function () {
-        templateInput.value = "";
-        sizeInput.value = "";
         showStep(templateStep);
     });
-});
+}
 
-document.querySelectorAll(".back-button").forEach(function (button) {
+for (const button of document.querySelectorAll(".back-button")) {
     button.addEventListener("click", function () {
-        modeInput.value = "";
         sizeInput.value = "";
-        templateInput.value = "";
         showStep(methodStep);
     });
-});
+}
 
 document.querySelector(".details-back").addEventListener("click", function () {
     showStep(sizeStep);

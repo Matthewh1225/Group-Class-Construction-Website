@@ -9,7 +9,7 @@
                 <span class="tier-content">
                     <strong>{{ tier.label }}</strong>
                     {% if tier_id == 'pro' and not pro_allowed %}
-                        <small class="tier-locked">Pro subscription needed. <a href="{{ url_for('subscription.checkout') }}">Subscribe</a></small>
+                        <small class="tier-locked">Pro subscription needed. <a href="{{ url_for('subscription.subscribe') }}">Subscribe</a></small>
                     {% endif %}
                     {% if tier_id == 'fast' %}
                         <span>Quick estimate + review</span>

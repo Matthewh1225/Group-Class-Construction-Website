@@ -1,11 +1,12 @@
 {% extends "dashboard/layout.html" %}
 {% from "dashboard/empty_state.html" import empty_state %}
+{% from "dashboard/project_list.html" import project_list with context %}
 
 {% block title %}Planning History - BuildBetter{% endblock %}
 
 {% block dashboard_content %}
     <nav class="dashboard-breadcrumb" aria-label="Breadcrumb">
-        <a href="{{ url_for('dashboard.projects') }}">My Projects</a>
+        <a href="{{ url_for('dashboard.projects') }}">Saved Projects</a>
         <span aria-hidden="true">/</span>
         <span>Planning history</span>
     </nav>
@@ -18,29 +19,7 @@
     </div>
 
     {% if jobs %}
-        <ol class="plan-register" aria-label="AI plans, newest first">
-            <li class="plan-register-head" aria-hidden="true">
-                <span>No.</span><span>Project</span><span>Mode</span><span>Status</span><span>Updated</span><span></span>
-            </li>
-            {% for job in jobs %}
-                {% set label, tone = status_label(job) %}
-                <li>
-                    <a class="plan-row" href="{{ url_for('planner.planning_job', job_id=job.id) }}">
-                        <span class="plan-row-number" aria-hidden="true">P-{{ '%02d'|format(offset + loop.index) }}</span>
-                        <span class="plan-row-main">
-                            <span class="plan-row-title">{{ job.project.description or 'Untitled project' }}</span>
-                            <span class="plan-row-type">{{ (job.project.project_type or 'custom')|replace('_', ' ') }}</span>
-                        </span>
-                        <span class="plan-row-meta">
-                            <span class="plan-row-tier">{{ workflow_tiers[job.tier].label }}</span>
-                            <span class="status-tag status-{{ tone }}">{{ label }}</span>
-                            <time class="plan-row-date" data-timestamp="{{ job.updated }}"></time>
-                        </span>
-                        <span class="plan-row-arrow" aria-hidden="true">&rarr;</span>
-                    </a>
-                </li>
-            {% endfor %}
-        </ol>
+        {{ project_list(jobs, 'AI plans, newest first', offset) }}
         <nav class="dashboard-section dashboard-card-actions" aria-label="Planning history pages">
             {% if page > 1 %}
                 <a class="dashboard-button dashboard-button-secondary" href="{{ url_for('planner.planning_history', page=page - 1) }}" rel="prev">Previous</a>

@@ -3,23 +3,17 @@ const form = document.getElementById("crew-form");
 const labelInput = document.getElementById("crew-label");
 const projectMin = document.getElementById("project-days-min");
 const projectMax = document.getElementById("project-days-max");
-const rows = Array.from(form.querySelectorAll("[data-role]"));
+const rows = form.querySelectorAll("[data-role]");
 const error = document.getElementById("crew-error");
 const saveButton = document.getElementById("save-crew");
+const cartButton = document.getElementById("add-crew-to-cart");
 const currency = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
 
-const saved = pageData.savedCrew;
-const crew = {
-    label: saved ? saved.label : "Custom crew",
-    days: saved ? [...saved.days] : [1, 1],
-    members: Object.keys(pageData.rates).map(function (role) {
-        const member = saved && saved.members.find((item) => item.role === role);
-        return { role: role, workers: member ? member.workers : 0, days: saved ? [...saved.days] : [1, 1] };
-    }),
-};
-
 function costText(low, high) {
-    return low === high ? currency.format(low) : currency.format(low) + " – " + currency.format(high);
+    if (low === high) {
+        return currency.format(low);
+    }
+    return currency.format(low) + " – " + currency.format(high);
 }
 
 function calculateCrew(crew) {
@@ -38,57 +32,75 @@ function calculateCrew(crew) {
 }
 
 function updateEstimate() {
-    labelInput.setCustomValidity(crew.label.trim() ? "" : "Enter a crew name.");
-    projectMax.setCustomValidity(crew.days[1] < crew.days[0] ? "Maximum days must be at least minimum days." : "");
-    for (const row of rows) {
-        const member = crew.members.find((item) => item.role === row.dataset.role);
-        const workers = row.querySelector('[data-field="workers"]');
-        row.querySelector('[data-worker-step="-1"]').disabled = member.workers <= Number(workers.min);
-        row.querySelector('[data-worker-step="1"]').disabled = member.workers >= Number(workers.max);
-        row.classList.toggle("in-crew", member.workers > 0);
+    labelInput.setCustomValidity("");
+    if (labelInput.value.trim() === "") {
+        labelInput.setCustomValidity("Enter a crew name.");
     }
-    const valid = form.checkValidity();
-    const selected = { label: crew.label, days: crew.days, members: [] };
-    for (const member of crew.members) {
-        if (member.workers > 0) {
-            selected.members.push({ role: member.role, workers: member.workers, days: [...member.days] });
+    projectMax.setCustomValidity("");
+    if (projectMax.valueAsNumber < projectMin.valueAsNumber) {
+        projectMax.setCustomValidity("Maximum days must be at least minimum days.");
+    }
+    const selected = {
+        label: labelInput.value,
+        days: [projectMin.valueAsNumber, projectMax.valueAsNumber],
+        members: [],
+    };
+    for (const row of rows) {
+        const input = row.querySelector('[data-field="workers"]');
+        const workers = input.valueAsNumber;
+        row.querySelector('[data-worker-step="-1"]').disabled = workers <= Number(input.min);
+        row.querySelector('[data-worker-step="1"]').disabled = workers >= Number(input.max);
+        row.classList.toggle("in-crew", workers > 0);
+        if (workers > 0) {
+            selected.members.push({role: row.dataset.role, workers: workers, days: selected.days});
         }
     }
-    const result = valid ? calculateCrew(selected) : null;
-    for (const row of rows) {
-        row.querySelector("[data-cost]").textContent = result ? result.costs[row.dataset.role] || currency.format(0) : "—";
-    }
-    document.getElementById("total-cost").textContent = result ? costText(result.low, result.high) : "—";
-    document.getElementById("total-workers").textContent = result ? result.workers : "—";
-    document.getElementById("total-hourly").textContent = result ? currency.format(result.hourly) : "—";
-    error.textContent = !valid ? "Enter valid worker counts and a project duration range." : selected.members.length === 0 ? "Add at least one worker to save a crew." : "";
-    error.hidden = error.textContent === "";
-    if (saveButton) saveButton.disabled = !valid || selected.members.length === 0;
-    document.getElementById("crew-input").value = valid ? JSON.stringify(selected) : "";
-    return valid && selected.members.length > 0;
-}
-
-labelInput.value = crew.label;
-projectMin.value = crew.days[0];
-projectMax.value = crew.days[1];
-for (const row of rows) {
-    const member = crew.members.find((item) => item.role === row.dataset.role);
-    row.querySelector('[data-field="workers"]').value = member.workers;
-}
-
-form.addEventListener("input", function (event) {
-    const input = event.target;
-    const row = input.closest("[data-role]");
-    if (row) {
-        const member = crew.members.find((item) => item.role === row.dataset.role);
-        member.workers = row.querySelector('[data-field="workers"]').valueAsNumber;
+    const valid = form.checkValidity();
+    const hasWorkers = selected.members.length > 0;
+    if (valid) {
+        const result = calculateCrew(selected);
+        for (const row of rows) {
+            row.querySelector("[data-cost]").textContent = result.costs[row.dataset.role] || currency.format(0);
+        }
+        document.getElementById("total-cost").textContent = costText(result.low, result.high);
+        document.getElementById("total-workers").textContent = result.workers;
+        document.getElementById("total-hourly").textContent = currency.format(result.hourly);
+        document.getElementById("crew-input").value = JSON.stringify(selected);
     } else {
-        crew.label = labelInput.value;
-        crew.days = [projectMin.valueAsNumber, projectMax.valueAsNumber];
-        for (const member of crew.members) member.days = [...crew.days];
+        for (const row of rows) {
+            row.querySelector("[data-cost]").textContent = "—";
+        }
+        document.getElementById("total-cost").textContent = "—";
+        document.getElementById("total-workers").textContent = "—";
+        document.getElementById("total-hourly").textContent = "—";
+        document.getElementById("crew-input").value = "";
     }
-    updateEstimate();
-});
+    error.textContent = "";
+    if (!valid) {
+        error.textContent = "Enter valid worker counts and a project duration range.";
+    } else if (!hasWorkers) {
+        error.textContent = "Add at least one worker to save a crew.";
+    }
+    error.hidden = error.textContent === "";
+    if (saveButton) {
+        saveButton.disabled = !valid || !hasWorkers;
+    }
+    cartButton.disabled = !valid || !hasWorkers;
+    return valid && hasWorkers;
+}
+
+const saved = pageData.savedCrew;
+if (saved) {
+    labelInput.value = saved.label;
+    projectMin.value = saved.days[0];
+    projectMax.value = saved.days[1];
+    for (const member of saved.members) {
+        const row = form.querySelector('[data-role="' + member.role + '"]');
+        row.querySelector('[data-field="workers"]').value = member.workers;
+    }
+}
+
+form.addEventListener("input", updateEstimate);
 
 form.addEventListener("click", function (event) {
     const button = event.target.closest("[data-worker-step]");
@@ -99,12 +111,12 @@ form.addEventListener("click", function (event) {
 });
 
 form.addEventListener("submit", function (event) {
-    if (!updateEstimate() || !saveButton) {
+    if (!updateEstimate()) {
         event.preventDefault();
         form.reportValidity();
         return;
     }
-    saveButton.disabled = true;
+    if (event.submitter) event.submitter.disabled = true;
 });
 
 // Restore the save button when Back returns to this page.

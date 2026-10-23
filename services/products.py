@@ -1,16 +1,10 @@
 """Product catalog queries shared by shopping and the AI planner."""
-import logging
-
-from mysql.connector import Error
-
 from utils.database import database_cursor
-
-logger = logging.getLogger(__name__)
 
 PAGE_SIZE = 12
 
 
-def get_manufacturers():
+def get_all_manufacturers():
     with database_cursor() as cursor:
         cursor.execute("""
             SELECT m.id AS manufacturer_id, m.name,
@@ -32,7 +26,7 @@ def get_manufacturer(manufacturer_id):
 
 
 def search_products(search=None, category_url_name=None, page=1, manufacturer_id=None):
-    "Return (products, has_next_page), sorted by name."
+    "Return (products, total_pages), sorted by name with matching filter counts."
     sql = """
         SELECT p.id AS product_id, p.name AS product_name, p.details AS specification,
                p.sku, p.unit, p.category,
@@ -42,63 +36,55 @@ def search_products(search=None, category_url_name=None, page=1, manufacturer_id
                 JOIN Manufacturer m ON m.id = mp.manid
                 WHERE mp.productId = p.id
                 ORDER BY m.name LIMIT 1) AS manufacturer_name
-        FROM Product p
-        WHERE p.isActive = 1
     """
+    filters = " FROM Product p WHERE p.isActive = 1"
     # Keep user input in SQL parameters.
     values = []
 
     if manufacturer_id is not None:
-        sql += " AND EXISTS (SELECT 1 FROM Manufacturer_products mp WHERE mp.productId = p.id AND mp.manid = %s)"
+        filters += " AND EXISTS (SELECT 1 FROM Manufacturer_products mp WHERE mp.productId = p.id AND mp.manid = %s)"
         values.append(manufacturer_id)
 
     if search:
         pattern = "%" + search + "%"
-        sql = sql + " AND (p.name LIKE %s OR p.keywords LIKE %s OR p.sku LIKE %s OR p.details LIKE %s)"
+        filters += " AND (p.name LIKE %s OR p.keywords LIKE %s OR p.sku LIKE %s OR p.details LIKE %s)"
         values.extend([pattern, pattern, pattern, pattern])
 
     if category_url_name:
-        sql = sql + " AND p.category = %s"
+        filters += " AND p.category = %s"
         values.append(category_url_name)
     else:
-        sql = sql + " AND (p.category IS NULL OR p.category <> %s)"
+        filters += " AND p.category <> %s"
         values.append("heavy-machinery")
 
-    # One extra product tells us whether another page exists.
-    sql = sql + " ORDER BY p.name LIMIT %s OFFSET %s"
-    values.append(PAGE_SIZE + 1)
-    values.append((page - 1) * PAGE_SIZE)
-
     with database_cursor() as cursor:
-        cursor.execute(sql, values)
+        cursor.execute("SELECT COUNT(*) AS total" + filters, values)
+        total = cursor.fetchone()["total"]
+        total_pages = max(1, (total + PAGE_SIZE - 1) // PAGE_SIZE)
+        cursor.execute(sql + filters + " ORDER BY p.name LIMIT %s OFFSET %s",
+                       values + [PAGE_SIZE, (page - 1) * PAGE_SIZE])
         products = cursor.fetchall()
 
-    has_next = len(products) > PAGE_SIZE
-    return products[:PAGE_SIZE], has_next
+    return products, total_pages
 
 
 def get_planner_catalog():
-    "Return active products and specifications for the planner."
+    "Return active products and specifications for the final AI auditor to match materials."
 
     sql = """
-        SELECT p.id AS product_id, p.name AS product_name, p.unit,
-               p.details AS specification
+        SELECT p.id AS product_id, p.name AS product_name, p.unit, p.details AS specification
         FROM Product p
         WHERE p.isActive = 1
         ORDER BY p.id
-        LIMIT 500
+        LIMIT 400
     """
-    try:
-        with database_cursor() as cursor:
-            cursor.execute(sql)
-            return cursor.fetchall()
-    except Error:
-        logger.exception("The product catalog could not be read for the planner.")
-        return []
+    with database_cursor() as cursor:
+        cursor.execute(sql)
+        return cursor.fetchall()
 
 
 def get_products_by_ids(product_ids):
-    "Return current product details by ID, or {} if unavailable."
+    "Return current product details by ID."
     # Read current store data instead of saving prices in the AI plan.
     product_ids = sorted(set(product_ids))
     if not product_ids:
@@ -110,13 +96,9 @@ def get_products_by_ids(product_ids):
         FROM Product p
         WHERE p.isActive = 1 AND p.id IN ({placeholders})
     """
-    try:
-        with database_cursor() as cursor:
-            cursor.execute(sql, product_ids)
-            rows = cursor.fetchall()
-    except Error:
-        logger.exception("Product details could not be read for a plan.")
-        return {}
+    with database_cursor() as cursor:
+        cursor.execute(sql, product_ids)
+        rows = cursor.fetchall()
     products = {}
     for row in rows:
         products[row["product_id"]] = row

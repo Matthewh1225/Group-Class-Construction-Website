@@ -1,5 +1,5 @@
 {% extends "dashboard/layout.html" %}
-{% from "planner_components.html" import amount, project_specs, planning_notes %}
+{% from "planner_components.html" import money, project_specs, planning_notes %}
 
 
 {% block title %}
@@ -11,7 +11,7 @@
 
 {% block dashboard_content %}
     <nav class="dashboard-breadcrumb" aria-label="Breadcrumb">
-        <a href="{{ url_for('dashboard.projects') }}">My Projects</a>
+        <a href="{{ url_for('dashboard.projects') }}">Saved Projects</a>
         <span aria-hidden="true">/</span>
         <span>{{ project.name }}</span>
     </nav>
@@ -20,7 +20,7 @@
             <p class="dashboard-eyebrow">{{ project.type }}</p>
             <h1>{{ project.name }}</h1>
             <p class="project-heading-meta">
-                <span class="status-tag status-{{ project.status_tone }}">{{ 'Partial result' if project.status == 'Review Needed' else project.status }}</span>
+                <span class="status-tag status-{{ project.status_tone }}">{{ project.status_label }}</span>
                 <span>Updated <time data-timestamp="{{ project.updated }}"></time></span>
             </p>
         </div>
@@ -33,7 +33,7 @@
         <h2 id="overview-title">Project overview</h2>
         <dl class="dashboard-detail-list project-facts">
             <div><dt>Type</dt><dd>{{ project.type }}</dd></div>
-            <div><dt>Status</dt><dd>{{ 'Partial result' if project.status == 'Review Needed' else project.status }}</dd></div>
+            <div><dt>Status</dt><dd>{{ project.status_label }}</dd></div>
             <div><dt>Created</dt><dd><time data-timestamp="{{ project.created }}"></time></dd></div>
             <div><dt>Last updated</dt><dd><time data-timestamp="{{ project.updated }}"></time></dd></div>
         </dl>
@@ -41,13 +41,15 @@
             <h3>AI summary</h3>
             <p>{{ plan.result.summary }}</p>
         {% endif %}
-        {% if plan.result %}{{ planning_notes(plan.result) }}{% endif %}
+        {% if plan.result %}
+            {{ planning_notes(plan.result) }}
+        {% endif %}
         {% if plan.project.description %}
             <h3>Original request</h3>
             <p>{{ plan.project.description }}</p>
         {% endif %}
         <dl class="dashboard-detail-list project-specs">
-            {{ project_specs(plan.project or {}) }}
+            {{ project_specs(project_fields) }}
         </dl>
         {% if plan.answers %}
             <h3>Your answers to the planner</h3>
@@ -82,7 +84,7 @@
                             {% set buy = item.buy_quantity %}
                             <tr>
                                 <th scope="row">{{ item.material_name }}</th>
-                                <td>{{ amount(item.quantity) }}</td>
+                                <td>{{ item.quantity|amount }}</td>
                                 <td>{{ item.unit }}</td>
                                 <td class="project-material-notes">
                                     {{ item.specification or '—' }}
@@ -91,8 +93,17 @@
                                 <td class="project-material-notes">
                                     {% if product %}
                                         {{ product.product_name }}
-                                        <small>{% if product.unit_price is not none %}${{ '{:,.2f}'.format(product.unit_price|float) }} per {{ product.unit }}{% else %}Price not listed{% endif %}{% if buy is not none %} &middot; buy {{ amount(buy) }}{% endif %}</small>
-                                    {% elif item.product_id is not none %}
+                                        <small>
+                                            {% if product.unit_price is not none %}
+                                                {{ money(product.unit_price) }} per {{ product.unit }}
+                                            {% else %}
+                                                Price not listed
+                                            {% endif %}
+                                            {% if buy is not none %}
+                                                &middot; buy {{ buy|amount }}
+                                            {% endif %}
+                                        </small>
+                                    {% elif item.match_status == 'missing' %}
                                         Product details unavailable
                                     {% else %}
                                         No catalog match

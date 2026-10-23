@@ -101,10 +101,10 @@
                 </div>
             {% endif %}
 
-            {% if not catalog_error and (page > 1 or has_next) %}
+            {% if not catalog_error and (products or page > 1) %}
                 <nav class="catalog-pagination" aria-label="Product pages">
                     {% if page > 1 %}<a class="btn btn-ghost" href="{{ url_for('products.products', q=search, category=selected_url_name or None, manufacturer=manufacturer_id, page=page-1) }}">&larr; Previous</a>{% endif %}
-                    <span>Page {{ page }}</span>
+                    <span>Page {{ page }} of {{ total_pages }}</span>
                     {% if has_next %}<a class="btn btn-ghost" href="{{ url_for('products.products', q=search, category=selected_url_name or None, manufacturer=manufacturer_id, page=page+1) }}">Next &rarr;</a>{% endif %}
                 </nav>
             {% endif %}

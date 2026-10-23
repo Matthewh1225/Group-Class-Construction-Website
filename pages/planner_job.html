@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "planner_components.html" import amount, money, project_specs, planning_notes %}
+{% from "planner_components.html" import money, project_specs, planning_notes %}
 {% block title %}{{ title }} plan - BuildBetter{% endblock %}
 {% block flash_messages %}{% endblock %}
 {% block styles %}<link rel="stylesheet" href="{{ url_for('static', filename='planner.css') }}">{% endblock %}
@@ -8,7 +8,7 @@
 <section class="planner-job" id="planning-job"
          data-status-url="{{ url_for('planner.planning_job_status', job_id=job.id) }}" data-job-status="{{ job.status }}">
     <nav class="plan-breadcrumb" aria-label="Plan navigation">
-        <a href="{{ url_for('dashboard.projects') }}">&larr; My Projects</a><span aria-hidden="true">/</span><span>Project plan</span>
+        <a href="{{ url_for('dashboard.projects') }}">&larr; Saved Projects</a><span aria-hidden="true">/</span><span>Project plan</span>
     </nav>
 
     <header class="plan-header">
@@ -26,20 +26,16 @@
     </header>
 
     {% if job.stages or job.status in ['queued', 'running'] %}
-        {% set stage_labels = {'interpreter': 'Interpreter', 'planner': 'Planner', 'second_planner': 'Planner 2', 'auditor': 'Auditor'} %}
-        {% set status_labels = {'pending': 'Pending', 'processing': 'Processing', 'done': 'Done', 'failed': 'Failed', 'cancelled': 'Cancelled'} %}
-        {% set stages = job.stages|default({}) %}
         <section class="plan-stages" aria-label="AI stage progress" aria-live="polite">
-            {% if job.tier == 'pro' %}<p class="plan-muted">The two planners run at the same time.</p>{% endif %}
+            {% if job.tier == 'pro' %}
+                <p class="plan-muted">The two planners run at the same time.</p>
+            {% endif %}
             <ol class="plan-stage-list">
-                {% for stage, label in stage_labels.items() %}
-                    {% if stage != 'second_planner' or job.tier == 'pro' %}
-                        {% set state = stages.get(stage, 'pending') %}
-                        <li class="plan-stage" data-stage="{{ stage }}" data-state="{{ state }}">
-                            <strong>{{ label }}</strong>
-                            <span data-stage-status>{{ status_labels[state] }}</span>
-                        </li>
-                    {% endif %}
+                {% for stage in stage_rows %}
+                    <li class="plan-stage" data-stage="{{ stage.name }}" data-state="{{ stage.state }}">
+                        <strong>{{ stage.label }}</strong>
+                        <span data-stage-status>{{ stage.status_label }}</span>
+                    </li>
                 {% endfor %}
             </ol>
         </section>
@@ -99,7 +95,7 @@
                     {% else %}
                         <p>None of these materials can be added to your cart.</p>
                     {% endif %}
-                    <a href="{{ url_for('cart') }}">View cart</a>
+                    <a href="{{ url_for('shopping.show_cart') }}">View cart</a>
                 </div>
             </div>
 
@@ -129,18 +125,28 @@
                                     {% if item.specification %}<small>{{ item.specification|truncate(120, true) }}</small>{% endif %}
                                 </th>
                                 <td data-label="You need">
-                                    <span class="plan-number">{{ amount(item.quantity) }}</span> {{ item.unit }}
+                                    <span class="plan-number">{{ item.quantity|amount }}</span> {{ item.unit }}
                                     {% if item.notes %}<small>{{ item.notes }}</small>{% endif %}
                                 </td>
                                 <td data-label="Store product">
                                     {% if product %}
                                         {{ product.product_name }}
                                         <small>
-                                            {% if product.unit_price is not none %}{{ money(product.unit_price) }} per {{ product.unit }}{% else %}Price not listed{% endif %}
+                                            {% if product.unit_price is not none %}
+                                                {{ money(product.unit_price) }} per {{ product.unit }}
+                                            {% else %}
+                                                Price not listed
+                                            {% endif %}
                                             &middot;
-                                            {% if item.out_of_stock %}<span class="plan-warning">Out of stock</span>{% elif product.available_quantity is none %}Stock unknown{% else %}{{ amount(product.available_quantity) }} in stock{% endif %}
+                                            {% if item.stock_status == 'out_of_stock' %}
+                                                <span class="plan-warning">Out of stock</span>
+                                            {% elif item.stock_status == 'unknown' %}
+                                                Stock unknown
+                                            {% else %}
+                                                {{ product.available_quantity|amount }} in stock
+                                            {% endif %}
                                         </small>
-                                    {% elif item.product_id is not none %}
+                                    {% elif item.match_status == 'missing' %}
                                         <span class="plan-tag">No longer sold</span>
                                     {% else %}
                                         <span class="plan-tag">Not sold here</span>
@@ -148,12 +154,14 @@
                                 </td>
                                 <td data-label="You buy">
                                     {% if item.can_add %}
-                                        <span class="plan-number">{{ amount(item.buy_quantity) }}</span> {{ product.unit }}
-                                        {% if item.line_total is not none %}<small>{{ money(item.line_total) }}</small>{% endif %}
-                                        {% if product.available_quantity is not none and product.available_quantity < item.buy_quantity %}
-                                            <small class="plan-warning">Only {{ amount(product.available_quantity) }} in stock</small>
+                                        <span class="plan-number">{{ item.buy_quantity|amount }}</span> {{ product.unit }}
+                                        {% if item.line_total is not none %}
+                                            <small>{{ money(item.line_total) }}</small>
                                         {% endif %}
-                                    {% elif product and not item.out_of_stock %}
+                                        {% if item.insufficient_stock %}
+                                            <small class="plan-warning">Only {{ product.available_quantity|amount }} in stock</small>
+                                        {% endif %}
+                                    {% elif item.show_store_link %}
                                         <small>Sold per {{ product.unit }}: choose the amount in the store</small>
                                     {% else %}
                                         <span class="plan-muted">&mdash;</span>
@@ -166,7 +174,7 @@
                                             <input type="hidden" name="material" value="{{ loop.index0 }}">
                                             <button class="plan-button-secondary" type="submit" aria-label="Add {{ product.product_name }} to cart">Add to cart</button>
                                         </form>
-                                    {% elif product and not item.out_of_stock %}
+                                    {% elif item.show_store_link %}
                                         <a href="{{ url_for('products.products', q=product.product_name) }}">View in store</a>
                                     {% endif %}
                                 </td>
@@ -182,19 +190,45 @@
 
     {% if job.result %}
         <section class="plan-crew" aria-label="AI-estimated crew">
-            {% with recommendation=job.result.crew, crew_url=url_for('crews.crews', project_id=saved_project.id) if saved_project else url_for('crews.crews', job_id=job.id) %}
+            {% with recommendation=crew_recommendation %}
                 {% include "crew_recommendation.html" %}
             {% endwith %}
         </section>
     {% endif %}
 
+    <details class="plan-project-details">
+        <summary>Project details</summary>
+        <div class="plan-project-body">
+            {% if job.project.description %}
+                <h3>Your request</h3>
+                <p>{{ job.project.description }}</p>
+            {% endif %}
+            {% if project_fields %}
+                <h3>Specifications</h3>
+                <dl class="plan-spec-grid">{{ project_specs(project_fields) }}</dl>
+            {% endif %}
+            {% if job.answers %}
+                <h3>Your answers</h3>
+                <dl>
+                    {% for answer in job.answers %}
+                        <dt>{{ answer.question }}</dt><dd>{{ answer.answer }}</dd>
+                    {% endfor %}
+                </dl>
+            {% endif %}
+        </div>
+    </details>
+
     {% if saved_project %}
         <section class="plan-save" id="save-project" aria-labelledby="save-title">
             <div>
-                <h2 id="save-title">Saved to My Projects</h2>
+                <h2 id="save-title">Saved to Saved Projects</h2>
                 <p class="plan-muted">{{ saved_project.name }}</p>
             </div>
-            <a class="plan-button" href="{{ url_for('dashboard.project_detail', project_id=saved_project.id) }}">View Project</a>
+            <form method="post" action="{{ url_for('dashboard.project_delete', project_id=saved_project.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="return_to" value="plan">
+                <button class="plan-button-secondary" type="submit">Remove from Saved Projects</button>
+            </form>
         </section>
     {% elif can_save %}
         <section class="plan-save" id="save-project" aria-labelledby="save-title">
@@ -210,28 +244,6 @@
         </section>
     {% endif %}
 
-    <details class="plan-project-details">
-        <summary>Project details</summary>
-        <div class="plan-project-body">
-            {% if job.project.description %}
-                <h3>Your request</h3>
-                <p>{{ job.project.description }}</p>
-            {% endif %}
-            {% if job.project.dimensions or job.project.project_type != 'custom' %}
-                <h3>Specifications</h3>
-                <dl class="plan-spec-grid">{{ project_specs(job.project) }}</dl>
-            {% endif %}
-            {% if job.answers %}
-                <h3>Your answers</h3>
-                <dl>
-                    {% for answer in job.answers %}
-                        <dt>{{ answer.question }}</dt><dd>{{ answer.answer }}</dd>
-                    {% endfor %}
-                </dl>
-            {% endif %}
-        </div>
-    </details>
-
     <footer class="plan-footer">
         <a class="plan-button" href="{{ url_for('planner.planner') }}">Start a new project</a>
         <a href="{{ url_for('planner.planning_history') }}">Planning history</a>
@@ -243,6 +255,7 @@
         {% endif %}
     </footer>
 </section>
+<script id="stage-status-labels" type="application/json">{{ stage_status_labels|tojson }}</script>
 <script src="{{ url_for('static', filename='js/planner-job.js') }}" defer></script>
 {% endblock %}
 

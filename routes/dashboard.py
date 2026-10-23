@@ -1,32 +1,23 @@
 import sqlite3
-from functools import wraps
 
-from flask import Blueprint, abort, current_app, flash, g, redirect, render_template, request, session, url_for
+from flask import Blueprint, abort, current_app, flash, redirect, render_template, request, session, url_for
 from mysql.connector import Error, IntegrityError
 
-from planning.presentation import add_store_details
-from services.orders import get_order_by_id, get_order_items, get_user_orders
-from services.crews import CREW_RATES, HOURS_PER_DAY, parse_crew, crew_estimate
-from services.projects import (delete_project, get_project, get_project_count, get_user_projects,
+from planning.presentation import add_store_details, project_spec_rows, status_label
+from planning.ai_config import WORKFLOW_TIERS
+from routes.auth import login_required
+from services.orders import get_order, get_order_items, get_user_orders
+from services.crews import CREW_RATES, HOURS_PER_DAY, parse_crew, estimate_crew_cost
+from services.projects import (PROJECT_STATUS_LABELS, delete_project, get_project_details, count_projects, get_project_list,
                                rename_project, save_project_crew, set_project_completed)
-from utils.database import database_cursor
-from utils.users import create_user, delete_user_completely, set_user_status
+from utils.users import create_user, delete_user_completely, get_all_users, set_user_status
 
 dashboard_bp = Blueprint("dashboard", __name__)
 
 
-def dashboard_login_required(view):
-    @wraps(view)
-    def wrapped(*args, **kwargs):
-        if "user_id" not in session:
-            return redirect(url_for("auth.login"))
-        return view(*args, **kwargs)
-
-    return wrapped
-
 # The sign-in check refreshes the role each request.
 @dashboard_bp.route("/dashboard", methods=["GET", "POST"])
-@dashboard_login_required
+@login_required
 def dashboard():
     permission_level = session.get("permission_level", "user")
 
@@ -45,90 +36,94 @@ def dashboard():
         except Error:
             current_app.logger.exception("Unable to create an admin user")
             flash("User creation is temporarily unavailable. Nothing was changed.", "error")
-
         # Redirect so refreshing does not create another user.
         return redirect(url_for("dashboard.dashboard"))
 
     if permission_level == "admin":
+        # An empty list means no users but users_error means the query failed.
         users_error = False
         try:
-            with database_cursor() as cursor:
-                cursor.execute(
-                    """SELECT u.id, CONCAT_WS(' ', u.firstName, NULLIF(u.lastName, '')) AS display_name,
-                              u.email, u.permissions, u.dateCreated, c.accountStatus
-                       FROM `User` u
-                       JOIN Customer c ON c.userId = u.id
-                       ORDER BY u.id"""
-                )
-                users = cursor.fetchall()
+            users = get_all_users()
         except Error:
             current_app.logger.exception("Unable to load the admin user list")
-            g.database_unavailable = True
             users = []
             users_error = True
+        admin_count = 0
+        for user in users:
+            if user["permissions"] == "admin":
+                admin_count += 1
+        user_statistics = [
+            ("Total Users", len(users), "icon-user"),
+            ("Administrators", admin_count, "icon-grid"),
+            ("Regular Users", len(users) - admin_count, "icon-user"),
+        ]
         return render_template(
             "admin_dashboard.html", display_name=session.get("display_name"),
             permission_level=permission_level, users=users, users_error=users_error,
-            admin_workspace=True,
+            admin_workspace=True, user_statistics=user_statistics,
         )
 
-    user_id = session["user_id"]
-    return render_template(
-        "dashboard/overview.html", display_name=session.get("display_name"),
-        recent_projects=get_user_projects(user_id, limit=3),
-        project_count=get_project_count(user_id), cart_count=None,
-    )
+    return redirect(url_for("dashboard.settings"))
 
 
 PROJECT_STATUSES = ["In Progress", "Review Needed", "Ready", "Completed"]
 
 
 @dashboard_bp.get("/dashboard/projects")
-@dashboard_login_required
+@login_required
 def projects():
     search = request.args.get("q", "").strip()
     status = request.args.get("status", "")
-    all_projects = get_user_projects(session["user_id"])
-    if all_projects is None:
+    status_filter = ""
+    if status in PROJECT_STATUSES:
+        status_filter = status
+
+    shown = get_project_list(session["user_id"], search=search, status=status_filter)
+    total = count_projects(session["user_id"])
+    if shown is None or total is None:
         return render_template("unavailable.html", message="Projects unavailable."), 503
-    shown = []
-    for project in all_projects:
-        if search and search.lower() not in project["name"].lower():
-            continue
-        if status in PROJECT_STATUSES and project["status"] != status:
-            continue
-        shown.append(project)
-    return render_template("dashboard/projects.html", projects=shown, total=len(all_projects),
-                           search=search, status=status, statuses=PROJECT_STATUSES)
+    for job in shown:
+        label, tone = status_label(job)
+        job["planning_status_label"] = label
+        job["planning_status_tone"] = tone
+    status_options = []
+    for value in PROJECT_STATUSES:
+        status_options.append({"value": value, "label": PROJECT_STATUS_LABELS.get(value, value)})
+    return render_template("dashboard/projects.html", projects=shown, total=total, search=search,
+                           status=status, statuses=status_options,
+                           workflow_tiers=WORKFLOW_TIERS)
 
 
-def owned_project(project_id):
-    project = get_project(project_id, session["user_id"])
+def get_project_or_404(project_id):
+    project = get_project_details(project_id, session["user_id"])
     if project is None:
         abort(404)
     return project
 
 
 @dashboard_bp.get("/dashboard/projects/<int:project_id>")
-@dashboard_login_required
+@login_required
 def project_detail(project_id):
-    project = owned_project(project_id)
+    project = get_project_or_404(project_id)
+    if project["job_exists"]:
+        return redirect(url_for("planner.planning_job", job_id=project["job_id"]))
     crew = None
     if project["crew"]:
-        crew = crew_estimate(project["crew"])
+        crew = estimate_crew_cost(project["crew"])
     plan = project["plan"]
     materials = []
     if plan.get("result"):
         materials = add_store_details(plan["result"]["materials"])
     return render_template("dashboard/project_detail.html", project=project, plan=plan,
                            materials=materials, crew=crew,
+                           project_fields=project_spec_rows(plan.get("project") or {}),
                            crew_rates=CREW_RATES, hours_per_day=HOURS_PER_DAY)
 
 
 @dashboard_bp.post("/dashboard/projects/<int:project_id>/rename")
-@dashboard_login_required
+@login_required
 def project_rename(project_id):
-    owned_project(project_id)
+    get_project_or_404(project_id)
     try:
         rename_project(project_id, session["user_id"], request.form.get("name"))
         flash("Project name saved.", "success")
@@ -138,9 +133,9 @@ def project_rename(project_id):
 
 
 @dashboard_bp.post("/dashboard/projects/<int:project_id>/completed")
-@dashboard_login_required
+@login_required
 def project_completed(project_id):
-    owned_project(project_id)
+    get_project_or_404(project_id)
     completed = request.form.get("completed") == "yes"
     set_project_completed(project_id, session["user_id"], completed)
     if completed:
@@ -151,9 +146,9 @@ def project_completed(project_id):
 
 
 @dashboard_bp.post("/dashboard/projects/<int:project_id>/crew")
-@dashboard_login_required
+@login_required
 def project_crew(project_id):
-    owned_project(project_id)
+    get_project_or_404(project_id)
     try:
         crew = parse_crew(request.form.get("crew"))
     except ValueError as error:
@@ -165,34 +160,37 @@ def project_crew(project_id):
 
 
 @dashboard_bp.post("/dashboard/projects/<int:project_id>/crew/remove")
-@dashboard_login_required
+@login_required
 def project_crew_remove(project_id):
-    owned_project(project_id)
+    get_project_or_404(project_id)
     save_project_crew(project_id, session["user_id"], None)
     flash("Crew removed from this project.", "success")
     return redirect(url_for("dashboard.project_detail", project_id=project_id, _anchor="crew"))
 
 
 @dashboard_bp.post("/dashboard/projects/<int:project_id>/delete")
-@dashboard_login_required
+@login_required
 def project_delete(project_id):
-    # The AI plan stays in planning history when the saved project is deleted.
-    owned_project(project_id)
+    project = get_project_or_404(project_id)
     delete_project(project_id, session["user_id"])
-    flash("Project deleted.", "success")
+    flash("Removed from Saved Projects. Your planning history was kept.", "success")
+    if request.form.get("return_to") == "history":
+        return redirect(url_for("planner.planning_history"), code=303)
+    if request.form.get("return_to") == "plan":
+        return redirect(url_for("planner.planning_job", job_id=project["job_id"]), code=303)
     return redirect(url_for("dashboard.projects"))
 
 
 @dashboard_bp.get("/dashboard/orders")
-@dashboard_login_required
+@login_required
 def orders():
     return render_template("dashboard/orders.html", orders=get_user_orders(session["user_id"]))
 
 
 @dashboard_bp.get("/dashboard/orders/<int:order_id>")
-@dashboard_login_required
+@login_required
 def order_detail(order_id):
-    order = get_order_by_id(order_id, session["user_id"])
+    order = get_order(order_id, session["user_id"])
     if order is None:
         abort(404)
     items = get_order_items(order_id, session["user_id"])
@@ -200,7 +198,7 @@ def order_detail(order_id):
 
 
 @dashboard_bp.get("/dashboard/settings")
-@dashboard_login_required
+@login_required
 def settings():
     return render_template(
         "dashboard/settings.html", profile={"display_name": session.get("display_name", "")},

@@ -176,19 +176,6 @@
     min-width: 0;
 }
 
-.shopping-panel-heading {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 16px;
-    margin-bottom: 18px;
-}
-
-.shopping-panel-heading > span {
-    font-size: 12px;
-    color: var(--shop-muted);
-}
-
 .shopping-notice {
     color: var(--shop-muted);
     background: var(--panel-alt);
@@ -413,51 +400,6 @@
     color: var(--shop-muted);
 }
 
-.shopping-quantity-group {
-    text-align: center;
-}
-
-.shopping-quantity {
-    display: flex;
-    margin-top: 8px;
-    border: 1px solid var(--shop-border);
-    border-radius: var(--radius);
-    overflow: hidden;
-}
-
-.shopping-quantity button {
-    width: 34px;
-    min-height: 40px;
-    flex-shrink: 0;
-    border: 0;
-    font-size: 17px;
-}
-
-.shopping-quantity input {
-    width: 42px;
-    min-width: 0;
-    border: 0;
-    padding: 4px;
-    text-align: center;
-    appearance: textfield;
-    -moz-appearance: textfield;
-}
-
-.shopping-quantity input::-webkit-inner-spin-button,
-.shopping-quantity input::-webkit-outer-spin-button {
-    -webkit-appearance: none;
-}
-
-.shopping-quantity input:disabled {
-    color: var(--muted);
-    opacity: 1;
-}
-
-.shopping-page .shopping-quantity button:disabled {
-    background: var(--panel-raised);
-    color: var(--muted);
-}
-
 .shopping-cart-line-total {
     grid-column: 2 / -1;
     display: flex;
@@ -505,33 +447,6 @@
     min-width: 0;
 }
 
-.shopping-section-heading {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    margin-bottom: 24px;
-}
-
-.shopping-section-number {
-    display: grid;
-    place-items: center;
-    width: 36px;
-    height: 36px;
-    flex-shrink: 0;
-    border-radius: var(--radius);
-    background: var(--amber-tint);
-    color: var(--shop-accent);
-    border: 1px solid rgba(245, 151, 9, 0.2);
-    font-size: 12px;
-    font-weight: 600;
-}
-
-.shopping-section-heading p {
-    font-size: 12px;
-    color: var(--shop-muted);
-    margin-top: 3px;
-}
-
 .shopping-field-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -575,17 +490,6 @@
 .shopping-field [aria-invalid="true"] {
     border-color: var(--danger);
     outline-color: var(--danger);
-}
-
-.shopping-field-error {
-    display: block;
-    color: var(--danger);
-    font-size: 12px;
-    line-height: 1.5;
-}
-
-.shopping-field-error:not(:empty) {
-    margin-top: 6px;
 }
 
 .shopping-summary-products {
@@ -652,41 +556,6 @@
     color: var(--shop-accent);
 }
 
-.shopping-validation-panel {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 20px;
-}
-
-.shopping-validation-panel > div {
-    flex: 1;
-    min-width: 180px;
-}
-
-.shopping-validation-panel h2 {
-    font-size: 16px;
-    margin-bottom: 6px;
-}
-
-.shopping-validation-panel p {
-    color: var(--shop-muted);
-    font-size: 12px;
-}
-
-.shopping-validation-panel .shopping-validation-status {
-    flex-basis: 100%;
-    color: var(--success);
-}
-
-.shopping-validation-status:empty {
-    display: none;
-}
-
-.shopping-validation-panel .shopping-validation-status[data-error] {
-    color: var(--danger);
-}
-
 .shopping-confirmation h1 {
     max-width: 620px;
     margin-bottom: 16px;
@@ -737,11 +606,6 @@
         height: 56px;
     }
 
-    .shopping-quantity-group {
-        grid-column: 2;
-        text-align: left;
-    }
-
     .shopping-cart-controls {
         grid-column: 2;
         grid-template-columns: auto auto;
@@ -751,10 +615,6 @@
 
     .shopping-cart-controls label {
         grid-column: 1 / -1;
-    }
-
-    .shopping-quantity {
-        width: 112px;
     }
 
 }
@@ -826,13 +686,8 @@
         font-size: 23px;
     }
 
-    .shopping-empty .shopping-button,
-    .shopping-validation-panel .shopping-button {
+    .shopping-empty .shopping-button {
         width: 100%;
-    }
-
-    .shopping-section-heading h2 {
-        font-size: 17px;
     }
 
     .shopping-confirmation-links {
@@ -865,4 +720,13 @@
     margin: 4px 0 22px;
     color: var(--shop-muted);
     font-size: 14px;
+}
+
+.shopping-crew-cart {
+    margin-top: 24px;
+}
+.shopping-crew-selection + .shopping-crew-selection {
+    margin-top: 24px;
+    padding-top: 24px;
+    border-top: 1px solid var(--line);
 }

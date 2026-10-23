@@ -12,8 +12,8 @@ from argon2.low_level import Type
 from mysql.connector import Error, IntegrityError
 
 from utils.database import database_cursor, database_settings
-from utils.passwords import check_password, hash_password
-from utils.users import create_user
+from utils.passwords import check_password, hash_password, validate_password
+from utils.users import create_user, get_all_users
 
 
 class DatabaseUnitTests(unittest.TestCase):
@@ -30,6 +30,15 @@ class DatabaseUnitTests(unittest.TestCase):
             with self.subTest(variant=variant):
                 encoded = PasswordHasher(type=variant).hash("Fixture123!")
                 self.assertFalse(check_password(encoded, "Fixture123!"))
+
+    def test_new_passwords_need_an_ascii_digit(self):
+        # The register and admin forms apply the same rule in JavaScript.
+        for good in ("ab1", "pass word 7", "x" * 127 + "1"):
+            validate_password(good)
+        too_short_or_no_digit = ("abc", "a1", "", "ab٣", "ab１", "٣٣٣")
+        for bad in too_short_or_no_digit + ("x" * 128 + "1",):
+            with self.subTest(password=bad.encode("unicode_escape")), self.assertRaises(ValueError):
+                validate_password(bad)
 
     def test_full_unicode_password_is_verified(self):
         password = "é" * 50 + "123!"
@@ -159,6 +168,10 @@ class DatabaseIntegrationTests(unittest.TestCase):
             self.assertEqual(response.status_code, 302)
             _, response = self.login(self.emails[2])
             self.assertEqual(response.status_code, 403)
+            # A wrong password must not reveal that the account is disabled.
+            _, response = self.login(self.emails[2], "Wrong123!")
+            self.assertEqual(response.status_code, 401)
+            self.assertEqual(response.get_json(), {"error": "Invalid email or password."})
             self.assertEqual(self.client_for(self.other).get("/cart").status_code, 302)
         finally:
             with database_cursor() as cursor:
@@ -166,8 +179,19 @@ class DatabaseIntegrationTests(unittest.TestCase):
         response = self.client_for(self.customer).post("/dashboard", data={"csrf_token": "fixture-csrf"})
         self.assertEqual(response.status_code, 403)
 
+    def test_admin_user_list_has_the_expected_fields_in_id_order(self):
+        users = get_all_users()
+        ids = [user["id"] for user in users]
+        self.assertEqual(ids, sorted(ids))
+        admin = {user["id"]: user for user in users}[self.admin]
+        self.assertEqual(set(admin), {"id", "display_name", "email", "permissions", "dateCreated", "accountStatus"})
+        self.assertEqual(admin["display_name"], "Fixture Account")
+        self.assertEqual(admin["email"], self.emails[0])
+        self.assertEqual(admin["permissions"], "admin")
+        self.assertEqual(admin["accountStatus"], "active")
+
     def test_order_history_prices_and_ownership(self):
-        from services.orders import get_order_by_id, get_order_items
+        from services.orders import get_order, get_order_items
         client = self.client_for(self.customer)
         for path in ("/dashboard/orders", f"/dashboard/orders/{self.order}", f"/order-confirmation/{self.order}"):
             response = client.get(path)
@@ -176,15 +200,15 @@ class DatabaseIntegrationTests(unittest.TestCase):
         with database_cursor() as cursor:
             cursor.execute("UPDATE Product SET price = 99.99 WHERE id = %s", (self.product,))
         self.assertEqual(get_order_items(self.order, self.customer)[0]["unit_price"], "$19.95")
-        self.assertIsNone(get_order_by_id(self.order, self.other))
+        self.assertIsNone(get_order(self.order, self.other))
         self.assertEqual(get_order_items(self.order, self.other), [])
         self.assertEqual(self.client_for(self.other).get(f"/dashboard/orders/{self.order}").status_code, 404)
         response = self.client_for(self.other).get(f"/order-confirmation/{self.order}")
         self.assertNotIn(b"39.90", response.data)
 
     def test_catalog_manufacturers_and_planner(self):
-        from services.products import get_manufacturers, get_planner_catalog, get_products_by_ids, search_products
-        self.assertTrue(get_manufacturers())
+        from services.products import get_all_manufacturers, get_planner_catalog, get_products_by_ids, search_products
+        self.assertTrue(get_all_manufacturers())
         products, _ = search_products(search=self.prefix)
         self.assertEqual(products[0]["pack_quantity"], 10)
         self.assertEqual(products[0]["available_quantity"], 50)

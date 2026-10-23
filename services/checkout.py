@@ -1,19 +1,16 @@
-"""Cart totals work; checkout details are still unfinished."""
-
-from decimal import Decimal
 
 
-def validate_checkout_data(checkout_data):
-    "TODO: return cleaned contact and shipping details, or raise ValueError."
+def check_checkout_form(checkout_data):
+    # TODO: Check the contact and delivery fields, clean them up, and explain any missing or invalid details.
     pass
 
-def calculate_order_total(cart_items):
+def calculate_totals(cart_items):
     if not cart_items:
-        return {}
-    subtotal = Decimal("0")
+        return None
+    subtotal = 0
     for item in cart_items:
-        if item["error"] or item["total_cents"] is None:
-            return {}
-        subtotal += Decimal(item["total_cents"])
-    return {"subtotal_cents": int(subtotal), "shipping_cents": 0,
-            "tax_cents": 0, "total_cents": int(subtotal)}
+        if item.get("error") or item.get("total_cents") is None:
+            return None
+        subtotal += item["total_cents"]
+    # Shipping and tax stay unknown until order checkout is implemented.
+    return {"subtotal_cents": subtotal, "shipping_cents": None, "tax_cents": None, "total_cents": None}

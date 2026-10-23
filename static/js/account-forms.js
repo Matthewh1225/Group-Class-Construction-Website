@@ -1,16 +1,12 @@
 
 // Use the same password rules as Python.
-export function passwordChecks(value, digits) {
+export function passwordChecks(value) {
+    // Count Unicode characters like Python does, not UTF-16 units.
     let characterCount = 0;
-    let hasNumber = false;
-    // Count Unicode characters like Python does.
     for (const character of value) {
         characterCount += 1;
-        if (digits.includes(character)) {
-            hasNumber = true;
-        }
     }
-    return { length: characterCount >= 3, number: hasNumber };
+    return { length: characterCount >= 3, number: /[0-9]/.test(value) };
 }
 
 export async function submitAccountForm(form, message, data) {

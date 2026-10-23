@@ -10,14 +10,14 @@
                 <li><a href="{{ url_for('products.products') }}">Products</a></li>
                 <li><a href="{{ url_for('products.heavy_machinery') }}">Heavy Machinery</a></li>
                 <li><a href="{{ url_for('crews.crews') }}">Crews</a></li>
-                <li><a href="{{ url_for('cart') }}">Cart</a></li>
+                <li><a href="{{ url_for('shopping.show_cart') }}">Cart</a></li>
             </ul>
         </nav>
         <nav aria-labelledby="footer-plan">
             <h2 id="footer-plan">Plan</h2>
             <ul>
                 <li><a href="{{ url_for('planner.planner') }}">AI Planner</a></li>
-                <li><a href="{{ url_for('dashboard.projects') }}">My Projects</a></li>
+                <li><a href="{{ url_for('dashboard.projects') }}">Saved Projects</a></li>
             </ul>
         </nav>
         <nav aria-labelledby="footer-account">
@@ -25,7 +25,7 @@
             <ul>
                 {% if session.get("user_id") %}
                     <li><a href="{{ url_for('dashboard.dashboard') }}">Dashboard</a></li>
-                    <li><a href="{{ url_for('subscription.manage') }}">Subscription</a></li>
+                    <li><a href="{{ url_for('subscription.manage_subscription') }}">Subscription</a></li>
                     <li><a href="{{ url_for('dashboard.settings') }}">Settings</a></li>
                     <li>
                         <form method="post" action="{{ url_for('auth.logout') }}">

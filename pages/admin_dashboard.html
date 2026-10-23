@@ -9,7 +9,6 @@
 {% endblock %}
 
 {% block dashboard_content %}
-    {% set admin_count = users|selectattr('permission_level', 'equalto', 'admin')|list|length %}
     <div class="admin-workspace" id="admin-workspace" data-current-user-id="{{ session.get('user_id') }}">
         <div class="dashboard-page-heading">
             <div>
@@ -32,11 +31,6 @@
         </div>
         {% if not users_error %}
         <section class="dashboard-stat-grid admin-stat-grid" aria-label="User statistics">
-            {% set user_statistics = [
-                ('Total Users', users|length, 'icon-user'),
-                ('Administrators', admin_count, 'icon-grid'),
-                ('Regular Users', users|length - admin_count, 'icon-user')
-            ] %}
             {% for label, value, icon in user_statistics %}
                 <div class="dashboard-card dashboard-stat">
                     <span class="dashboard-stat-icon">
@@ -125,7 +119,13 @@
                                     </div>
                                 </div>
                             </td>
-                            <td class="admin-role-cell"><span class="admin-role-badge {{ 'admin-role-admin' if user.permissions == 'admin' else 'admin-role-user' }}">{{ 'Admin' if user.permissions == 'admin' else 'User' }}</span></td>
+                            <td class="admin-role-cell">
+                                {% if user.permissions == 'admin' %}
+                                    <span class="admin-role-badge admin-role-admin">Admin</span>
+                                {% else %}
+                                    <span class="admin-role-badge admin-role-user">User</span>
+                                {% endif %}
+                            </td>
                             <td class="admin-status-cell">
                                 {% if user.accountStatus == 'disabled' %}
                                     <span class="admin-status-badge admin-status-disabled">Disabled</span>
@@ -134,7 +134,13 @@
                                 {% endif %}
                             </td>
                             <td class="admin-joined-cell">
-                                <time data-user-date>{% if user.dateCreated %}{{ user.dateCreated }}{% else %}&mdash;{% endif %}</time>
+                                <time data-user-date>
+                                    {% if user.dateCreated %}
+                                        {{ user.dateCreated }}
+                                    {% else %}
+                                        &mdash;
+                                    {% endif %}
+                                </time>
                             </td>
                             <td class="admin-actions-cell">
                                 <div class="admin-row-actions">
@@ -203,7 +209,7 @@
                 <button type="button" class="admin-dialog-close" data-close-admin-dialog aria-label="Close Add User">&times;</button>
             </div>
             <p class="admin-form-server-error" id="admin-add-server-error" role="alert" hidden></p>
-            <form class="admin-account-form" id="admin-add-form" method="post" action="{{ url_for('dashboard.dashboard') }}" data-password-digits="{{ password_digits }}" novalidate>
+            <form class="admin-account-form" id="admin-add-form" method="post" action="{{ url_for('dashboard.dashboard') }}" novalidate>
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div class="admin-form-field">
                     <label for="admin-firstName">First name</label>

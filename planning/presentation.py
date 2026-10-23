@@ -2,6 +2,7 @@
 from decimal import Decimal, ROUND_CEILING
 
 from services.products import get_products_by_ids
+from planning.jobs import pending_stages
 
 STATUS_LABELS = {
     "queued": ("Queued for planning", "neutral"),
@@ -17,16 +18,68 @@ def status_label(job):
     return STATUS_LABELS.get(job.get("status"), ("Status unavailable", "neutral"))
 
 
+STAGE_STATUS_LABELS = {
+    "pending": "Pending", "processing": "Processing", "done": "Done",
+    "failed": "Failed", "cancelled": "Cancelled",
+}
+
+
+def stage_rows(job):
+    names = {"interpreter": "Interpreter", "planner": "Planner",
+             "second_planner": "Planner 2", "auditor": "Auditor"}
+    stages = job.get("stages") or {}
+    rows = []
+    for name in pending_stages(job["tier"]):
+        state = stages.get(name, "pending")
+        rows.append({"name": name, "label": names[name], "state": state,
+                     "status_label": STAGE_STATUS_LABELS.get(state, "Status unavailable")})
+    return rows
+
+
+def format_amount(value):
+    if value is None:
+        return "Unknown"
+    number = float(value)
+    if 0 < number < 0.01:
+        return "{:g}".format(number)
+    return "{:,.2f}".format(number).rstrip("0").rstrip(".")
+
+
+def project_spec_rows(project):
+    rows = []
+    for name, value in (project.get("dimensions") or {}).items():
+        rows.append({"label": name.replace("_", " ").capitalize(),
+                     "value": format_amount(value)})
+    hidden_fields = ["dimensions", "description", "project_type", "project_mode",
+                     "project_size", "project_template"]
+    for name, value in project.items():
+        if name in hidden_fields or value is None:
+            continue
+        if value is True:
+            display_value = "Yes"
+        elif value is False:
+            display_value = "No"
+        elif isinstance(value, (int, float, Decimal)):
+            display_value = format_amount(value)
+        else:
+            display_value = value
+        rows.append({"label": name.replace("_", " ").capitalize(), "value": display_value})
+    return rows
+
+
+# Other spellings of a unit that mean the same thing. This is only read, never changed.
+UNIT_ALIASES = {"feet": "ft", "foot": "ft", "inches": "in", "inch": "in",
+                "meters": "m", "metres": "m", "square feet": "sq_ft", "sq ft": "sq_ft",
+                "square meters": "sq_m", "sq m": "sq_m", "layers": "count",
+                "layer": "count", "coats": "count", "coat": "count",
+                "gallons": "gallon", "sheets": "sheet", "pieces": "piece",
+                "rolls": "roll", "screws": "screw", "boxes": "box", "bags": "bag"}
+
+
 # Plan units and store units must match before a product can be bought.
 def normalize_unit(unit):
-    aliases = {"feet": "ft", "foot": "ft", "inches": "in", "inch": "in",
-               "meters": "m", "metres": "m", "square feet": "sq_ft", "sq ft": "sq_ft",
-               "square meters": "sq_m", "sq m": "sq_m", "layers": "count",
-               "layer": "count", "coats": "count", "coat": "count",
-               "gallons": "gallon", "sheets": "sheet", "pieces": "piece",
-               "rolls": "roll", "screws": "screw", "boxes": "box", "bags": "bag"}
     text = unit.strip().lower()
-    return aliases.get(text, text)
+    return UNIT_ALIASES.get(text, text)
 
 
 # Products are purchased as whole sellable units (boxes, bags, pieces, etc.).
@@ -62,6 +115,27 @@ def add_store_details(materials):
             row["out_of_stock"] = product["available_quantity"] <= 0
 
         row["can_add"] = row["buy_quantity"] is not None and not row["out_of_stock"]
+
+        row["match_status"] = "unmatched"
+        row["stock_status"] = "unknown"
+        row["incompatible_units"] = False
+        row["insufficient_stock"] = False
+        row["show_store_link"] = False
+        if product is None:
+            if material.get("product_id") is not None:
+                row["match_status"] = "missing"
+        else:
+            row["match_status"] = "matched"
+            row["incompatible_units"] = row["buy_quantity"] is None
+            row["show_store_link"] = row["incompatible_units"] and not row["out_of_stock"]
+            stock = product["available_quantity"]
+            if stock is not None:
+                if row["out_of_stock"]:
+                    row["stock_status"] = "out_of_stock"
+                else:
+                    row["stock_status"] = "available"
+                if row["buy_quantity"] is not None:
+                    row["insufficient_stock"] = stock < row["buy_quantity"]
 
         row["line_total"] = None
         if row["can_add"] and product["unit_price"] is not None:

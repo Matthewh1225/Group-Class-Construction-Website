@@ -1,6 +1,7 @@
 import importlib
 import json
 import os
+import sqlite3
 import tempfile
 import unittest
 from copy import deepcopy
@@ -14,7 +15,7 @@ from threading import Event
 
 from planning import ai_config, ai_planner, jobs, presentation, worker, workflow
 from planning.schemas import AuditedEstimate, DraftEstimate, Material, clear_unknown_products
-from services.crews import CREW_RATES, HOURS_PER_DAY, crew_estimate, parse_crew
+from services.crews import CREW_RATES, HOURS_PER_DAY, estimate_crew_cost, parse_crew
 
 
 MATERIAL = {
@@ -48,8 +49,8 @@ class PlannerTests(unittest.TestCase):
 
     def stage(self, response):
         with patch.object(workflow, "ask_model", return_value=json.dumps(response)):
-            return workflow.run_stage("fast", "auditor", AuditedEstimate, {},
-                                      ai_config.AUDITOR_PROMPT, {123})
+            return workflow.run_stage("fast", "auditor", AuditedEstimate, {"catalog": [PRODUCT]},
+                                      ai_config.AUDITOR_PROMPT)
 
     def test_gemini_3_8_is_replaced_by_3_5_flash_lite(self):
         # Reload the model settings with .env asking for Gemini 3.8, then restore them.
@@ -58,6 +59,40 @@ class PlannerTests(unittest.TestCase):
             importlib.reload(ai_planner)
         self.assertEqual(ai_planner.AI_MODELS["gemini_strong"]["model"], "gemini-3.5-flash-lite")
         self.assertEqual(ai_planner.AI_MODELS["gemini_fast"]["model"], "gemini-3.5-flash-lite")
+
+    def test_planner_stages_use_the_groq_client(self):
+        draft = {"materials": [{**MATERIAL, "product_id": None}]}
+        response = {"text": json.dumps(draft), "finish_reason": "stop"}
+        with patch.dict(ai_planner.AI_MODELS["gpt_oss"], {"client": object()}), \
+                patch.object(ai_planner, "call_groq", return_value=response) as groq, \
+                patch.object(ai_planner, "call_gemini") as gemini:
+            for tier, role in (("fast", "planner"), ("standard", "planner"), ("pro", "second_planner")):
+                with self.subTest(tier=tier):
+                    result = workflow.run_stage(tier, role, DraftEstimate, {}, ai_config.PLANNER_PROMPT)
+                    self.assertEqual(result, draft)
+                    self.assertEqual(groq.call_args.args[0]["provider"], "groq")
+            self.assertEqual(groq.call_count, 3)
+            gemini.assert_not_called()
+
+    def test_tiers_and_fallback_use_their_assigned_api_keys(self):
+        assignments = {
+            "fast": {"interpreter": "GEMINI_API_KEY", "auditor": "GEMINI_API_KEY"},
+            "standard": {"interpreter": "GEMINI_API_KEY2", "auditor": "GEMINI_API_KEY2"},
+            "pro": {"interpreter": "GEMINI_API_KEY3", "planner": "GEMINI_API_KEY3"},
+        }
+        fake_keys = {name: f"test-key-{number}" for number, name in enumerate(
+            ("GEMINI_API_KEY", "GEMINI_API_KEY2", "GEMINI_API_KEY3", "GEMINI_API_KEY4"), 1)}
+        with patch.dict(os.environ, fake_keys), patch.object(ai_planner.genai, "Client") as client:
+            for tier, roles in assignments.items():
+                for role, expected_key in roles.items():
+                    with self.subTest(tier=tier, role=role):
+                        settings = ai_config.MODELS[ai_config.WORKFLOW_TIERS[tier][role]["model"]]
+                        ai_planner.make_client(settings["provider"], settings["api_key"])
+                        client.assert_called_with(api_key=fake_keys[expected_key])
+            fallback = ai_config.WORKFLOW_TIERS["pro"]["auditor"]["fallback"]
+            settings = ai_config.MODELS[fallback]
+            ai_planner.make_client(settings["provider"], settings["api_key"])
+            client.assert_called_with(api_key=fake_keys["GEMINI_API_KEY4"])
 
     def test_positive_finite_quantities_required(self):
         for quantity in (None, 0, -1, True, "9", float("nan"), float("inf")):
@@ -107,19 +142,27 @@ class PlannerTests(unittest.TestCase):
                 self.assertNotIn("original_request", request)
                 self.assertNotIn("interpretation", request)
                 if schema["title"] == "Specification":
+                    catalog.assert_not_called()
+                    self.assertNotIn("catalog", request)
                     self.assertEqual(request["details"], [])
                     return json.dumps({"details": ["8 foot ceiling"], "questions": []})
                 self.assertEqual(request["details"], ["8 foot ceiling"])
                 if schema["title"] == "DraftEstimate":
-                    return json.dumps({"materials": [MATERIAL]})
+                    catalog.assert_not_called()
+                    self.assertNotIn("catalog", request)
+                    return json.dumps({"materials": [{**MATERIAL, "product_id": None}]})
+                self.assertEqual(request["catalog"], [PRODUCT])
+                catalog.assert_called_once_with()
                 self.assertEqual(len(request["estimates"]), planner_count)
+                for estimate in request["estimates"]:
+                    self.assertIsNone(estimate["materials"][0]["product_id"])
                 self.assertNotIn("estimate", request)
                 self.assertEqual(set(request["available_crew_roles"]), set(CREW_RATES))
                 self.assertEqual(instructions, ai_config.AUDITOR_PROMPT)
                 return json.dumps(RESULT)
 
             with self.subTest(tier=tier), patch.object(workflow, "ask_model", side_effect=answer), \
-                    patch.object(workflow, "get_planner_catalog", return_value=[PRODUCT]):
+                    patch.object(workflow, "get_planner_catalog", return_value=[PRODUCT]) as catalog:
                 job = {"tier": tier, "owner": "test", "project": project, "answers": answers,
                        "stages": jobs.pending_stages(tier)}
                 workflow.run_workflow(job, lambda job: None)
@@ -127,7 +170,47 @@ class PlannerTests(unittest.TestCase):
                 self.assertEqual(job["status"], "complete")
                 self.assertEqual(job["result"]["crew"]["label"], "AI-estimated crew")
                 self.assertEqual(job["result"]["crew"]["members"], RESULT["crew"]["members"])
+                self.assertEqual(job["result"]["materials"], RESULT["materials"])
+                catalog.assert_called_once_with()
                 self.assertNotIn("summary", job["specification"])
+
+    def test_final_auditor_filters_ids_without_losing_unmatched_materials(self):
+        materials = [dict(MATERIAL), {**MATERIAL, "material_name": "Special panel", "product_id": 999,
+                                     "quantity": 2.5}, {**MATERIAL, "material_name": "Unmatched trim", "product_id": None}]
+        audited = {**RESULT, "materials": materials}
+        for catalog in ([PRODUCT], []):
+            with self.subTest(catalog=catalog), patch.object(workflow, "ask_model", return_value=json.dumps(audited)):
+                output = workflow.run_stage("fast", "auditor", AuditedEstimate, {"catalog": catalog}, ai_config.AUDITOR_PROMPT)
+                expected = [123, None, None] if catalog else [None, None, None]
+                self.assertEqual([row["product_id"] for row in output["materials"]], expected)
+                self.assertEqual(len(output["materials"]), 3)
+                for original, final in zip(materials, output["materials"]):
+                    self.assertEqual({key: value for key, value in original.items() if key != "product_id"},
+                                     {key: value for key, value in final.items() if key != "product_id"})
+                self.assertEqual(output["crew"]["members"], RESULT["crew"]["members"])
+
+    def test_invalid_product_id_types_are_rejected(self):
+        for product_id in ("123", True, 123.5):
+            with self.subTest(product_id=product_id), self.assertRaises(workflow.PlanningError):
+                self.stage({**RESULT, "materials": [{**MATERIAL, "product_id": product_id}]})
+
+    def test_planner_drafts_cannot_assign_store_ids(self):
+        for tier, role in (("fast", "planner"), ("standard", "planner"), ("pro", "planner"), ("pro", "second_planner")):
+            with self.subTest(tier=tier, role=role), patch.object(workflow, "ask_model", return_value=json.dumps({"materials": [MATERIAL]})), \
+                    patch.object(workflow, "clear_unknown_products") as validate_ids:
+                output = workflow.run_stage(tier, role, DraftEstimate, {}, ai_config.PLANNER_PROMPT)
+                self.assertIsNone(output["materials"][0]["product_id"])
+                self.assertEqual(output["materials"][0]["quantity"], MATERIAL["quantity"])
+                validate_ids.assert_not_called()
+
+    def test_auditor_fallback_uses_the_same_catalog_and_filters_ids(self):
+        audited = {**RESULT, "materials": [{**MATERIAL, "product_id": 999}]}
+        with patch.object(workflow, "ask_model", side_effect=["{}", json.dumps(audited)]) as ask:
+            output = workflow.run_stage("pro", "auditor", AuditedEstimate, {"catalog": [PRODUCT]}, ai_config.AUDITOR_PROMPT)
+        self.assertIsNone(output["materials"][0]["product_id"])
+        self.assertEqual([call.args[0] for call in ask.call_args_list], ["nemotron", "gemini_fallback"])
+        for call in ask.call_args_list:
+            self.assertEqual(json.loads(call.args[1])["catalog"], [PRODUCT])
 
     def test_questions_pause_before_planning(self):
         with patch.object(workflow, "ask_model", return_value=json.dumps({
@@ -142,7 +225,7 @@ class PlannerTests(unittest.TestCase):
         bad = deepcopy(RESULT)
         bad["materials"][0]["quantity"] = 0
         with patch.object(workflow, "ask_model", side_effect=[json.dumps(bad), json.dumps(RESULT)]) as ask:
-            output = workflow.run_stage("fast", "auditor", AuditedEstimate, {}, "", {123})
+            output = workflow.run_stage("fast", "auditor", AuditedEstimate, {"catalog": [PRODUCT]}, "")
             self.assertEqual(output["materials"][0]["quantity"], 9)
             self.assertIn("problem_with_last_answer", json.loads(ask.call_args.args[1]))
         with self.assertRaises(workflow.PlanningError):
@@ -157,7 +240,7 @@ class PlannerTests(unittest.TestCase):
                 result["crew"] = None
             with self.subTest(missing=missing), patch.object(
                     workflow, "ask_model", side_effect=[json.dumps(result), json.dumps(RESULT)]) as ask:
-                output = workflow.run_stage("fast", "auditor", AuditedEstimate, {}, "", {123})
+                output = workflow.run_stage("fast", "auditor", AuditedEstimate, {"catalog": [PRODUCT]}, "")
                 self.assertEqual(output["crew"]["members"], RESULT["crew"]["members"])
                 feedback = json.loads(ask.call_args.args[1])["problem_with_last_answer"]
                 self.assertIn("crew", feedback)
@@ -172,7 +255,8 @@ class PlannerTests(unittest.TestCase):
                 bad["materials"][0].update(quantity=None, notes="Footing volume is design-dependent.")
                 with self.subTest(tier=tier, role=role), patch.object(
                         workflow, "ask_model", side_effect=[json.dumps(bad), json.dumps(good)]) as ask:
-                    output = workflow.run_stage(tier, role, record_type, {}, "", {123})
+                    inputs = {"catalog": [PRODUCT]} if role == "auditor" else {}
+                    output = workflow.run_stage(tier, role, record_type, inputs, "")
                     self.assertGreater(output["materials"][0]["quantity"], 0)
                     feedback = json.loads(ask.call_args.args[1])["problem_with_last_answer"]
                     self.assertIn("materials.0.quantity", feedback)
@@ -225,7 +309,7 @@ class PlannerTests(unittest.TestCase):
             states[role] = state
 
         with patch.object(workflow, "run_stage", side_effect=stage):
-            self.assertEqual(workflow.run_two_planners("pro", {}, {123}, update), [{"materials": [MATERIAL]}])
+            self.assertEqual(workflow.run_two_planners("pro", {}, update), [{"materials": [MATERIAL]}])
         self.assertEqual(states, {"planner": "done", "second_planner": "failed"})
 
     def test_job_storage_and_crew_edit_round_trip(self):
@@ -254,6 +338,74 @@ class PlannerTests(unittest.TestCase):
         self.assertIsNone(presentation.buy_quantity({**MATERIAL, "unit": "sq_ft"}, PRODUCT))
         self.assertIsNone(presentation.buy_quantity(MATERIAL, None))
 
+    def test_project_rows_preserve_false_zero_and_small_quantities(self):
+        rows = presentation.project_spec_rows({
+            "dimensions": {"width_ft": 0, "thickness_inches": 0.00025},
+            "project_type": "shed", "description": "A shed", "perch": False,
+            "lighting": True, "bedrooms": 0, "missing": None, "color": "Natural",
+        })
+        self.assertEqual(rows, [
+            {"label": "Width ft", "value": "0"},
+            {"label": "Thickness inches", "value": "0.00025"},
+            {"label": "Perch", "value": "No"},
+            {"label": "Lighting", "value": "Yes"},
+            {"label": "Bedrooms", "value": "0"},
+            {"label": "Color", "value": "Natural"},
+        ])
+
+    def test_amount_filter_keeps_existing_rounding(self):
+        from app import app
+        values = [(None, "Unknown"), (0, "0"), (2.50, "2.5"), (1234.567, "1,234.57"),
+                  (Decimal("0.00025"), "0.00025"), (0.009999, "0.009999"),
+                  (0.01, "0.01"), (-0.001, "-0")]
+        for value, expected in values:
+            with self.subTest(value=value):
+                self.assertEqual(presentation.format_amount(value), expected)
+                with app.app_context():
+                    rendered = app.jinja_env.from_string("{{ value|amount }}").render(value=value)
+                self.assertEqual(rendered, expected)
+
+    def test_stage_rows_keep_tier_order_and_default_states(self):
+        for tier in ("fast", "standard", "pro"):
+            with self.subTest(tier=tier):
+                rows = presentation.stage_rows({"tier": tier, "stages": {"interpreter": "done"}})
+                expected = ["interpreter", "planner", "auditor"]
+                if tier == "pro":
+                    expected.insert(2, "second_planner")
+                self.assertEqual([row["name"] for row in rows], expected)
+                self.assertEqual(rows[0]["status_label"], "Done")
+                self.assertEqual(rows[1]["state"], "pending")
+                for row in rows:
+                    self.assertEqual(row["status_label"], presentation.STAGE_STATUS_LABELS[row["state"]])
+
+    def test_material_display_states_remain_distinct(self):
+        cases = [
+            (None, {}, "unmatched", "unknown", False, False, False),
+            (999, {}, "missing", "unknown", False, False, False),
+            (123, {**PRODUCT, "available_quantity": None}, "matched", "unknown", True, False, False),
+            (123, {**PRODUCT, "available_quantity": 0}, "matched", "out_of_stock", False, True, False),
+            (123, {**PRODUCT, "available_quantity": 2}, "matched", "available", True, True, False),
+            (123, {**PRODUCT, "unit": "box"}, "matched", "available", False, False, True),
+        ]
+        for product_id, product, match, stock, can_add, insufficient, store_link in cases:
+            with self.subTest(product_id=product_id, product=product):
+                products = {}
+                if product:
+                    products[product_id] = product
+                with patch.object(presentation, "get_products_by_ids", return_value=products):
+                    row = presentation.add_store_details([{**MATERIAL, "product_id": product_id}])[0]
+                self.assertEqual(row["match_status"], match)
+                self.assertEqual(row["stock_status"], stock)
+                self.assertEqual(row["can_add"], can_add)
+                self.assertEqual(row["insufficient_stock"], insufficient)
+                self.assertEqual(row["show_store_link"], store_link)
+                if store_link:
+                    self.assertTrue(row["incompatible_units"])
+        with patch.object(presentation, "get_products_by_ids",
+                          return_value={123: {**PRODUCT, "unit_price": 0}}):
+            row = presentation.add_store_details([MATERIAL])[0]
+        self.assertEqual(row["line_total"], Decimal(0))
+
     def test_result_and_saved_project_templates(self):
         from app import app
         from flask import render_template
@@ -264,6 +416,7 @@ class PlannerTests(unittest.TestCase):
         job = {"id": "test", "tier": "fast", "status": "complete", "result": result,
                "project": {"description": "Drywall", "project_type": "custom"}, "answers": []}
         project = {"id": 1, "name": "Room", "type": "Custom", "status": "Planned",
+                   "status_label": "Planned",
                    "status_tone": "ready", "created": 1, "updated": 1, "completed": False,
                    "job_exists": True, "job_id": "test"}
         with app.test_request_context():
@@ -271,6 +424,10 @@ class PlannerTests(unittest.TestCase):
                 app.jinja_env.get_template(template)
             html = render_template("planner_job.html", job=job, title="Room", materials=materials,
                                    cart=[], cart_total=0, saved_project=None, can_save=False,
+                                   crew_recommendation=result["crew"], crew_url="/crews?job_id=test",
+                                   project_fields=presentation.project_spec_rows(job["project"]),
+                                   stage_rows=presentation.stage_rows(job),
+                                   stage_status_labels=presentation.STAGE_STATUS_LABELS,
                                    crew_rates=CREW_RATES, hours_per_day=HOURS_PER_DAY)
             self.assertIn(MATERIAL["notes"], html)
             self.assertIn("Planning notes", html)
@@ -281,12 +438,16 @@ class PlannerTests(unittest.TestCase):
                                                             "error": "The planner step failed."},
                                    title="Room", materials=[], cart=[], cart_total=0,
                                    saved_project=None, can_save=False,
+                                   project_fields=presentation.project_spec_rows(job["project"]),
+                                   stage_rows=presentation.stage_rows(job),
+                                   stage_status_labels=presentation.STAGE_STATUS_LABELS,
                                    crew_rates=CREW_RATES, hours_per_day=HOURS_PER_DAY)
             self.assertIn('action="/planner/jobs/test/restart"', html)
             self.assertIn("The planner step failed.", html)
-            for crew in (None, crew_estimate(result["crew"])):
+            for crew in (None, estimate_crew_cost(result["crew"])):
                 html = render_template("dashboard/project_detail.html", project=project, plan=job,
                                        materials=materials, crew=crew, crew_rates=CREW_RATES,
+                                       project_fields=presentation.project_spec_rows(job["project"]),
                                        hours_per_day=HOURS_PER_DAY)
                 self.assertIn(RESULT["notes"][0], html)
                 self.assertNotIn(">Waste<", html)
@@ -318,6 +479,31 @@ class PlannerProgressTests(unittest.TestCase):
                               {"description": "Drywall a room"}, tier)
         self.assertTrue(all(status == "pending" for status in job["stages"].values()))
         return jobs.claim_job("progress-worker")
+
+    def test_failed_transaction_rolls_back_and_closes_the_connection(self):
+        job = self.make_job()
+        with self.assertRaisesRegex(ValueError, "Test failure"):
+            with jobs.connection() as database:
+                database.execute("UPDATE planner_jobs SET status = 'complete' WHERE id = ?", (job["id"],))
+                raise ValueError("Test failure")
+        self.assertEqual(jobs.get_job(job["id"], job["owner"])["status"], "running")
+        with self.assertRaises(sqlite3.ProgrammingError):
+            database.execute("SELECT 1")
+
+    def test_catalog_failure_marks_job_failed_without_auditing_an_empty_catalog(self):
+        from mysql.connector import Error
+
+        job = self.make_job()
+        with patch.object(worker, "claim_job", return_value=job), \
+                patch.object(workflow, "get_planner_catalog", side_effect=Error("Test database failure")), \
+                patch.object(workflow, "ask_model", side_effect=self.answer) as ask, \
+                self.assertLogs(worker.logger, level="ERROR"):
+            worker.process_one("progress-worker")
+        saved = jobs.get_job(job["id"], job["owner"])
+        self.assertEqual(saved["status"], "failed")
+        self.assertEqual(saved["stages"]["auditor"], "failed")
+        self.assertIsNone(saved["result"])
+        self.assertEqual(ask.call_count, 2)
 
     def save_progress(self, job):
         jobs.save_job(job, "progress-worker")
@@ -407,9 +593,13 @@ class PlannerProgressTests(unittest.TestCase):
                 self.assertEqual(saved["status"], "failed")
                 stages = list(saved["stages"])
                 for stage, state in saved["stages"].items():
-                    expected = "done" if stages.index(stage) < stages.index(failed_stage) else "pending"
+                    # Stages before the failing one finished; the ones after it never started.
                     if stage == failed_stage:
                         expected = "failed"
+                    elif stages.index(stage) < stages.index(failed_stage):
+                        expected = "done"
+                    else:
+                        expected = "pending"
                     self.assertEqual(state, expected)
 
     def test_one_failed_pro_planner_stays_failed_on_successful_job(self):
@@ -456,7 +646,7 @@ class PlannerProgressTests(unittest.TestCase):
 
         with patch.object(workflow, "ask_model", side_effect=answer):
             workflow.run_workflow(job, self.save_progress)
-        self.assertEqual(auditors, ["nemotron", "gemini_strong"])
+        self.assertEqual(auditors, ["nemotron", "gemini_fallback"])
         self.assertEqual(job["stages"]["auditor"], "done")
 
     def test_unexpected_pro_failure_keeps_successful_planner_done(self):
@@ -471,7 +661,7 @@ class PlannerProgressTests(unittest.TestCase):
             states[role] = state
 
         with patch.object(workflow, "run_stage", side_effect=stage), self.assertRaises(RuntimeError):
-            workflow.run_two_planners("pro", {}, {123}, update)
+            workflow.run_two_planners("pro", {}, update)
         self.assertEqual(states["planner"], "failed")
         self.assertEqual(states["second_planner"], "done")
 
@@ -520,7 +710,7 @@ class PlannerProgressTests(unittest.TestCase):
         from routes.planner import planning_job_status
 
         job = self.make_job("pro")
-        with app.test_request_context(), patch("routes.planner.owned_job", return_value=job) as owned:
+        with app.test_request_context(), patch("routes.planner.get_user_job", return_value=job) as owned:
             data, code, headers = planning_job_status(job["id"])
             owned.assert_called_once_with(job["id"])
             self.assertEqual(code, 200)

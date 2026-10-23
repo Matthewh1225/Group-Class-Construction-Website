@@ -78,7 +78,7 @@
             <button class="shopping-button shopping-primary" type="submit" form="checkout-form" id="place-order" {% if not totals or not items %}disabled{% endif %}>Place Order</button>
         {% elif items %}
             {% if totals %}
-                <a class="shopping-button shopping-primary" href="{{ url_for('checkout') }}">Proceed to Checkout {{ icon('arrow') }}</a>
+                <a class="shopping-button shopping-primary" href="{{ url_for('shopping.checkout') }}">Proceed to Checkout {{ icon('arrow') }}</a>
             {% else %}
                 <button class="shopping-button shopping-primary" type="button" disabled>Resolve cart items to continue</button>
             {% endif %}

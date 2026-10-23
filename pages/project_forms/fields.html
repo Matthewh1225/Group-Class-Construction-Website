@@ -1,0 +1,27 @@
+{% macro number_field(name, label, minimum=1, default='', unit='', whole=False, required=True) %}
+    <div class="form-field">
+        <label for="{{ template_id }}-{{ name }}">{{ label }}{% if unit %} <span class="sr-only">({{ unit }})</span>{% endif %}</label>
+        <div class="unit-input">
+            <input id="{{ template_id }}-{{ name }}" name="{{ name }}" type="number" min="{{ minimum }}" step="{{ 1 if whole else 'any' }}" value="{{ form_data.get(name, default) }}" {% if required %}required{% endif %}>
+            {% if unit %}<span aria-hidden="true">{{ unit }}</span>{% endif %}
+        </div>
+    </div>
+{% endmacro %}
+
+{% macro checkbox(name, label) %}
+    <label class="planner-checkbox">
+        <input type="checkbox" name="{{ name }}" value="yes" {% if form_data.get(name) == 'yes' %}checked{% endif %}>
+        <span>{{ label }}</span>
+    </label>
+{% endmacro %}
+
+{% macro select_field(name, label, options) %}
+    <div class="form-field">
+        <label for="{{ template_id }}-{{ name }}">{{ label }}</label>
+        <select id="{{ template_id }}-{{ name }}" name="{{ name }}">
+            {% for option in options %}
+                <option value="{{ option }}" {% if form_data.get(name, options[0]) == option %}selected{% endif %}>{{ option|capitalize }}</option>
+            {% endfor %}
+        </select>
+    </div>
+{% endmacro %}

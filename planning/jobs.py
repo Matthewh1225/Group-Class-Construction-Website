@@ -15,11 +15,11 @@ from services.subscriptions import has_active_pro
 from .ai_config import WORKFLOW_TIERS
 
 LEASE_SECONDS = 15 * 60       # seconds before an unsaved job is interrupted
-MAX_RUNNING_JOBS = 2          # shared by all workers
-MAX_QUEUED_JOBS = 100         # shared by all users
+MAX_RUNNING_JOBS = 2
+MAX_QUEUED_JOBS = 100
 MAX_REQUEST_BYTES = 20000
-MAX_ANSWER_LENGTH = 2000      # characters per answer
-ONE_DAY = 24 * 60 * 60        # seconds
+MAX_ANSWER_LENGTH = 2000
+ONE_DAY = 24 * 60 * 60# seconds
 
 # Other fields go in the JSON data column.
 COLUMN_FIELDS = ["id", "owner", "tier", "status", "created", "updated"]
@@ -54,19 +54,20 @@ def connection():
             data TEXT NOT NULL, UNIQUE(owner, submission_key)
         )""")
         database.execute("CREATE INDEX IF NOT EXISTS planner_queue ON planner_jobs(status, created)")
-        # Plan and crew are saved as JSON.
-        # Each user can save a job as one project.
+        # Saved projects link to the original job; plan remains for older saved records.
         database.execute("""CREATE TABLE IF NOT EXISTS saved_projects (
             id INTEGER PRIMARY KEY AUTOINCREMENT, owner TEXT NOT NULL, job_id TEXT NOT NULL,
             name TEXT NOT NULL, plan TEXT NOT NULL,
             crew TEXT, completed INTEGER NOT NULL DEFAULT 0,
             created REAL NOT NULL, updated REAL NOT NULL, UNIQUE(owner, job_id)
         )""")
-        yield database
-        database.commit()
-    except Exception:
-        database.rollback()
-        raise
+        database.execute("""CREATE TABLE IF NOT EXISTS crew_cart (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            owner TEXT NOT NULL, crew TEXT NOT NULL,
+            UNIQUE(owner, crew)
+        )""")
+        with database:
+            yield database
     finally:
         database.close()
 
@@ -88,7 +89,7 @@ def encode(job):
 
 
 def pro_access_allowed(owner):
-    if not str(owner or "").strip():
+    if not owner:
         return False
     return has_active_pro(owner)
 
@@ -118,7 +119,8 @@ def check_submission(owner, submission_key, project, tier, answers):
         raise ValueError(f"{WORKFLOW_TIERS['pro']['label']} access has not been enabled for this account.")
     if not isinstance(submission_key, str) or not 8 <= len(submission_key) <= 100:
         raise ValueError("Reload the planner before submitting this form.")
-    request_text = json.dumps({"project": project, "tier": tier, "answers": answers}, sort_keys=True, allow_nan=False)
+    submission = {"project": project, "tier": tier, "answers": answers}
+    request_text = json.dumps(submission, sort_keys=True, allow_nan=False)
     if len(request_text.encode("utf-8")) > MAX_REQUEST_BYTES:
         raise ValueError(f"Keep project details below {MAX_REQUEST_BYTES:,} bytes.")
     return hashlib.sha256(request_text.encode()).hexdigest()
@@ -171,7 +173,7 @@ def submit_job(owner, submission_key, project, tier="fast", answers=None):
             "INSERT INTO planner_jobs (id, owner, submission_key, request_hash, tier, status, created, updated, data) VALUES (?, ?, ?, ?, ?, 'queued', ?, ?, ?)",
             (job_id, owner, submission_key, request_hash, tier, now, now, encode(data)),
         )
-    return get_job(job_id, owner)
+        return find_job(database, job_id, owner)
 
 
 def find_job(database, job_id, owner):
@@ -285,6 +287,7 @@ def restart_job(job_id, owner):
 
 def delete_planner_jobs(owner):
     with connection() as database:
+        database.execute("DELETE FROM crew_cart WHERE owner = ?", (str(owner),))
         database.execute("DELETE FROM planner_jobs WHERE owner = ?", (str(owner),))
         database.execute("DELETE FROM saved_projects WHERE owner = ?", (str(owner),))
 

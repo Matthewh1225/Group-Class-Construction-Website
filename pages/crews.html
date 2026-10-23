@@ -15,7 +15,7 @@
         {% endif %}
     </header>
     <noscript><p class="crews-note">Enable JavaScript to calculate costs and save crews.</p></noscript>
-    <form id="crew-form" {% if project %}method="post" action="{{ url_for('dashboard.project_crew', project_id=project.id) }}"{% endif %}>
+    <form id="crew-form" method="post" action="{{ url_for('shopping.add_crew_to_cart') }}">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <input type="hidden" name="crew" id="crew-input">
         <div class="crew-fields">
@@ -52,11 +52,14 @@
                 <div><dt>Total workers</dt><dd id="total-workers">0</dd></div>
                 <div><dt>Full crew / hour</dt><dd id="total-hourly">$0</dd></div>
             </dl>
-            {% if project %}<button id="save-crew" class="btn btn-primary" type="submit" disabled>Save crew to project</button>{% endif %}
+            {% if project %}
+                <button id="save-crew" class="btn btn-primary" type="submit" formaction="{{ url_for('dashboard.project_crew', project_id=project.id) }}" disabled>Save crew to project</button>
+            {% endif %}
+            <button id="add-crew-to-cart" class="btn btn-primary" type="submit" disabled>Add Crew to Cart</button>
         </div>
     </form>
 </section>
-<script id="crew-data" type="application/json">{{ {"rates": crew_rates, "hoursPerDay": hours_per_day, "savedCrew": initial_crew}|tojson }}</script>
+<script id="crew-data" type="application/json">{{ crew_data|tojson }}</script>
 <script src="{{ url_for('static', filename='js/crews.js') }}" defer></script>
 {% endblock %}
 {% block footer %}{% include "site_footer.html" %}{% endblock %}

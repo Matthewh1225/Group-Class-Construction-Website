@@ -3,8 +3,6 @@
 
 7. Checkout flow, including adding items from the dashboard list or straight from the AI response
 
-8. Payment options and saved billing info in the user profile
-
 10. Password recovery by email
 
 11. Email verification and automatic emails (promos, discount codes, in-progress project reminders)
@@ -12,8 +10,6 @@
 12. Auto-logout after a period of inactivity
 
 14. Metric/imperial unit selection for users
-
-17. Hover popups showing info on product and machinery images
 
 18. One-click account creation with Google
 

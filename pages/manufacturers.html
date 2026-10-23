@@ -18,7 +18,7 @@
         <ul class="manufacturer-grid">
             {% for manufacturer in manufacturers %}
                 <li>
-                    <a class="manufacturer-panel" href="{{ url_for('products.heavy_machinery' if manufacturer.has_machinery else 'products.products', manufacturer=manufacturer.manufacturer_id) }}">
+                    <a class="manufacturer-panel" href="{{ manufacturer.catalog_url }}">
                         <span>{{ manufacturer.name }}</span>
                     </a>
                 </li>

@@ -1,12 +1,26 @@
-from flask import Blueprint, current_app, g, redirect, render_template, request, session, url_for
+from functools import wraps
+
+from flask import Blueprint, current_app, redirect, render_template, request, session, url_for
 from mysql.connector import Error, IntegrityError
 
-from utils.database import database_cursor
-from utils.passwords import MAX_PASSWORD_LENGTH, check_password
+from utils.passwords import MAX_PASSWORD_LENGTH
 from utils.rate_limits import limiter
-from utils.users import create_user
+from utils.users import check_login, create_user, full_name, get_account
 
 auth_bp = Blueprint("auth", __name__)
+
+
+#@wraps makes it so every route needing login to see does not repeat code
+def login_required(view):
+    @wraps(view)
+    def check_login_before_view(*args, **kwargs):
+        is_logged_in = "user_id" in session
+        if not is_logged_in:
+            login_url = url_for("auth.login")
+            return redirect(login_url)
+        return view(*args, **kwargs)
+
+    return check_login_before_view
 
 
 def start_session(user_id, display_name, permission_level):
@@ -17,26 +31,16 @@ def start_session(user_id, display_name, permission_level):
     session["permission_level"] = permission_level
 
 
-def check_logged_in_user():
-    # Refresh the account each request so name, role, and status changes take effect.
+def refresh_logged_in_user():
     if "user_id" not in session or request.endpoint == "static":
         return None
 
-    with database_cursor() as cursor:
-        cursor.execute(
-            """SELECT u.firstName, u.lastName, u.permissions, c.accountStatus
-               FROM `User` u
-               JOIN Customer c ON c.userId = u.id
-               WHERE u.id = %s""",
-            (session["user_id"],),
-        )
-        user = cursor.fetchone()
-
+    user = get_account(session["user_id"])
     if user is None or user["accountStatus"] != "active":
         session.clear()
         return None
 
-    session["display_name"] = (user["firstName"] + " " + user["lastName"]).strip()
+    session["display_name"] = full_name(user["firstName"], user["lastName"])
     session["permission_level"] = user["permissions"]
     return None
 
@@ -57,32 +61,21 @@ def login():
     if not isinstance(email, str) or not isinstance(password, str):
         return {"error": "Invalid form data."}, 400
     email = email.strip()
-    # Reject oversized passwords before hashing them.
     if len(password) > MAX_PASSWORD_LENGTH:
         return {"error": "Invalid email or password."}, 401
 
     try:
-        with database_cursor() as cursor:
-            cursor.execute(
-                """SELECT u.id, u.firstName, u.lastName, u.passkey, u.permissions, c.accountStatus
-                   FROM `User` u
-                   JOIN Customer c ON c.userId = u.id
-                   WHERE u.email = %s""",
-                (email,),
-            )
-            user = cursor.fetchone()
-
+        user = check_login(email, password)
     except Error:
         current_app.logger.exception("Login database query failed")
         return {"error": "Login unavailable."}, 503
 
-    if user is None or not check_password(user["passkey"], password):
+    if user is None:
         return {"error": "Invalid email or password."}, 401
-    # Show account status only after the password has been verified.
     if user["accountStatus"] != "active":
         return {"error": "This account is disabled."}, 403
 
-    start_session(user["id"], (user["firstName"] + " " + user["lastName"]).strip(), user["permissions"])
+    start_session(user["id"], full_name(user["firstName"], user["lastName"]), user["permissions"])
     return {"redirect_url": url_for("dashboard.dashboard")}
 
 
@@ -106,7 +99,7 @@ def register():
         current_app.logger.exception("Registration failed")
         return {"error": "Registration unavailable."}, 503
 
-    start_session(user_id, data["firstName"].strip() + " " + data["lastName"].strip(), "user")
+    start_session(user_id, full_name(data["firstName"].strip(), data["lastName"].strip()), "user")
     return {"redirect_url": url_for("dashboard.dashboard")}, 201
 
 

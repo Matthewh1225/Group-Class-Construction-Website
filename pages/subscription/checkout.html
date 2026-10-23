@@ -1,6 +1,8 @@
 {% extends "base.html" %}
+{% from "cart/cart_components.html" import money %}
+{% set plan = plans[selected_plan] %}
 
-{% block title %}{{ tiers.pro.label }} - BuildBetter{% endblock %}
+{% block title %}Pro checkout - BuildBetter{% endblock %}
 {% block body_attributes %} class="shopping-body"{% endblock %}
 {% block styles %}
     <link rel="stylesheet" href="{{ url_for('static', filename='checkout.css') }}">
@@ -9,31 +11,93 @@
 
 {% block content %}
 <div class="shopping-page subscription-checkout">
-    <nav class="sub-checkout-breadcrumb" aria-label="Subscription steps">
+    <nav class="sub-checkout-breadcrumb" aria-label="Breadcrumb">
         <a href="{{ url_for('planner.planner') }}">AI Planner</a>
         <span aria-hidden="true">/</span>
-        <span aria-current="step">{{ tiers.pro.label }}</span>
+        <span aria-current="page">Pro membership</span>
     </nav>
-    <header class="shopping-heading">
+    <header class="sub-heading">
         <div>
-            <p class="shopping-eyebrow">TOP PLANNING TIER</p>
-            <h1>{{ tiers.pro.label }}</h1>
+            <h1>Pro Deep Quantum Ultra Max+</h1>
         </div>
-        <a class="shopping-link" href="{{ url_for('planner.planner') }}">&larr; Back to planner</a>
+        <a class="sub-back-link" href="{{ url_for('subscription.about_pro') }}">What Pro includes <span aria-hidden="true">&nearr;</span></a>
     </header>
-    {% if checkout_error %}
-        <div class="sub-checkout-error" role="alert">
-            <p>Subscription checkout unavailable.</p>
+    <div id="checkout-error" class="sub-checkout-error" role="alert" tabindex="-1" {% if not checkout_error %}hidden{% endif %}>
+        <strong>Checkout could not be completed</strong>
+        <p>{{ checkout_error or '' }}</p>
+    </div>
+
+    <form id="pro-checkout-form" class="sub-checkout-grid" method="post" action="{{ url_for('subscription.subscribe') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="sub-main">
+            <fieldset class="sub-panel sub-plan-section" id="checkout-heading">
+                <legend class="sr-only">Choose your Pro plan</legend>
+                <div class="sub-section-heading"><span>01</span><h2>Choose your plan</h2></div>
+                <p class="sub-section-description">The same Pro features. A membership that fits you.</p>
+                <div class="sub-plan-options">
+                    {% for key, option in plans.items() %}
+                        <label class="sub-plan-card sub-plan-{{ key }}" for="plan-{{ key }}">
+                            <input id="plan-{{ key }}" type="radio" name="plan" value="{{ key }}" {% if key == selected_plan %}checked{% endif %} required>
+                            <span class="sub-plan-name">{{ option.name }}</span>
+                            <span class="sub-plan-tag">{{ option.badge }}</span>
+                            <span class="sub-plan-price">{{ money(option.amount_cents) }}</span>
+                            <span class="sub-plan-frequency">{{ option.frequency }}</span>
+                            <span class="sub-plan-detail">{{ option.detail }}</span>
+                        </label>
+                    {% endfor %}
+                </div>
+            </fieldset>
+
+            <fieldset class="sub-panel">
+                <legend class="sr-only">Payment method</legend>
+                <div class="sub-section-heading"><span>02</span><h2>Payment method</h2></div>
+                {# No name attributes: these fields are not included in the checkout request. #}
+                <div class="sub-payment-fields">
+                    <div class="sub-payment-field">
+                        <label for="card-first-name">First name</label>
+                        <input id="card-first-name" type="text" autocomplete="on" maxlength="40" placeholder="John" required>
+                    </div>
+                    <div class="sub-payment-field">
+                        <label for="card-last-name">Last name</label>
+                        <input id="card-last-name" type="text" autocomplete="on" maxlength="40" placeholder="Doe" required>
+                    </div>
+                    <div class="sub-payment-field sub-card-number">
+                        <label for="card-number">Card number</label>
+                        <input id="card-number" type="text" inputmode="numeric" autocomplete="on" placeholder="1234 5678 9012 3456" required>
+                    </div>
+                    <div class="sub-payment-field">
+                        <label for="card-expiry">Expiration date</label>
+                        <input id="card-expiry" type="text" inputmode="numeric" autocomplete="on" placeholder="MM/YY" required>
+                    </div>
+                    <div class="sub-payment-field">
+                        <label for="card-code">Security code</label>
+                        <input id="card-code" type="password" inputmode="numeric" autocomplete="on"  placeholder="999 digits" required>
+                    </div>
+                </div>
+            </fieldset>
         </div>
-    {% endif %}
-    <section class="shopping-panel sub-checkout-plan" aria-labelledby="checkout-heading">
-        <h2 id="checkout-heading">Planning mode</h2>
-        <p>Subscribe now</p>
-        {% if pro_price %}<p class="sub-checkout-price">{{ pro_price }}</p>{% endif %}
-        <form method="post" action="{{ url_for('subscription.checkout') }}">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <button class="shopping-button shopping-primary" type="submit">Subscribe</button>
-        </form>
-    </section>
+
+        <aside id="order-summary" class="sub-summary" data-plan="{{ selected_plan }}" aria-labelledby="summary-title">
+            <div class="sub-summary-heading"><span class="sub-pro-mark">PRO</span><div><h2 id="summary-title">Your membership</h2><p>BuildBetter Pro</p></div></div>
+            <div id="plan-summary" aria-live="polite" aria-atomic="true">
+                <dl class="sub-summary-lines">
+                    <div><dt id="summary-plan">{{ plan.name }}</dt><dd id="summary-price">{{ money(plan.amount_cents) }}</dd></div>
+                    <div><dt>Billing</dt><dd id="summary-billing">{{ plan.billing }}</dd></div>
+                    <div id="yearly-savings" class="sub-savings" {% if not plan.savings_cents %}hidden{% endif %}>
+                        <dt>Save vs. 12 monthly payments</dt><dd id="summary-savings">{{ money(plans.yearly.savings_cents) }}</dd>
+                    </div>
+                </dl>
+                <p id="monthly-equivalent" class="sub-equivalent" {% if not plan.monthly_equivalent %}hidden{% endif %}>{{ plan.monthly_equivalent }}</p>
+                <div class="sub-total"><div><span>Total due today</span><small>USD</small></div><strong id="summary-total">{{ money(plan.amount_cents) }}</strong></div>
+                <p id="summary-terms" class="sub-renewal-terms">{{ plan.terms }}</p>
+            </div>
+            <button id="subscription-submit" class="shopping-button shopping-primary sub-submit" type="submit">
+                <span id="checkout-button-label">{{ plan.button_label }}</span>
+                <span class="sub-submit-arrow" aria-hidden="true">&rarr;</span>
+            </button>
+        </aside>
+    </form>
 </div>
+<script id="pro-plan-data" type="application/json">{{ plans|tojson }}</script>
+<script src="{{ url_for('static', filename='js/subscription-checkout.js') }}" defer></script>
 {% endblock %}

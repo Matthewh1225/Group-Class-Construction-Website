@@ -8,7 +8,7 @@ user corrections win over interpreted details or draft estimates.
 Use supplied measurements and product specifications first. When details are missing,
 choose reasonable dimensions, layouts and allowances for the project type and size.
 Label assumed values; never present them as user facts or verified product specifications.
-Never invent catalog products, IDs, prices or engineering approval. Exclude tools unless
+Never invent prices or engineering approval. Exclude tools unless
 requested. Keep labor out of materials. Blank, 'Not answered', 'Not sure' and 'use defaults'
 answers mean use reasonable planning assumptions and continue.
 
@@ -54,12 +54,9 @@ volume, then use a stated bag yield; never count bags per footing. For a request
 missing dimensions, assume a reasonable length and width and estimate its materials, without
 claiming the design is approved for structural or accessibility use.
 
-Set product_id only for a clear match in the supplied catalog; otherwise null. Never change
-quantities or units to force a product match.
-
 Use an appropriate unit, such as ft, sq_ft, sheet, piece, bag or gallon. Include waste once
 and round whole items up. In each material's notes, briefly show the measurements, assumed
-coverage or yield, waste and rounding. Use catalog sizes and coverage when available; label
+coverage or yield, waste and rounding. Use supplied sizes and coverage when available; label
 typical values as assumptions. For example, 256 sq ft / 32 sq ft per sheet, plus 10% waste,
 rounded up = 9 sheets. Estimate paint from area/coats/coverage, boards from dimensions and
 concrete from volume/yield. Check the arithmetic and make sure the units agree.
@@ -68,11 +65,18 @@ concrete from volume/yield. Check the arithmetic and make sure the units agree.
 AI_TIMEOUT = 120  # seconds for one AI request
 
 # Each .env model name overrides its default.
+# Keys 1-3 belong to Fast, Standard and Pro. Key 4 handles the Pro auditor fallback.
 MODELS = {
-    "gemini_fast": {"provider": "gemini", "api_key": "GEMINI_API_KEY2",
+    "gemini_fast": {"provider": "gemini", "api_key": "GEMINI_API_KEY",
                     "model_env": "GEMINI_MODEL_FAST", "default": "gemini-3.5-flash-lite"},
-    "gemini_strong": {"provider": "gemini", "api_key": "GEMINI_API_KEY",
+    "gemini_standard": {"provider": "gemini", "api_key": "GEMINI_API_KEY2",
+                        "model_env": "GEMINI_MODEL_FAST", "default": "gemini-3.5-flash-lite"},
+    "gemini_standard_strong": {"provider": "gemini", "api_key": "GEMINI_API_KEY2",
+                               "model_env": "GEMINI_MODEL_STRONG", "default": "gemini-3.8-flash"},
+    "gemini_strong": {"provider": "gemini", "api_key": "GEMINI_API_KEY3",
                       "model_env": "GEMINI_MODEL_STRONG", "default": "gemini-3.8-flash"},
+    "gemini_fallback": {"provider": "gemini", "api_key": "GEMINI_API_KEY4",
+                        "model_env": "GEMINI_MODEL_FAST", "default": "gemini-3.5-flash-lite"},
     "gpt_oss": {"provider": "groq", "api_key": "GROQ_API_KEY",
                 "model_env": "GROQ_MODEL", "default": "openai/gpt-oss-120b"},
     "nemotron": {"provider": "openrouter", "api_key": "OPENROUTER_API_KEY",
@@ -90,19 +94,19 @@ WORKFLOW_TIERS = {
     },
     "standard": {
         "label": "Standard",
-        "interpreter": {"model": "gemini_fast", "reasoning": "medium", "output_tokens": 16384},
+        "interpreter": {"model": "gemini_standard", "reasoning": "medium", "output_tokens": 16384},
         "planner": {"model": "gpt_oss", "reasoning": "high", "output_tokens": 16384},
-        "auditor": {"model": "gemini_strong", "reasoning": "medium", "output_tokens": 16384},
+        "auditor": {"model": "gemini_standard_strong", "reasoning": "medium", "output_tokens": 16384},
         "daily_jobs": 30,
     },
     "pro": {
-        "label": "Pro Deep Quantum Ultra Max",
+        "label": "Pro Deep Quantum Ultra Max+",
         "interpreter": {"model": "gemini_strong", "reasoning": "high", "output_tokens": 16384},
         "planner": {"model": "gemini_strong", "reasoning": "high", "output_tokens": 16384},
         "second_planner": {"model": "gpt_oss", "reasoning": "high", "output_tokens": 32768},
         # The free OpenRouter model is often busy, so the second try uses Gemini.
         "auditor": {"model": "nemotron", "reasoning": "high", "output_tokens": 16384,
-                    "fallback": "gemini_strong"},
+                    "fallback": "gemini_fallback"},
         "daily_jobs": 10,
     },
 }
@@ -115,6 +119,8 @@ Do not estimate materials.
 """
 
 PLANNER_PROMPT = SHARED_RULES + ESTIMATE_RULES + """
+Estimate every material the project needs, independently of what the store sells.
+Set product_id to null for every material. The final auditor handles store product matching.
 Planner: return only the materials list. Each material's notes is one short string with its
 quantity explanation and item-specific assumptions. Do not add a summary, crew, project-level
 notes or prices.
@@ -125,8 +131,14 @@ Auditor: estimates contains one or two drafts. Check each against project, answe
 For two drafts, merge them into one complete estimate, checking omissions even where they agree.
 Resolve differences using the user's request and arithmetic, not averages or model reputation.
 Fix omissions, quantities, units, waste and incompatible materials; preserve correct items and
-user facts, and explain important choices briefly in material notes. Verify every product_id
-matches both the catalog and the material. Return the full corrected estimate.
+user facts, and explain important choices briefly in material notes. Return the full corrected estimate.
+
+Only you receive catalog and assign product_id values. Compare each material's specifications
+and units with the supplied products. Set product_id to an integer from catalog only for a
+clear match; otherwise use null. If catalog is empty, every product_id must be null.
+Check matches yourself rather than trusting any product IDs in the drafts. Keep needed materials
+even when the store has no suitable product. Never change quantities, units or specifications
+just to force a store match, and never invent products, IDs or prices.
 
 Write one final summary and a notes list for the whole project. Project notes hold useful
 assumptions, staffing explanations and uncertainty, without repeating material notes or each

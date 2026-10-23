@@ -1,120 +1,56 @@
-"""Saved cart items and current product details."""
-
-from decimal import Decimal, InvalidOperation
-
-from utils.database import database_cursor
-
-MAX_QUANTITY = 2_147_483_647  # Largest value the SQL INT quantity column can store.
-CENTS_PER_DOLLAR = 100
+MAX_QUANTITY = 2_147_483_647
 
 
-def read_quantity(text):
-    """Cart quantities must be whole numbers."""
-    try:
-        quantity = Decimal(str(text))
-    except InvalidOperation:
-        raise ValueError("Enter a positive whole-number quantity.")
-    if not quantity.is_finite() or quantity < 1 or quantity > MAX_QUANTITY:
-        raise ValueError(f"Enter a whole-number quantity between 1 and {MAX_QUANTITY:,}.")
-    whole_quantity = int(quantity)
-    if quantity != whole_quantity:
-        raise ValueError("Enter a positive whole-number quantity.")
-    return whole_quantity
+def read_quantity(quantity):
+    # TODO: Check that the quantity is a whole number of at least one and is not too large.
+    pass
 
 
-def get_cart_product(cursor, product_id):
-    # Keep this product locked until the cart change is saved.
-    cursor.execute("""
-        SELECT name, unit, price AS unit_price, stockQty AS available_quantity,
-               isActive AS is_active
-        FROM Product WHERE id = %s FOR UPDATE
-    """, (product_id,))
-    return cursor.fetchone()
+def find_product(cursor, product_id):
+    # TODO: Look up the product and its current price, stock, and availability.
+    pass
 
 
-def check_cart_product(product, quantity):
-    if product is None or not product["is_active"]:
-        raise ValueError("This product is no longer available.")
-    price = product["unit_price"]
-    if price is None or price < 0:
-        raise ValueError("This product does not have a valid price.")
-    stock = product["available_quantity"]
-    if stock is None:
-        stock = 0
-    if quantity > stock:
-        raise ValueError(f"Only {stock} {product['unit']} are currently available.")
+def check_product_available(product, quantity):
+    # TODO: Check that the product is still sold, has a price, and has enough stock.
+    pass
 
 
-def get_cart_items(user_id):
-    with database_cursor() as cursor:
-        cursor.execute("""
-            SELECT c.productId AS product_id, c.itemQty AS quantity, p.name, p.unit, p.price AS unit_price,
-                   p.stockQty AS available_quantity, p.isActive AS is_active
-            FROM Cart_item c
-            JOIN Product p ON p.id = c.productId
-            WHERE c.userId = %s
-            ORDER BY p.name, p.id
-        """, (user_id,))
-        items = cursor.fetchall()
-    for item in items:
-        item["error"] = ""
-        try:
-            check_cart_product(item, item["quantity"])
-        except ValueError as error:
-            item["error"] = str(error)
-        price = item["unit_price"]
-        item["unit_price_cents"] = None
-        item["total_cents"] = None
-        if price is not None:
-            item["unit_price_cents"] = int(price * CENTS_PER_DOLLAR)
-            item["total_cents"] = item["unit_price_cents"] * item["quantity"]
-    return items
+def get_cart(user_id):
+    # TODO: Get the user's cart items with current prices, totals, and any stock problems.
+    pass
 
 
-def add_cart_item(user_id, product_id, quantity):
-    quantity = read_quantity(quantity)
-    with database_cursor() as cursor:
-        product = get_cart_product(cursor, product_id)
-        cursor.execute("SELECT itemQty AS quantity FROM Cart_item WHERE userId = %s AND productId = %s FOR UPDATE",
-                       (user_id, product_id))
-        existing = cursor.fetchone()
-        if existing:
-            quantity += existing["quantity"]
-        check_cart_product(product, quantity)
-        if existing:
-            cursor.execute("UPDATE Cart_item SET itemQty = %s WHERE userId = %s AND productId = %s",
-                           (quantity, user_id, product_id))
-        else:
-            cursor.execute("INSERT INTO Cart_item (userId, productId, itemQty) VALUES (%s, %s, %s)",
-                           (user_id, product_id, quantity))
-    return product["name"]
+def add_item(user_id, product_id, quantity):
+    # TODO: Add the product to the user's cart, checking the combined quantity if it is already there.
+    pass
 
 
-def update_cart_quantity(user_id, product_id, quantity):
-    quantity = read_quantity(quantity)
-    with database_cursor() as cursor:
-        product = get_cart_product(cursor, product_id)
-        check_cart_product(product, quantity)
-        cursor.execute("SELECT itemQty AS quantity FROM Cart_item WHERE userId = %s AND productId = %s FOR UPDATE",
-                       (user_id, product_id))
-        if cursor.fetchone() is None:
-            raise ValueError("This product is not in your cart.")
-        cursor.execute("UPDATE Cart_item SET itemQty = %s WHERE userId = %s AND productId = %s",
-                       (quantity, user_id, product_id))
+def change_quantity(user_id, product_id, quantity):
+    # TODO: Update an item in the user's cart after checking the quantity and stock.
+    pass
 
 
-def remove_cart_item(user_id, product_id):
-    with database_cursor() as cursor:
-        cursor.execute("DELETE FROM Cart_item WHERE userId = %s AND productId = %s",
-                       (user_id, product_id))
-        return cursor.rowcount > 0
+def remove_item(user_id, product_id):
+    # TODO: Remove this product from the user's cart and say whether it was found.
+    pass
 
 
-def calculate_cart_subtotal(user_id):
-    items = get_cart_items(user_id)
-    subtotal = Decimal("0.00")
-    for item in items:
-        if item["error"]:
-            raise ValueError(item["error"])
-        subtotal += Decimal(item["total_cents"]) / CENTS_PER_DOLLAR
-    return subtotal
+def add_materials_to_cart(user_id, materials):
+    # TODO: Add matching planner materials to the cart and report what was added, skipped, or failed.
+    pass
+
+
+def add_crew(user_id, crew_json):
+    # TODO: Check the crew selection and add it to the user's cart without saving it twice.
+    pass
+
+
+def get_cart_crews(user_id):
+    # TODO: Get the user's cart crews with their estimated costs.
+    pass
+
+
+def remove_crew(user_id, crew_id):
+    # TODO: Remove this crew selection from the user's cart and say whether it was found.
+    pass

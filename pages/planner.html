@@ -7,37 +7,25 @@
 {% endblock %}
 
 {% block content %}
-{% set has_details = project_mode == 'custom' or (project_mode == 'template' and project_template in project_templates) %}
-{% set template_cards = {
-    'birdhouse': {'asks': 'Size, entrance hole, perch and color',
-        'art': 'M76 62V86M84 62V86M56 62H104M60 62V36H100V62M52 40L80 18L108 40M74 47a6 6 0 1 0 12 0a6 6 0 1 0-12 0'},
-    'shed': {'asks': 'Size, ramp, window, A/C and lighting',
-        'art': 'M40 86V50M120 86V50M32 56L80 26L128 56M64 86V60H96V86M80 60V86'},
-    'deck': {'asks': 'Size, height, decking, railing and stairs',
-        'art': 'M30 86V62M80 86V62M126 86V62M22 56H134V62H22ZM24 56V34M132 56V34M24 34H132M40 56V34M56 56V34M72 56V34M88 56V34M104 56V34M118 56V34M134 62L152 86'},
-    'residential_building': {'asks': 'Footprint, floors, bedrooms and bathrooms',
-        'art': 'M36 86V44M124 86V44M26 50L80 16L134 50M104 33V14H114V40M48 52h14v12H48zM98 52h14v12H98zM48 70h14v12H48zM98 70h14v12H98zM72 86V66H88V86'},
-    'commercial_building': {'asks': 'Footprint, floors, rooms and elevator',
-        'art': 'M44 86V18H116V86M86 18V10H104V18M52 26h10v10H52zM67 26h10v10H67zM83 26h10v10H83zM98 26h10v10H98zM52 44h10v10H52zM67 44h10v10H67zM83 44h10v10H83zM98 44h10v10H98zM50 64h60v22H50zM70 64v22M90 64v22'},
-} %}
-{% set size_examples = {
-    'small': 'Birdhouse, planter, shelf',
-    'medium': 'Shed, workbench, fence run',
-    'large': 'Deck, garage, addition',
-    'mega': 'Whole buildings',
-} %}
 <div class="planner-page" id="plan-project">
     <header class="planner-heading">
         <div>
             <p class="sheet-tag"><span>B-01</span>Project workspace</p>
             <h1>What are you building?</h1>
+            <p class="planner-lede">Start from a template or describe your own project. The AI turns it into a materials list matched to products in our store.</p>
         </div>
-        <a class="planner-history" href="{{ url_for('dashboard.projects') }}">My Projects <span aria-hidden="true">&rarr;</span></a>
+        <div class="planner-heading-links">
+            {# pro_allowed comes from the account's Pro expiry date, checked by the route. #}
+            {% if pro_allowed %}
+                <span class="planner-pro-badge"><span aria-hidden="true">&#9733;</span> Pro member</span>
+            {% endif %}
+            <a class="planner-history" href="{{ url_for('dashboard.projects') }}">Saved Projects <span aria-hidden="true">&rarr;</span></a>
+        </div>
     </header>
 
     {% if not session.get("user_id") %}
         <p class="planner-signin-note">
-            <a href="{{ url_for('auth.login') }}">Log in</a> to generate a plan.
+            <a href="{{ url_for('auth.login') }}">Log in</a> or <a href="{{ url_for('auth.register') }}">create a free account</a> to generate a plan.
         </p>
     {% endif %}
 
@@ -48,8 +36,12 @@
     </ol>
 
     <div class="planner-sheet">
-        {% if popup_message %}<p class="planner-form-error" role="alert">{{ popup_message }}</p>{% endif %}
-        <section id="method-step" class="planner-step" aria-label="Choose a project type" {% if has_details %}hidden{% endif %}>
+        {% if popup_message %}
+            <p class="planner-form-error" role="alert">{{ popup_message }}</p>
+        {% endif %}
+        <section id="method-step" class="planner-step" {% if has_details %}hidden{% endif %}>
+            {# planner.js moves focus to this heading when the user comes back to this step. #}
+            <h2 class="sr-only" tabindex="-1">Choose how to start</h2>
             <div class="planner-methods">
                 <button id="choose-template" class="planner-method" type="button">
                     <span class="method-number" aria-hidden="true">A / GUIDED</span>
@@ -58,20 +50,50 @@
                         <path d="M55 109V66L120 26L185 66V109H55ZM45 69L120 20L195 69M108 109V78H132V109M69 73H91V91H69ZM149 73H171V91H149Z"/>
                         <path class="drawing-guide" d="M120 12V120M25 109H214"/>
                     </svg>
-                    <strong>Use a template</strong>
+                    <strong>Start from a template</strong>
+                    <span class="method-text">Answer a short form made for that kind of project. The sizes and options it needs are asked for you.</span>
+                    <span class="method-examples">
+                        {% for template in project_templates.values() %}
+                            <span>{{ template.title }}</span>
+                        {% endfor %}
+                    </span>
                     <span class="method-action">Choose a template <span aria-hidden="true">&rarr;</span></span>
                 </button>
                 <button id="choose-custom" class="planner-method" type="button">
-                    <span class="method-number" aria-hidden="true">B / OPEN BRIEF</span>
+                    <span class="method-number" aria-hidden="true">B / OPEN description</span>
                     <svg class="method-drawing" viewBox="0 0 240 130" fill="none" aria-hidden="true">
                         <path class="drawing-guide" d="M45 18H166V112H45ZM59 38H132M59 50H115M59 100H151M35 112H205M45 8V122"/>
                         <path d="M100 93L107 71L172 15L187 31L122 87L100 93ZM107 71L122 87M164 22L179 38M100 93L111 90"/>
                         <path class="drawing-guide" d="M143 104H198M170 75V116M191 87V116"/>
                     </svg>
-                    <strong>Custom project</strong>
-                    <span class="method-action">Start your brief <span aria-hidden="true">&rarr;</span></span>
+                    <strong>Describe a custom project</strong>
+                    <span class="method-text">Pick a size and write about anything you want to build. If something important is missing, the AI asks you once.</span>
+                    <span class="method-examples">
+                        <span>Workbench</span><span>Fence run</span><span>Garage</span><span>Planter</span>
+                    </span>
+                    <span class="method-action">write your description <span aria-hidden="true">&rarr;</span></span>
                 </button>
             </div>
+
+            {# Pro members already have Pro; everyone else sees what it adds. #}
+            {% if not pro_allowed %}
+                <aside class="planner-pro" aria-labelledby="planner-pro-title">
+                    <div>
+                        <h3 id="planner-pro-title">Pro Deep Quantum Ultra Max+</h3>
+                        <ul class="planner-pro-list">
+
+                        </ul>
+                    </div>
+                    <div class="planner-pro-actions">
+                        {% if session.get("user_id") %}
+                            <a class="btn btn-ghost" href="{{ url_for('subscription.subscribe') }}">Upgrade to Pro</a>
+                        {% else %}
+                            <a class="btn btn-ghost" href="{{ url_for('auth.register') }}">Create a free account</a>
+                        {% endif %}
+                        <a class="text-link" href="{{ url_for('subscription.about_pro') }}">What Pro includes</a>
+                    </div>
+                </aside>
+            {% endif %}
         </section>
 
         <section id="template-step" class="planner-step" hidden>
@@ -79,17 +101,16 @@
             <h2 tabindex="-1">Choose your starting point.</h2>
             <div class="planner-templates">
                 {% for template_id, template in project_templates.items() %}
-                    {% set card = template_cards.get(template_id, {}) %}
-                    <button id="template-{{ template_id }}" type="button" class="template-option" data-template="{{ template_id }}" data-size="{{ template.size }}">
+                    <button id="template-{{ template_id }}" type="button" class="template-option" data-template="{{ template_id }}">
                         <span class="template-index" aria-hidden="true">{{ '%02d'|format(loop.index) }}</span>
-                        {% if card.art %}
+                        {% if template.art %}
                             <svg class="template-drawing" viewBox="0 0 160 100" aria-hidden="true" focusable="false">
                                 <path class="drawing-ground" d="M8 86H152"/>
-                                <path d="{{ card.art }}"/>
+                                <path d="{{ template.art }}"/>
                             </svg>
                         {% endif %}
                         <strong>{{ template.title }}</strong>
-                        {% if card.asks %}<span class="template-asks">{{ card.asks }}</span>{% endif %}
+                        <span class="template-asks">{{ template.description }}</span>
                         <span class="template-size">{{ template.size|title }} project <span aria-hidden="true">&rarr;</span></span>
                     </button>
                 {% endfor %}
@@ -97,21 +118,37 @@
         </section>
 
         {% for template_id, template in project_templates.items() %}
-            {% include template.form %}
+            {% from "project_forms/fields.html" import number_field, checkbox, select_field with context %}
+            <section id="{{ template_id }}-questions-step" class="planner-step template-questions" {% if project_mode != 'template' or project_template != template_id %}hidden{% endif %}>
+                <button class="template-back step-back" type="button">&larr; All templates</button>
+                <h2 tabindex="-1">{{ template.title }} details</h2>
+                <form method="post" action="{{ url_for('planner.submit_planning_job') }}">
+                    <input type="hidden" name="projectMode" value="template">
+                    <input type="hidden" name="projectTemplate" value="{{ template_id }}">
+                    {% include template.form %}
+                    <div class="form-field">
+                        <label for="{{ template_id }}-notes">Anything else? <span class="optional">(optional)</span></label>
+                        <textarea id="{{ template_id }}-notes" class="planner-input" name="userInput" placeholder="Preferred materials, style, location, or anything to leave out...">{{ form_data.get('userInput', '') }}</textarea>
+                    </div>
+                    {% include "project_forms/plan_buttons.html" %}
+                </form>
+            </section>
         {% endfor %}
 
         <section id="size-step" class="planner-step" hidden>
             <button class="back-button step-back" type="button">&larr; Project type</button>
             <h2 tabindex="-1">Set the scale.</h2>
             <div class="planner-sizes">
-                {% for size in ['small', 'medium', 'large', 'mega'] %}
+                {% for size, example in project_sizes.items() %}
                     <button id="size-{{ size }}" type="button" class="project-option" data-size="{{ size }}">
                         {% set size_rank = loop.index %}
                         <span class="size-scale" aria-hidden="true">
-                            {% for tick in range(4) %}<span {% if tick < size_rank %}class="is-filled"{% endif %}></span>{% endfor %}
+                            {% for tick in range(4) %}
+                                <span {% if tick < size_rank %}class="is-filled"{% endif %}></span>
+                            {% endfor %}
                         </span>
                         <strong>{{ size|title }}</strong>
-                        <span class="size-example">{{ size_examples[size] }}</span>
+                        <span class="size-example">{{ example }}</span>
                         <span class="template-size">Choose {{ size }} <span aria-hidden="true">&rarr;</span></span>
                     </button>
                 {% endfor %}
@@ -122,13 +159,12 @@
             <button class="details-back step-back" type="button">&larr; Project size</button>
             <h2 tabindex="-1">Describe your project.</h2>
             <form method="post" action="{{ url_for('planner.submit_planning_job') }}">
-                <input id="project-mode" name="projectMode" type="hidden" value="{{ project_mode or '' }}">
+                <input name="projectMode" type="hidden" value="custom">
                 <input id="project-size" name="projectSize" type="hidden" value="{{ project_size or '' }}">
-                <input id="project-template" name="projectTemplate" type="hidden" value="{{ project_template or '' }}">
                 <div class="form-field">
-                    <label for="user-input">Project brief</label>
-                    <textarea id="user-input" name="userInput" class="planner-input" aria-describedby="brief-tips" placeholder="Example: A 10 x 12 ft backyard workshop with a concrete slab, one window and a metal roof." required>{{ form_data.get('userInput', '') }}</textarea>
-                    <ul class="brief-tips" id="brief-tips">
+                    <label for="user-input">Project description</label>
+                    <textarea id="user-input" name="userInput" class="planner-input" aria-describedby="description-tips" placeholder="Example: A 10 x 12 ft backyard workshop with a concrete slab, one window and a metal roof." required>{{ form_data.get('userInput', '') }}</textarea>
+                    <ul class="description-tips" id="description-tips">
                         <li>Dimensions</li>
                         <li>Preferred materials</li>
                         <li>Location or climate</li>

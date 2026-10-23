@@ -12,7 +12,7 @@
 {% endblock %}
 
 {% block auth_form %}
-    <form id="register-form" class="account-form" method="post" action="{{ url_for('auth.register') }}" data-password-digits="{{ password_digits }}">
+    <form id="register-form" class="account-form" method="post" action="{{ url_for('auth.register') }}">
         <h2>Create an account</h2>
         <div class="form-field">
             <label for="firstName">First name</label>

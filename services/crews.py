@@ -51,6 +51,7 @@ def check_crew(data):
     if not isinstance(label, str) or label.strip() == "" or len(label) > 120:
         raise ValueError("The crew needs a short name.")
 
+    days = read_days(data.get("days"))
     members = []
     roles = set()
     for member in data["members"]:
@@ -60,29 +61,30 @@ def check_crew(data):
             raise ValueError("Each specialty can only appear once.")
         roles.add(member["role"])
         workers = member.get("workers")
+        # Exact type check, so True and False are rejected.
         if type(workers) != int or workers < 1 or workers > MAX_WORKERS:
             raise ValueError(f"Each specialty needs between 1 and {MAX_WORKERS} workers.")
-        members.append({"role": member["role"], "workers": workers, "days": read_days(member.get("days"))})
+        member_days = read_days(member.get("days"))
+        if member_days[1] > days[1]:
+            raise ValueError("A role's working days cannot exceed the project's maximum days.")
+        members.append({"role": member["role"], "workers": workers, "days": member_days})
     if len(members) == 0:
         raise ValueError("Add at least one worker to the crew.")
 
-    days = read_days(data.get("days"))
-    if any(member["days"][1] > days[1] for member in members):
-        raise ValueError("A role's working days cannot exceed the project's maximum days.")
     return {"label": label.strip(), "days": days, "members": members}
 
 
-def money(value):
+def format_money(value):
     return "${:,.0f}".format(value)
 
 
-def range_text(low, high):
+def format_range(low, high):
     if low == high:
         return low
     return low + " – " + high
 
 
-def crew_estimate(crew):
+def estimate_crew_cost(crew):
     rows = []
     total_workers = 0
     total_hourly = 0
@@ -97,10 +99,10 @@ def crew_estimate(crew):
         rows.append({
             "name": specialty["name"],
             "workers": member["workers"],
-            "rate": money(specialty["rate"]),
-            "hourly": money(hourly),
-            "days": range_text(f"{shortest:,}", f"{longest:,}") + " days",
-            "cost": range_text(money(low), money(high)),
+            "rate": format_money(specialty["rate"]),
+            "hourly": format_money(hourly),
+            "days": format_range(f"{shortest:,}", f"{longest:,}") + " days",
+            "cost": format_range(format_money(low), format_money(high)),
         })
         total_workers = total_workers + member["workers"]
         total_hourly = total_hourly + hourly
@@ -112,7 +114,7 @@ def crew_estimate(crew):
         "label": crew["label"],
         "rows": rows,
         "workers": total_workers,
-        "hourly": money(total_hourly),
-        "days": range_text(f"{shortest:,}", f"{longest:,}") + " working days",
-        "cost": range_text(money(total_low), money(total_high)),
+        "hourly": format_money(total_hourly),
+        "days": format_range(f"{shortest:,}", f"{longest:,}") + " working days",
+        "cost": format_range(format_money(total_low), format_money(total_high)),
     }

@@ -1,6 +1,6 @@
 from planning.jobs import delete_planner_jobs
 from utils.database import database_cursor
-from utils.passwords import hash_password, validate_password
+from utils.passwords import check_password, hash_password, validate_password
 
 # match the User table.
 MAX_NAME_LENGTH = 50
@@ -9,7 +9,48 @@ MAX_EMAIL_LENGTH = 100
 
 def looks_like_email(email):
     name, at, domain = email.partition("@")
-    return bool(name) and at == "@" and "." in domain and "@" not in domain and " " not in email
+    if name == "" or at == "":
+        return False
+    if "." not in domain or "@" in domain:
+        return False
+    if " " in email:
+        return False
+    return True
+
+
+# A last name is optional in old data, so this never leaves a trailing space.
+def full_name(first_name, last_name):
+    return (first_name + " " + last_name).strip()
+
+
+# The signed-in user's name, role and account status, or None if the account no longer exists.
+def get_account(user_id):
+    with database_cursor() as cursor:
+        cursor.execute(
+            """SELECT u.firstName, u.lastName, u.permissions, c.accountStatus FROM `User` u
+            JOIN Customer c ON c.userId = u.id WHERE u.id = %s""",
+            (user_id,),
+        )
+        return cursor.fetchone()
+
+
+# Returns the user if the email and password are both right, otherwise None.
+# It does not look at accountStatus. The caller checks that afterwards, so a disabled
+# account is only revealed to someone who knows the password.
+def check_login(email, password):
+    with database_cursor() as cursor:
+        cursor.execute(
+            """SELECT u.id, u.firstName, u.lastName, u.passkey, u.permissions, c.accountStatus
+               FROM `User` u
+               JOIN Customer c ON c.userId = u.id
+               WHERE u.email = %s""",
+            (email,),
+        )
+        user = cursor.fetchone()
+    if user is None or not check_password(user["passkey"], password):
+        return None
+    return user
+
 
 def create_user(data, permission_level="user"):
     first_name = data.get("firstName", "")
@@ -18,8 +59,9 @@ def create_user(data, permission_level="user"):
     password = data.get("password", "")
     confirm_password = data.get("confirm_password", "")
     fields = (first_name, last_name, email, password, confirm_password)
-    if not all(isinstance(field, str) for field in fields):
-        raise ValueError("Invalid form data.")
+    for field in fields:
+        if not isinstance(field, str):
+            raise ValueError("Invalid form data.")
 
     first_name = first_name.strip()
     last_name = last_name.strip()
@@ -48,6 +90,18 @@ def create_user(data, permission_level="user"):
             cursor.execute("INSERT INTO Administrator (userId) VALUES (%s)", (user_id,))
         cursor.execute("INSERT INTO Customer (userId) VALUES (%s)", (user_id,))
     return user_id
+
+def get_all_users():
+    with database_cursor() as cursor:
+        cursor.execute(
+            """SELECT u.id, CONCAT_WS(' ', u.firstName, NULLIF(u.lastName, '')) AS display_name,
+                      u.email, u.permissions, u.dateCreated, c.accountStatus
+               FROM `User` u
+               JOIN Customer c ON c.userId = u.id
+               ORDER BY u.id"""
+        )
+        return cursor.fetchall()
+
 
 def set_user_status(user_id, status):
     if status not in {"active", "disabled"}:

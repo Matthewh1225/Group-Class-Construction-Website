@@ -2,7 +2,7 @@ from flask import Blueprint, abort, render_template, request, session
 
 from planning.jobs import get_job
 from services.crews import CREW_RATES, HOURS_PER_DAY, MAX_DAYS, MAX_WORKERS
-from services.projects import get_project
+from services.projects import get_project_details
 
 crews_bp = Blueprint("crews", __name__)
 
@@ -17,7 +17,7 @@ def crews():
         if "user_id" not in session:
             abort(401)
     if project_id is not None:
-        project = get_project(project_id, session["user_id"])
+        project = get_project_details(project_id, session["user_id"])
         if project is None:
             abort(404)
         result = project["plan"].get("result") or {}
@@ -28,6 +28,7 @@ def crews():
             abort(404)
         result = job["result"] or {}
         initial_crew = result.get("crew")
-    return render_template("crews.html", crew_rates=CREW_RATES,
+    crew_data = {"rates": CREW_RATES, "hoursPerDay": HOURS_PER_DAY, "savedCrew": initial_crew}
+    return render_template("crews.html", crew_rates=CREW_RATES, crew_data=crew_data,
                            hours_per_day=HOURS_PER_DAY, max_days=MAX_DAYS,
-                           max_workers=MAX_WORKERS, project=project, initial_crew=initial_crew)
+                           max_workers=MAX_WORKERS, project=project)

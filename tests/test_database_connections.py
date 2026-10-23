@@ -2,7 +2,9 @@ import unittest
 from unittest.mock import MagicMock, patch
 
 from flask import Flask
+from mysql.connector import Error
 
+from services.products import get_planner_catalog, get_products_by_ids
 from utils.database import close_database, database_cursor
 
 
@@ -25,6 +27,27 @@ class RequestConnectionTests(unittest.TestCase):
             self.assertEqual(self.connection.commit.call_count, 2)
             self.connection.close.assert_not_called()
         self.connection.close.assert_called_once()
+
+    def test_catalog_failures_are_not_reported_as_empty_results(self):
+        cursor = self.connection.cursor.return_value.__enter__.return_value
+        cursor.execute.side_effect = Error("Test database failure")
+        for query, arguments in ((get_planner_catalog, ()), (get_products_by_ids, ([123],))):
+            with self.subTest(query=query.__name__):
+                self.connection.reset_mock()
+                with self.assertRaises(Error):
+                    query(*arguments)
+                self.connection.rollback.assert_called()
+                self.connection.commit.assert_not_called()
+                self.connection.close.assert_called()
+
+    def test_empty_catalog_and_missing_ids_are_still_empty_results(self):
+        cursor = self.connection.cursor.return_value.__enter__.return_value
+        cursor.fetchall.return_value = []
+        self.assertEqual(get_planner_catalog(), [])
+        self.assertEqual(get_products_by_ids([123]), {})
+        self.connect.reset_mock()
+        self.assertEqual(get_products_by_ids([]), {})
+        self.connect.assert_not_called()
 
     def test_failed_helper_rolls_back_and_request_can_continue(self):
         with self.app.test_request_context():

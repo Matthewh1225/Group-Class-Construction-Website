@@ -1,54 +1,17 @@
-<section
-    id="shed-questions-step"
-    class="planner-step template-questions"
-    {% if project_mode != "template" or project_template != "shed" %}hidden{% endif %}
->
-    <button class="template-back step-back" type="button">&larr; All templates</button>
-    <h2 tabindex="-1">Storage shed details</h2>
-    <form method="post" action="{{ url_for('planner.submit_planning_job') }}">
-        <input type="hidden" name="projectMode" value="template">
-        <input type="hidden" name="projectTemplate" value="{{ template_id }}">
-        <fieldset class="field-group">
-            <legend>Dimensions</legend>
-            <div class="field-row">
-                <div class="form-field">
-                    <label for="shed-length">Length <span class="sr-only">in feet</span></label>
-                    <div class="unit-input">
-                        <input id="shed-length" name="lengthFt" type="number" inputmode="decimal" min="1" step="0.5" value="{{ form_data.get('lengthFt', '') }}" required>
-                        <span aria-hidden="true">ft</span>
-                    </div>
-                </div>
-                <div class="form-field">
-                    <label for="shed-width">Width <span class="sr-only">in feet</span></label>
-                    <div class="unit-input">
-                        <input id="shed-width" name="widthFt" type="number" inputmode="decimal" min="1" step="0.5" value="{{ form_data.get('widthFt', '') }}" required>
-                        <span aria-hidden="true">ft</span>
-                    </div>
-                </div>
-                <div class="form-field">
-                    <label for="shed-height">Height <span class="sr-only">in feet</span></label>
-                    <div class="unit-input">
-                        <input id="shed-height" name="heightFt" type="number" inputmode="decimal" min="1" step="0.5" value="{{ form_data.get('heightFt', '') }}" required>
-                        <span aria-hidden="true">ft</span>
-                    </div>
-                </div>
-            </div>
-        </fieldset>
-        <div class="choice-grid">
-            {% for name, question in [('ramp', 'Include a ramp?'), ('window', 'Include a window?'), ('ac', 'Include air conditioning?'), ('lighting', 'Include lighting?')] %}
-                <fieldset class="choice-group">
-                    <legend>{{ question }}</legend>
-                    <div class="choice-buttons">
-                        <label><input type="radio" name="{{ name }}" value="yes" {% if form_data.get(name) == 'yes' %}checked{% endif %} required><span>Yes</span></label>
-                        <label><input type="radio" name="{{ name }}" value="no" {% if form_data.get(name) == 'no' %}checked{% endif %}><span>No</span></label>
-                    </div>
-                </fieldset>
-            {% endfor %}
-        </div>
-        <div class="form-field">
-            <label for="shed-description">Describe the storage shed</label>
-            <textarea id="shed-description" class="planner-input" name="userInput" required>{{ form_data.get('userInput', 'I want to build a backyard storage shed.') }}</textarea>
-        </div>
-        {% include "project_forms/plan_buttons.html" %}
-    </form>
-</section>
+<fieldset class="field-group">
+    <legend>Size</legend>
+    <div class="field-row">
+        {{ number_field('lengthFt', 'Length', unit='ft') }}
+        {{ number_field('widthFt', 'Width', unit='ft') }}
+        {{ number_field('heightFt', 'Height', default=8, unit='ft', required=False) }}
+    </div>
+</fieldset>
+<fieldset class="field-group">
+    <legend>Extras (optional)</legend>
+    <div class="choice-grid">
+        {{ checkbox('ramp', 'Add a ramp') }}
+        {{ checkbox('window', 'Add a window') }}
+        {{ checkbox('ac', 'Add air conditioning') }}
+        {{ checkbox('lighting', 'Add lighting') }}
+    </div>
+</fieldset>

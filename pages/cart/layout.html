@@ -20,15 +20,15 @@
     </svg>
     <div class="shopping-page">
         <nav class="shopping-progress" aria-label="Purchase steps">
-            <a href="{{ url_for('cart') }}" {% if request.endpoint == 'cart' %}aria-current="step"{% endif %}><span>1</span>Cart</a>
+            <a href="{{ url_for('shopping.show_cart') }}" {% if request.endpoint == 'shopping.show_cart' %}aria-current="step"{% endif %}><span>1</span>Cart</a>
             <span class="shopping-progress-line" aria-hidden="true"></span>
             {% if cart_items|default([]) %}
-                <a href="{{ url_for('checkout') }}" {% if request.endpoint == 'checkout' %}aria-current="step"{% endif %}><span>2</span>Checkout</a>
+                <a href="{{ url_for('shopping.checkout') }}" {% if request.endpoint == 'shopping.checkout' %}aria-current="step"{% endif %}><span>2</span>Checkout</a>
             {% else %}
-                <span class="shopping-progress-pending" {% if request.endpoint == 'checkout' %}aria-current="step"{% endif %}><span>2</span>Checkout</span>
+                <span class="shopping-progress-pending" {% if request.endpoint == 'shopping.checkout' %}aria-current="step"{% endif %}><span>2</span>Checkout</span>
             {% endif %}
             <span class="shopping-progress-line" aria-hidden="true"></span>
-            <span class="shopping-progress-pending" {% if request.endpoint == 'order_confirmation' %}aria-current="step"{% endif %}><span>3</span>Confirmation</span>
+            <span class="shopping-progress-pending" {% if request.endpoint == 'shopping.order_confirmation' %}aria-current="step"{% endif %}><span>3</span>Confirmation</span>
         </nav>
         {% block shopping_content %}
         {% endblock %}

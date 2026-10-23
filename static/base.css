@@ -130,12 +130,6 @@ main {
     color: var(--text);
 }
 
-.site-message-warning {
-    border-color: var(--warning-border, var(--line-strong));
-    border-left-color: var(--warning, #b56a00);
-    background: var(--warning-bg, var(--panel));
-}
-
 input,
 select,
 textarea {

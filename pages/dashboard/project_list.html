@@ -1,25 +1,41 @@
-{# dashboard-navigation.js turns data-timestamp values into local dates. #}
-{% macro project_list(projects, label) %}
-    <ol class="plan-register" aria-label="{{ label }}">
-        <li class="plan-register-head" aria-hidden="true">
-            <span>No.</span><span>Project</span><span>Materials</span><span>Status</span><span>Updated</span><span></span>
+{% macro project_list(jobs, label, offset=0) %}
+<ol class="plan-register" aria-label="{{ label }}">
+    <li class="plan-register-head" aria-hidden="true">
+        <span>No.</span><span>Project</span><span>Mode</span><span>Status</span><span>Updated</span><span></span>
+    </li>
+    {% for job in jobs %}
+        <li>
+            <a class="plan-row" href="{{ url_for('planner.planning_job', job_id=job.id) }}">
+                <span class="plan-row-number" aria-hidden="true">P-{{ '%02d'|format(offset + loop.index) }}</span>
+                <span class="plan-row-main">
+                    <span class="plan-row-title">{{ job.saved_name or job.project.description or 'Untitled project' }}</span>
+                    <span class="plan-row-type">{{ (job.project.project_type or 'custom')|replace('_', ' ') }}</span>
+                </span>
+                <span class="plan-row-meta">
+                    <span class="plan-row-tier">{{ workflow_tiers[job.tier].label }}{% if job.result %} &middot; {{ job.result.materials|length }} material{{ '' if job.result.materials|length == 1 else 's' }}{% endif %}</span>
+                    <span class="status-tag status-{{ job.planning_status_tone }}">{{ job.planning_status_label }}</span>
+                    <time class="plan-row-date" data-timestamp="{{ job.updated }}"></time>
+                </span>
+                <span class="plan-row-arrow" aria-hidden="true">&rarr;</span>
+            </a>
+            <div class="plan-row-actions">
+                {% if job.saved_project_id %}
+                    <form method="post" action="{{ url_for('dashboard.project_delete', project_id=job.saved_project_id) }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        {% if request.endpoint == 'planner.planning_history' %}
+                            <input type="hidden" name="return_to" value="history">
+                        {% endif %}
+                        <button class="dashboard-button dashboard-button-secondary" type="submit">Remove from Saved Projects</button>
+                    </form>
+                {% elif job.can_save %}
+                    <form method="post" action="{{ url_for('planner.planning_job_save', job_id=job.id) }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="return_to" value="history">
+                        <button class="dashboard-button dashboard-button-secondary" type="submit">Save Project</button>
+                    </form>
+                {% endif %}
+            </div>
         </li>
-        {% for project in projects %}
-            <li>
-                <a class="plan-row" href="{{ url_for('dashboard.project_detail', project_id=project.id) }}">
-                    <span class="plan-row-number" aria-hidden="true">P-{{ '%02d'|format(project.id) }}</span>
-                    <span class="plan-row-main">
-                        <span class="plan-row-title">{{ project.name }}</span>
-                        <span class="plan-row-type">{{ project.type }}</span>
-                    </span>
-                    <span class="plan-row-meta">
-                        <span class="plan-row-tier">{{ project.material_count }} material{{ '' if project.material_count == 1 else 's' }}</span>
-                        <span class="status-tag status-{{ project.status_tone }}">{{ 'Partial result' if project.status == 'Review Needed' else project.status }}</span>
-                        <time class="plan-row-date" data-timestamp="{{ project.updated }}"></time>
-                    </span>
-                    <span class="plan-row-arrow" aria-hidden="true">&rarr;</span>
-                </a>
-            </li>
-        {% endfor %}
-    </ol>
+    {% endfor %}
+</ol>
 {% endmacro %}

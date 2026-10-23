@@ -7,17 +7,19 @@ from mysql.connector import Error as DatabaseError
 # Load .env before routes create their AI clients.
 load_dotenv()
 
-from routes.auth import auth_bp, check_logged_in_user
+from routes.auth import auth_bp, refresh_logged_in_user
 from routes.crews import crews_bp
 from routes.dashboard import dashboard_bp
 from routes.planner import planner_bp
 from routes.products import products_bp
+from routes.shopping import shopping_bp
 from routes.subscription import subscription_bp
+from planning.presentation import format_amount
 from utils.csrf import check_csrf, csrf_token
 from utils.database import close_database
 from utils.rate_limits import limiter
-from utils.passwords import MAX_PASSWORD_LENGTH, PASSWORD_DIGITS
-from services.products import get_manufacturers
+from utils.passwords import MAX_PASSWORD_LENGTH
+from services.products import get_all_manufacturers
 
 app = Flask(__name__, template_folder="pages")
 app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")
@@ -28,19 +30,20 @@ app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 # Set SESSION_COOKIE_SECURE=true when using HTTPS.
 app.config["SESSION_COOKIE_SECURE"] = os.getenv("SESSION_COOKIE_SECURE", "").lower() == "true"
 app.before_request(check_csrf)
-app.before_request(check_logged_in_user)
+app.before_request(refresh_logged_in_user)
 app.teardown_request(close_database)
 
 
 app.jinja_env.globals["csrf_token"] = csrf_token
-app.jinja_env.globals["password_digits"] = PASSWORD_DIGITS
 app.jinja_env.globals["password_max_length"] = MAX_PASSWORD_LENGTH
+app.jinja_env.filters["amount"] = format_amount
 
 limiter.init_app(app)
 
 app.register_blueprint(auth_bp)
 app.register_blueprint(planner_bp)
 app.register_blueprint(products_bp)
+app.register_blueprint(shopping_bp)
 app.register_blueprint(dashboard_bp)
 app.register_blueprint(subscription_bp)
 app.register_blueprint(crews_bp)
@@ -69,18 +72,13 @@ def reviews():
 
 @app.route("/manufacturers")
 def manufacturers():
-    return render_template("manufacturers.html", manufacturers=get_manufacturers())
-
-
-from routes import shopping
-
-app.add_url_rule("/cart", "cart", shopping.cart)
-app.add_url_rule("/cart/add", "cart_add", shopping.cart_add, methods=["POST"])
-app.add_url_rule("/cart/update", "cart_update", shopping.cart_update, methods=["POST"])
-app.add_url_rule("/cart/remove", "cart_remove", shopping.cart_remove, methods=["POST"])
-app.add_url_rule("/checkout", "checkout", shopping.checkout, methods=["GET", "POST"])
-app.add_url_rule("/order-confirmation", "order_confirmation", shopping.order_confirmation, defaults={"order_id": None})
-app.add_url_rule("/order-confirmation/<int:order_id>", "order_confirmation", shopping.order_confirmation)
+    manufacturers = get_all_manufacturers()
+    for manufacturer in manufacturers:
+        endpoint = "products.products"
+        if manufacturer["has_machinery"]:
+            endpoint = "products.heavy_machinery"
+        manufacturer["catalog_url"] = url_for(endpoint, manufacturer=manufacturer["manufacturer_id"])
+    return render_template("manufacturers.html", manufacturers=manufacturers)
 
 
 if __name__ == "__main__":

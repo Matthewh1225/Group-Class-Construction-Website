@@ -38,15 +38,16 @@
             {% else %}
                 <div class="catalog-notice"><h3>No machinery matches your search.</h3></div>
             {% endif %}
-            {% if not catalog_error and (page > 1 or has_next) %}
+            {% if not catalog_error and (products or page > 1) %}
                 <nav class="catalog-pagination" aria-label="Machinery pages">
                     {% if page > 1 %}<a class="btn btn-ghost" href="{{ url_for('products.heavy_machinery', q=search, manufacturer=manufacturer_id, page=page-1) }}">&larr; Previous</a>{% endif %}
-                    <span>Page {{ page }}</span>
+                    <span>Page {{ page }} of {{ total_pages }}</span>
                     {% if has_next %}<a class="btn btn-ghost" href="{{ url_for('products.heavy_machinery', q=search, manufacturer=manufacturer_id, page=page+1) }}">Next &rarr;</a>{% endif %}
                 </nav>
             {% endif %}
         </section>
     </div>
 </div>
+<script src="{{ url_for('static', filename='js/products.js') }}" type="module"></script>
 {% endblock %}
 {% block footer %}{% include "site_footer.html" %}{% endblock %}

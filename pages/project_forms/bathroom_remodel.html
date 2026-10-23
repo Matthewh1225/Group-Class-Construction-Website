@@ -1,0 +1,37 @@
+<fieldset class="field-group">
+    <legend>Room size</legend>
+    <div class="field-row">
+        {{ number_field('lengthFt', 'Length', minimum=3, unit='ft') }}
+        {{ number_field('widthFt', 'Width', minimum=3, unit='ft') }}
+        {{ number_field('heightFt', 'Ceiling height', minimum=6, default=8, unit='ft', required=False) }}
+    </div>
+</fieldset>
+<fieldset class="field-group">
+    <legend>Fixtures to replace</legend>
+    <div class="choice-grid">
+        {{ checkbox('newShower', 'Shower') }}
+        {{ checkbox('newBathtub', 'Bathtub') }}
+        {{ checkbox('newToilet', 'Toilet') }}
+        {{ select_field('vanity', 'New sink and cabinet', ['single sink', 'double sink', 'none']) }}
+    </div>
+</fieldset>
+<fieldset class="field-group">
+    <legend>Surfaces and finishes</legend>
+    <div class="field-row field-row-wide">
+        {{ select_field('flooring', 'Flooring', ['porcelain tile', 'ceramic tile', 'vinyl plank', 'keep existing floor']) }}
+        {{ select_field('wallTile', 'Wall tile', ['shower or tub area only', 'all walls', 'none']) }}
+        {{ select_field('drywall', 'Wall and ceiling repairs', ['patch and repair', 'replace walls and ceiling', 'none']) }}
+    </div>
+    <div class="choice-grid">
+        {{ checkbox('painting', 'Paint walls and ceiling') }}
+        {{ checkbox('finishing', 'Add trim, caulk, mirror and towel bars') }}
+    </div>
+    <p class="optional">Waterproofing is included when replacing a shower or bathtub, or adding wall tile.</p>
+</fieldset>
+<fieldset class="field-group">
+    <legend>Plumbing and electrical</legend>
+    <div class="field-row field-row-wide">
+        {{ select_field('plumbing', 'Plumbing work', ['fixtures stay in place', 'move or add lines', 'none']) }}
+        {{ select_field('electrical', 'Electrical work', ['lighting and exhaust fan', 'lighting, fan and new outlets', 'none']) }}
+    </div>
+</fieldset>

@@ -1,9 +1,9 @@
 {% extends "dashboard/layout.html" %}
-{% from "dashboard/project_list.html" import project_list %}
+{% from "dashboard/project_list.html" import project_list with context %}
 {% from "dashboard/empty_state.html" import empty_state %}
 
 {% block title %}
-    My Projects - BuildBetter
+    Saved Projects - BuildBetter
 {% endblock %}
 
 {% block flash_messages %}
@@ -13,7 +13,7 @@
     <div class="dashboard-page-heading">
         <div>
             <p class="sheet-tag"><span>D-03</span>Projects</p>
-            <h1>My Projects</h1>
+            <h1>Saved Projects</h1>
         </div>
         <a class="dashboard-button dashboard-button-primary" href="{{ url_for('planner.planner') }}">Start a new plan <span aria-hidden="true">&rarr;</span></a>
     </div>
@@ -32,7 +32,7 @@
                 <select name="status">
                     <option value="">All statuses</option>
                     {% for option in statuses %}
-                        <option value="{{ option }}" {% if option == status %}selected{% endif %}>{{ 'Partial result' if option == 'Review Needed' else option }}</option>
+                        <option value="{{ option.value }}" {% if option.value == status %}selected{% endif %}>{{ option.label }}</option>
                     {% endfor %}
                 </select>
             </label>

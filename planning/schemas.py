@@ -40,7 +40,7 @@ class Material(Record):
         min_length=1, description="One short string explaining the quantity, assumptions, waste and rounding."
     )
     product_id: int | None = Field(
-        description="An integer ID from the supplied catalog, or null if unmatched. Always include this field."
+        description="Always include this field. Planners use null; the final auditor uses a matching catalog ID or null."
     )
 
 

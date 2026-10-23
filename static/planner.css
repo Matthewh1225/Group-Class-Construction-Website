@@ -49,6 +49,35 @@
     color: var(--muted);
 }
 
+.planner-lede {
+    max-width: 60ch;
+    margin-top: 10px;
+    line-height: 1.55;
+}
+
+.planner-heading-links {
+    flex-shrink: 0;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+}
+
+/* Shown instead of the upgrade panel when the account has Pro. */
+.planner-pro-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    border: 1px solid var(--amber);
+    border-radius: var(--radius);
+    background: var(--amber-tint);
+    color: var(--amber-bright);
+    font: 600 0.72rem/1.2 var(--font-mono);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
 .planner-history {
     flex-shrink: 0;
     display: inline-flex;
@@ -171,8 +200,8 @@
 
 .method-drawing {
     width: 100%;
-    height: 130px;
-    margin: 12px 0 20px;
+    height: 100px;
+    margin: 10px 0 16px;
     stroke: var(--amber);
     stroke-width: 1.5;
     transition: transform 0.3s ease;
@@ -193,15 +222,101 @@
     letter-spacing: -0.02em;
 }
 
+.method-text {
+    margin-top: 8px;
+    color: var(--muted);
+    font-size: 0.92rem;
+    line-height: 1.5;
+}
+
+.method-examples {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 14px 0 22px;
+}
+
+.method-examples span {
+    padding: 3px 8px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--panel);
+    color: var(--muted);
+    font: 0.72rem/1.4 var(--font-mono);
+}
+
+/* Looks like the main button: choosing a way to start is the first thing to do. */
 .method-action {
     display: flex;
     justify-content: space-between;
+    align-items: center;
     gap: 20px;
     margin-top: auto;
-    padding-top: 24px;
+    padding: 12px 16px;
+    border-radius: var(--radius);
+    background: var(--amber);
+    color: var(--on-accent);
+    font-size: 0.92rem;
+    font-weight: 700;
+    transition: background-color 150ms;
+}
+
+.planner-method:hover .method-action {
+    background: var(--amber-bright);
+}
+
+/* A smaller, secondary panel under the two choices. */
+.planner-pro {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px 32px;
+    margin-top: 20px;
+    padding: 18px 22px;
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--amber);
+    border-radius: var(--radius);
+    background: var(--panel-alt);
+}
+
+/* Text takes the spare width; the buttons stay beside it on wide screens and wrap below on narrow ones. */
+.planner-pro > div:first-child {
+    flex: 1 1 420px;
+}
+
+.planner-pro h3 {
+    margin: 4px 0 10px;
+    font: 700 1.2rem/1.25 var(--font-display);
+}
+
+.planner-pro-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 18px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    color: var(--muted);
+    font-size: 0.88rem;
+}
+
+.planner-pro-list li::before {
+    content: "\2713";
+    margin-right: 6px;
     color: var(--amber);
-    font-size: 0.85rem;
-    font-weight: 600;
+}
+
+.planner-pro-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px 20px;
+}
+
+.planner-pro-actions .btn {
+    padding: 0.7rem 1.1rem;
+    font-size: 0.92rem;
 }
 
 .planner-step h2,
@@ -387,7 +502,7 @@
     font-weight: 400;
 }
 
-.planner-page input:not([type="radio"]):not([type="hidden"]),
+.planner-page input:not([type="radio"]):not([type="checkbox"]):not([type="hidden"]),
 .planner-page select {
     width: 100%;
     min-width: 0;
@@ -455,75 +570,32 @@
     gap: 18px 16px;
 }
 
-.choice-group legend {
-    margin-bottom: 7px;
+/* Keep related checkboxes below the dropdowns. */
+.field-row + .choice-grid {
+    margin-top: 18px;
 }
 
-.choice-buttons {
+/* Dropdowns hold longer text than number boxes, so they get wider columns (one per row on a phone). */
+.field-row-wide {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+}
+
+.planner-checkbox {
     display: flex;
-    border: 1px solid var(--line-strong);
-    border-radius: var(--radius);
-}
-
-.choice-buttons label {
-    position: relative;
-    flex: 1;
-    cursor: pointer;
-}
-
-.choice-buttons label + label {
-    border-left: 1px solid var(--line-strong);
-}
-
-/* Keep the radio available to keyboards and screen readers. */
-.choice-buttons input {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    margin: 0;
-    opacity: 0;
-    cursor: pointer;
-}
-
-.choice-buttons span {
-    display: block;
-    padding: 10px 12px;
-    color: var(--muted);
+    align-items: center;
+    gap: 10px;
+    padding: 10px 0;
     font-size: 0.9rem;
-    font-weight: 600;
-    text-align: center;
-    transition: background-color 0.15s, color 0.15s;
+    cursor: pointer;
 }
 
-.choice-buttons label:hover span {
-    color: var(--text);
-}
-
-.choice-buttons input:checked + span {
-    background: var(--amber);
-    color: var(--on-accent);
-}
-
-.choice-buttons input:focus-visible + span {
-    outline: 2px solid var(--focus);
-    outline-offset: 2px;
-}
-
-.brief-tips {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin: 4px 0 0;
-    padding: 0;
-    list-style: none;
-}
-
-.brief-tips li {
-    padding: 3px 9px;
-    border: 1px dashed var(--line-strong);
-    color: var(--muted);
-    font: 0.75rem/1.5 var(--font-mono);
+.planner-checkbox input {
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    accent-color: var(--amber);
+    cursor: pointer;
 }
 
 .planner-page .planner-tiers {
@@ -701,8 +773,12 @@
         font-size: 1.3rem;
     }
 
-    .method-action {
-        padding-top: 16px;
+    .method-examples {
+        margin-bottom: 16px;
+    }
+
+    .planner-pro {
+        padding: 16px;
     }
 
     .planner-templates {
@@ -739,7 +815,6 @@
     }
 }
 
-
 .planner-job {
     --plan-surface: var(--panel);
     --plan-border: var(--line);
@@ -760,7 +835,14 @@
 .planner-job h3 { font-size: 16px; line-height: 1.4; }
 .planner-job a { color: var(--plan-accent); text-underline-offset: 4px; }
 .planner-job a:hover { color: var(--amber-bright); }
-.planner-job :is(button, a, summary, input, textarea):focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
+.planner-job button:focus-visible,
+.planner-job a:focus-visible,
+.planner-job summary:focus-visible,
+.planner-job input:focus-visible,
+.planner-job textarea:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 3px;
+}
 .plan-muted { color: var(--plan-muted); font-size: 15px; }
 .plan-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
 
@@ -791,7 +873,11 @@
 .plan-stage[data-state="done"] [data-stage-status] { color: var(--success); }
 .plan-stage[data-state="failed"] { border-color: var(--danger-border); background: var(--danger-bg); }
 .plan-stage[data-state="failed"] [data-stage-status] { color: var(--danger); }
-.plan-stage:is([data-state="processing"], [data-state="done"], [data-state="failed"]) [data-stage-status]::before { background: currentColor; }
+.plan-stage[data-state="processing"] [data-stage-status]::before,
+.plan-stage[data-state="done"] [data-stage-status]::before,
+.plan-stage[data-state="failed"] [data-stage-status]::before {
+    background: currentColor;
+}
 
 .plan-button, .plan-button-secondary {
     display: inline-flex; align-items: center; justify-content: center;
@@ -834,7 +920,8 @@
 .plan-table small { display: block; margin-top: 4px; color: var(--plan-muted); font-size: 13px; font-weight: 400; }
 .plan-number { font: 700 17px/1.2 var(--font-mono); font-variant-numeric: tabular-nums; }
 .plan-table td[data-label="You buy"] .plan-number { color: var(--amber-bright); }
-.plan-unknown, .planner-job .plan-warning { color: var(--amber-bright); font-weight: 600; }
+
+.planner-job .plan-warning { color: var(--amber-bright); font-weight: 600; }
 .plan-row-action { width: 1%; text-align: right; white-space: nowrap; }
 .plan-row-action form { margin: 0; }
 .plan-row-unmatched { background: var(--surface-faint); }

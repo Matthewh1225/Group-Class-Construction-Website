@@ -12,20 +12,18 @@
             maxlength="{{ maxlength }}"
             value="{{ form_data.get(name, '') }}"
             {% if required %}required{% endif %}
-            aria-describedby="{{ name }}-error"
         >
-        <span class="shopping-field-error" id="{{ name }}-error"></span>
     </div>
 {% endmacro %}
 
 {% block shopping_content %}
 <header class="shopping-heading">
     <div><p class="sheet-tag"><span>C-03</span>Contact &amp; delivery</p><h1>Checkout</h1></div>
-    <a class="shopping-link" href="{{ url_for('cart') }}"><span aria-hidden="true">&larr;</span> Back to cart</a>
+    <a class="shopping-link" href="{{ url_for('shopping.show_cart') }}"><span aria-hidden="true">&larr;</span> Back to cart</a>
 </header>
 {% if error %}<p class="shopping-notice" role="alert">{{ error }}</p>{% endif %}
 <div class="shopping-columns">
-    <form class="shopping-checkout-form" id="checkout-form" method="post" action="{{ url_for('checkout') }}">
+    <form class="shopping-checkout-form" id="checkout-form" method="post" action="{{ url_for('shopping.checkout') }}">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <input type="hidden" name="checkout_key" value="{{ checkout_key }}">
         <section class="shopping-panel">

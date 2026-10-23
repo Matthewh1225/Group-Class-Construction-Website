@@ -39,7 +39,7 @@
                     <a href="{{ url_for('reviews') }}" {% if request.endpoint == 'reviews' %}aria-current="page"{% endif %}>Reviews</a>
                     <a href="{{ url_for('manufacturers') }}" {% if request.endpoint == 'manufacturers' %}aria-current="page"{% endif %}>Manufacturers</a>
                     <a class="nav-account" href="{{ url_for('dashboard.dashboard') }}" {% if request.blueprint in ['dashboard', 'subscription'] %}aria-current="page"{% endif %}>Dashboard</a>
-                    <a class="nav-cart" href="{{ url_for('cart') }}" {% if request.endpoint in ['cart', 'checkout', 'order_confirmation'] %}aria-current="page"{% endif %}>
+                    <a class="nav-cart" href="{{ url_for('shopping.show_cart') }}" {% if request.blueprint == 'shopping' %}aria-current="page"{% endif %}>
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
                             <path d="M5 7h14l1 14H4L5 7Z"/>
                             <path d="M9 8V6a3 3 0 0 1 6 0v2"/>
@@ -58,11 +58,6 @@
             </nav>
         {% endblock %}
         <main>
-            {% if g.database_unavailable|default(false) %}
-                <p class="site-message site-message-warning" role="status">
-                    Some account data could not be refreshed. The rest of the page is still available.
-                </p>
-            {% endif %}
             {# Pages can replace this block to show messages elsewhere. #}
             {% block flash_messages %}
                 {% for category, message in get_flashed_messages(with_categories=True) %}

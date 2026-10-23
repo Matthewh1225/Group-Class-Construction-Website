@@ -51,71 +51,93 @@ def describe_error(error):
     return "the AI request failed or timed out"
 
 
+# The message sent back to the AI when its answer does not match the schema.
+def validation_feedback(error, record_type):
+    problems = []
+    for item in error.errors(include_url=False, include_input=False)[:8]:
+        location = []
+        for part in item["loc"]:
+            location.append(str(part))
+        field = ".".join(location) or "answer"
+        problems.append(f"{field}: {item['msg']}")
+    feedback = "Fix these fields: " + "; ".join(problems) + "."
+    if record_type is not Specification:
+        feedback += (" Every material needs a positive numeric quantity; "
+                     "use labeled assumptions for missing dimensions.")
+    return feedback
+
+
 # Each stage gets at most two tries. A bad answer is sent back so the AI can fix it.
-def run_stage(tier, role, record_type, inputs, instructions, catalog_ids):
+def run_stage(tier, role, record_type, inputs, instructions):
     settings = ai_config.WORKFLOW_TIERS[tier][role]
     schema = record_type.model_json_schema()
     request = dict(inputs)
+    has_fallback = "fallback" in settings
     problem = None
 
     for attempt in (1, 2):
         # Pro's auditor uses its fallback model for the second try.
         model_name = settings["model"]
-        if attempt == 2 and "fallback" in settings:
+        if attempt == 2 and has_fallback:
             model_name = settings["fallback"]
-        provider_failed = False
-        same_model_can_retry = True
 
         try:
             text = ask_model(model_name, json.dumps(request, ensure_ascii=False),
                              settings["reasoning"], instructions, schema,
                              settings["output_tokens"])
             output = record_type.model_validate_json(text).model_dump()
-            if "materials" in output:
-                clear_unknown_products(output, catalog_ids)
             if record_type is AuditedEstimate:
+                catalog_ids = {product["product_id"] for product in inputs.get("catalog", [])}
+                clear_unknown_products(output, catalog_ids)
                 output["crew"]["label"] = "AI-estimated crew"
                 try:
                     output["crew"] = check_crew(output["crew"])
                 except ValueError as error:
                     raise BadAnswer(str(error)) from error
+            elif record_type is DraftEstimate:
+                # Drafts describe materials; only the auditor assigns store IDs.
+                for material in output["materials"]:
+                    material["product_id"] = None
             return output
+        # Each branch below decides two things:
+        #   try_again  - is a second try worth making?
+        #   wait_first - should we pause before it?
         except ValidationError as error:
-            problems = []
-            for item in error.errors(include_url=False, include_input=False)[:8]:
-                field = ".".join(str(part) for part in item["loc"]) or "answer"
-                problems.append(f"{field}: {item['msg']}")
-            problem = "Fix these fields: " + "; ".join(problems) + "."
-            if record_type is not Specification:
-                problem += (" Every material needs a positive numeric quantity; "
-                            "use labeled assumptions for missing dimensions.")
+            problem = validation_feedback(error, record_type)
             request["problem_with_last_answer"] = problem
+            try_again = True
+            wait_first = False
         except BadAnswer as error:
             problem = str(error)
             request["problem_with_last_answer"] = problem
+            try_again = True
+            wait_first = False
         except PlanningError as error:
-            # The model has no API key, so asking it again cannot help.
+            # The model has no API key, so only a different (fallback) model can help.
             problem = str(error)
-            same_model_can_retry = False
+            try_again = has_fallback
+            wait_first = False
         except PROVIDER_ERRORS as error:
             # Network and account problems are not the AI's fault, so no feedback is sent.
+            # Account and request errors (such as a bad key) fail the same way every time,
+            # so waiting does not help: switch to the fallback model straight away.
             problem = describe_error(error)
-            provider_failed = True
-            same_model_can_retry = error_code(error) not in DO_NOT_RETRY
+            might_clear_up = error_code(error) not in DO_NOT_RETRY
+            try_again = has_fallback or might_clear_up
+            wait_first = might_clear_up
 
         logger.warning("%s attempt %s with %s failed: %s", role, attempt, model_name, problem)
-        if attempt == 2:
+        # Stop after the second try, or when another try cannot help.
+        if attempt == 2 or not try_again:
             break
-        if not same_model_can_retry and "fallback" not in settings:
-            break
-        if provider_failed:
+        if wait_first:
             time.sleep(RETRY_DELAY)
 
     raise PlanningError(f"The {role.replace('_', ' ')} step failed: {problem.rstrip('.')}.")
 
 
 # Pro runs both planners at the same time. One usable estimate is enough.
-def run_two_planners(tier, inputs, catalog_ids, update_stage):
+def run_two_planners(tier, inputs, update_stage):
     estimates = []
     problems = []
     bug = None
@@ -123,9 +145,9 @@ def run_two_planners(tier, inputs, catalog_ids, update_stage):
         update_stage("planner", "processing")
         update_stage("second_planner", "processing")
         first = executor.submit(run_stage, tier, "planner", DraftEstimate, inputs,
-                                ai_config.PLANNER_PROMPT, catalog_ids)
+                                ai_config.PLANNER_PROMPT)
         second = executor.submit(run_stage, tier, "second_planner", DraftEstimate, inputs,
-                                 ai_config.PLANNER_PROMPT, catalog_ids)
+                                 ai_config.PLANNER_PROMPT)
         for role, planner in (("planner", first), ("second_planner", second)):
             try:
                 estimate = planner.result()
@@ -162,7 +184,7 @@ def run_workflow(job, save_progress):
     update_stage("interpreter", "processing")
     context = {"project": job["project"], "answers": job["answers"], "details": []}
     specification = run_stage(tier, "interpreter", Specification, context,
-                              ai_config.INTERPRETER_PROMPT, set())
+                              ai_config.INTERPRETER_PROMPT)
     job["specification"] = specification
     update_stage("interpreter", "done")
 
@@ -178,31 +200,28 @@ def run_workflow(job, save_progress):
         save_progress(job)
         return job
 
-    catalog = get_planner_catalog()
-    catalog_ids = set()
-    for product in catalog:
-        catalog_ids.add(product["product_id"])
     planner_inputs = dict(context)
     planner_inputs["details"] = specification["details"]
-    planner_inputs["catalog"] = catalog
 
     if tier == "pro":
-        estimates = run_two_planners(tier, planner_inputs, catalog_ids, update_stage)
+        estimates = run_two_planners(tier, planner_inputs, update_stage)
     else:
         update_stage("planner", "processing")
         estimates = [run_stage(tier, "planner", DraftEstimate, planner_inputs,
-                               ai_config.PLANNER_PROMPT, catalog_ids)]
+                               ai_config.PLANNER_PROMPT)]
         update_stage("planner", "done")
 
     update_stage("auditor", "processing")
     auditor_inputs = dict(planner_inputs)
+    # Store matching happens only after the planners have estimated the whole project.
+    auditor_inputs["catalog"] = get_planner_catalog()
     auditor_inputs["estimates"] = estimates
     auditor_inputs["available_crew_roles"] = {role: info["name"] for role, info in CREW_RATES.items()}
     auditor_inputs["hours_per_day"] = HOURS_PER_DAY
     auditor_inputs["max_workers_per_role"] = MAX_WORKERS
     auditor_inputs["max_working_days"] = MAX_DAYS
     result = run_stage(tier, "auditor", AuditedEstimate, auditor_inputs,
-                       ai_config.AUDITOR_PROMPT, catalog_ids)
+                       ai_config.AUDITOR_PROMPT)
 
     job["stages"]["auditor"] = "done"
     job["result"] = result

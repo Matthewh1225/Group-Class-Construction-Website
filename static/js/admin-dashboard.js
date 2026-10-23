@@ -365,7 +365,7 @@ function validateField(input) {
     } else if (input.name === "email" && input.validity.typeMismatch) {
         error = "Enter a valid email.";
     } else if (input.name === "password") {
-        const checks = passwordChecks(input.value, addForm.dataset.passwordDigits);
+        const checks = passwordChecks(input.value);
         if (!checks.length) {
             error = "Use at least 3 characters.";
         } else if (!checks.number) {
