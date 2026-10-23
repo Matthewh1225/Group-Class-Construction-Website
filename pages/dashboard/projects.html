@@ -25,7 +25,7 @@
         <form class="project-filters" method="get" action="{{ url_for('dashboard.projects') }}" role="search">
             <label>
                 <span>Search by name</span>
-                <input type="search" name="q" value="{{ search }}" maxlength="120" placeholder="Project name">
+                <input type="search" name="query" value="{{ search }}" maxlength="120" placeholder="Project name">
             </label>
             <label>
                 <span>Status</span>

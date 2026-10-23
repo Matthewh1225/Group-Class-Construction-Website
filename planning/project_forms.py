@@ -51,7 +51,6 @@ def build_shed(form):
     }
 
 
-# The choices here must match the options in pages/project_forms/bathroom_remodel.html.
 def build_bathroom_remodel(form):
     length = read_number(form, "lengthFt", "length", 3)
     width = read_number(form, "widthFt", "width", 3)

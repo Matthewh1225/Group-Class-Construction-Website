@@ -1,3 +1,9 @@
+import hashlib
+import json
+
+from services.crews import estimate_crew_cost, parse_crew
+from utils.database import database_cursor
+
 MAX_QUANTITY = 2_147_483_647
 
 
@@ -17,7 +23,7 @@ def check_product_available(product, quantity):
 
 
 def get_cart(user_id):
-    # TODO: Get the user's cart items with current prices, totals, and any stock problems.
+    # TODO: Get the user's cart items with current prices, totals
     pass
 
 
@@ -32,7 +38,7 @@ def change_quantity(user_id, product_id, quantity):
 
 
 def remove_item(user_id, product_id):
-    # TODO: Remove this product from the user's cart and say whether it was found.
+    # TODO: Remove this product from the user's cart
     pass
 
 
@@ -42,15 +48,26 @@ def add_materials_to_cart(user_id, materials):
 
 
 def add_crew(user_id, crew_json):
-    # TODO: Check the crew selection and add it to the user's cart without saving it twice.
-    pass
+    crew = parse_crew(crew_json)
+    crew_json = json.dumps(crew, sort_keys=True, allow_nan=False)
+    crew_hash = hashlib.sha256(crew_json.encode()).hexdigest()
+    with database_cursor() as cursor:
+        cursor.execute(
+            """INSERT INTO crew_cart (owner, crew, crew_hash) VALUES (%s, %s, %s)
+               ON DUPLICATE KEY UPDATE id = LAST_INSERT_ID(id)""",
+            (int(user_id), crew_json, crew_hash),
+        )
+    return crew["label"]
 
 
 def get_cart_crews(user_id):
-    # TODO: Get the user's cart crews with their estimated costs.
-    pass
+    with database_cursor() as cursor:
+        cursor.execute("SELECT id, crew FROM crew_cart WHERE owner = %s ORDER BY id DESC", (int(user_id),))
+        rows = cursor.fetchall()
+    return [{"id": row["id"], "estimate": estimate_crew_cost(json.loads(row["crew"]))} for row in rows]
 
 
 def remove_crew(user_id, crew_id):
-    # TODO: Remove this crew selection from the user's cart and say whether it was found.
-    pass
+    with database_cursor() as cursor:
+        cursor.execute("DELETE FROM crew_cart WHERE id = %s AND owner = %s", (crew_id, int(user_id)))
+        return cursor.rowcount == 1

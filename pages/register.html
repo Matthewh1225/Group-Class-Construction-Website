@@ -4,16 +4,27 @@
     Create an account - BuildBetter
 {% endblock %}
 
-{% block sheet_number %}G-02{% endblock %}
-
-{% block auth_intro %}
-    <p class="sheet-tag"><span>G-02</span>New account</p>
-    <h1>Start your first set of plans.</h1>
-{% endblock %}
 
 {% block auth_form %}
     <form id="register-form" class="account-form" method="post" action="{{ url_for('auth.register') }}">
         <h2>Create an account</h2>
+        {% if google_client_id %}
+        {# Google draws its button inside this div and calls handleGoogleSignIn. #}
+        <div id="g_id_onload"
+            data-client_id="{{ google_client_id }}"
+            data-callback="handleGoogleSignIn"
+            data-auto_prompt="false">
+        </div>
+        <div class="g_id_signin"
+            data-type="standard"
+            data-size="large"
+            data-theme="filled_black"
+            data-text="signup_with"
+            data-shape="rectangular"
+            data-logo_alignment="left">
+        </div>
+        <p class="auth-divider">or</p>
+        {% endif %}
         <div class="form-field">
             <label for="firstName">First name</label>
             <input type="text" id="firstName" name="firstName" autocomplete="given-name" autocapitalize="none" spellcheck="false" maxlength="50" required>
@@ -48,5 +59,6 @@
         <button class="btn btn-primary" type="submit" data-busy-label="Creating account&hellip;">Create account <span class="arrow" aria-hidden="true">&rarr;</span></button>
         <p class="auth-switch">Already have an account? <a href="{{ url_for('auth.login') }}">Log in</a></p>
     </form>
+    <script src="https://accounts.google.com/gsi/client" async></script>
     <script src="{{ url_for('static', filename='js/register.js') }}" type="module"></script>
 {% endblock %}

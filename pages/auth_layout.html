@@ -8,32 +8,7 @@
 {% block content %}
 <div class="auth-page grid-bg">
     <div class="auth-sheet">
-        <section class="auth-intro">
-            {% block auth_intro %}{% endblock %}
-            <svg class="auth-drawing" viewBox="0 0 320 230" aria-hidden="true" focusable="false">
-                <path class="m draw" style="--d:.9s" pathLength="1" d="M40 14H280"/>
-                <path class="m draw" style="--d:1s" pathLength="1" d="M300 34V194"/>
-                <path class="m" d="M40 8V20M280 8V20M294 34H306M294 194H306"/>
-                <text x="160" y="10" text-anchor="middle">12'-0"</text>
-                <text x="314" y="114" text-anchor="middle" transform="rotate(-90 314 114)">9'-0"</text>
-                <path class="wall draw" pathLength="1" d="M130 194H40V34H280V194H184"/>
-                <rect class="window draw" style="--d:.5s" pathLength="1" x="112" y="30" width="96" height="8"/>
-                <path class="o draw" style="--d:.6s" pathLength="1" d="M134 194V144"/>
-                <path class="m swing draw" style="--d:.7s" pathLength="1" d="M134 144A50 50 0 0 1 184 194"/>
-                <rect class="o draw" style="--d:.8s" pathLength="1" x="196" y="60" width="62" height="40"/>
-                <path class="f" d="M40 120H110M160 34V94"/>
-                <circle class="m" cx="72" cy="212" r="9"/>
-                <path class="o" d="M72 205L76 216H68Z"/>
-            </svg>
-            <dl class="auth-titleblock">
-                <div><dt>Sheet</dt><dd>{% block sheet_number %}{% endblock %}</dd></div>
-                <div><dt>View</dt><dd>Floor plan</dd></div>
-                <div><dt>Drawn by</dt><dd>You</dd></div>
-            </dl>
-        </section>
-        <div class="auth-form-wrap">
-            {% block auth_form %}{% endblock %}
-        </div>
+        {% block auth_form %}{% endblock %}
     </div>
 </div>
 {% endblock %}

@@ -1,6 +1,4 @@
-import tempfile
 import unittest
-from pathlib import Path
 from unittest.mock import Mock, patch
 
 import httpx
@@ -97,25 +95,23 @@ class PlannerNoRetryTests(unittest.TestCase):
         self.assertEqual(run_stage.call_count, 2)
         self.assertEqual(job["stages"]["auditor"], "processing")
 
-    def test_manual_restart_creates_new_job_from_first_stage(self):
-        with tempfile.TemporaryDirectory() as folder:
-            path = Path(folder) / "planner.sqlite3"
-            with patch.object(jobs, "database_path", return_value=path):
-                first = jobs.submit_job("test-user", "first-run-key", {"description": "shed"})
-                running = jobs.claim_job("test-worker")
-                running["status"] = "failed"
-                running["error"] = "The interpreter step failed."
-                running["stages"]["interpreter"] = "failed"
-                jobs.save_job(running, "test-worker")
+    def test_manual_restart_submits_original_request(self):
+        failed = {"id": "first-job", "status": "failed", "tier": "fast",
+                  "project": {"description": "shed"}, "answers": []}
+        with patch.object(jobs, "get_job", return_value=failed), \
+             patch.object(jobs, "submit_job", return_value={"id": "new-job"}) as submit:
+            restarted = jobs.restart_job("first-job", "test-user")
+        self.assertEqual(restarted["id"], "new-job")
+        submit.assert_called_once_with("test-user", "restart-first-job", failed["project"], "fast", [])
 
-                restarted = jobs.restart_job(first["id"], "test-user")
-
-        self.assertNotEqual(restarted["id"], first["id"])
-        self.assertEqual(restarted["status"], "queued")
-        self.assertEqual(restarted["stages"], jobs.pending_stages("fast"))
-        self.assertIsNone(restarted["specification"])
-        self.assertIsNone(restarted["result"])
-        self.assertIsNone(restarted["error"])
+    def test_mysql_save_failure_stops_worker_without_marking_failed(self):
+        job = {"id": "test-job"}
+        with patch.object(worker, "claim_job", return_value=job), \
+             patch.object(worker, "run_workflow", side_effect=MySQLError("offline")), \
+             patch.object(worker, "mark_failed") as mark_failed:
+            with self.assertRaises(MySQLError):
+                worker.process_one("test-worker")
+        mark_failed.assert_not_called()
 
     def test_client_requests_disable_sdk_retries(self):
         gemini_client = Mock()

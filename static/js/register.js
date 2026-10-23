@@ -1,4 +1,4 @@
-import {passwordChecks, setupPasswordToggles, submitAccountForm} from "./account-forms.js";
+import {passwordChecks, setupGoogleSignIn, setupPasswordToggles, submitAccountForm} from "./account-forms.js";
 
 const registerForm = document.getElementById("register-form");
 const message = document.getElementById("register-message");
@@ -25,6 +25,7 @@ function checkMatch() {
 }
 
 setupPasswordToggles(registerForm);
+setupGoogleSignIn(message);
 password.addEventListener("input", function () {
     checkPasswordRules();
     checkMatch();

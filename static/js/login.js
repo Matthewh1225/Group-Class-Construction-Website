@@ -1,9 +1,10 @@
-import {setupPasswordToggles, submitAccountForm} from "./account-forms.js";
+import {setupGoogleSignIn, setupPasswordToggles, submitAccountForm} from "./account-forms.js";
 
 const loginForm = document.getElementById("login-form");
 const message = document.getElementById("login-message");
 
 setupPasswordToggles(loginForm);
+setupGoogleSignIn(message);
 
 loginForm.addEventListener("submit", function (event) {
     event.preventDefault();

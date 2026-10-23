@@ -82,3 +82,28 @@ export function setupPasswordToggles(form) {
         }
     });
 }
+
+// Google calls handleGoogleSignIn by name after the user picks an account.
+export function setupGoogleSignIn(message) {
+    window.handleGoogleSignIn = async function (googleResponse) {
+        message.textContent = "";
+        try {
+            const response = await fetch("/google-login", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRF-Token": document.querySelector('meta[name="csrf-token"]').content,
+                },
+                body: JSON.stringify({ credential: googleResponse.credential }),
+            });
+            const result = await response.json();
+            if (response.ok && result.redirect_url) {
+                window.location.href = result.redirect_url;
+            } else {
+                message.textContent = result.error || "Google sign-in failed. Try again.";
+            }
+        } catch {
+            message.textContent = "Google sign-in failed. Try again.";
+        }
+    };
+}

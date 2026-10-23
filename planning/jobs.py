@@ -1,16 +1,13 @@
-# Planner jobs and saved projects are stored in SQLite, not MySQL.
+# Planner jobs and saved projects use the shared MySQL database.
 # Answering questions requeues a job; restarting a failed job creates a new one.
 
 import hashlib
 import json
-import os
-from pathlib import Path
-import sqlite3
 import time
 import uuid
-from contextlib import contextmanager
 
 from services.subscriptions import has_active_pro
+from utils.database import database_cursor
 
 from .ai_config import WORKFLOW_TIERS
 
@@ -28,48 +25,6 @@ COLUMN_FIELDS = ["id", "owner", "tier", "status", "created", "updated"]
 # Not a ValueError: the routes use those for user input errors.
 class LeaseLost(Exception):
     pass
-
-
-def database_path():
-    # The website and worker must use the same file.
-    data_folder = Path(__file__).resolve().parents[1] / "data"
-    default = data_folder / "planner_jobs.sqlite3"
-    return Path(os.getenv("PLANNER_JOB_DATABASE", str(default)))
-
-
-# Commit when the with block finishes; roll back if it fails.
-@contextmanager
-def connection():
-    path = database_path()
-    path.parent.mkdir(parents=True, exist_ok=True)
-    database = sqlite3.connect(path, timeout=10)
-    database.row_factory = sqlite3.Row
-    try:
-        database.execute("PRAGMA journal_mode=WAL")
-        database.execute("""CREATE TABLE IF NOT EXISTS planner_jobs (
-            id TEXT PRIMARY KEY, owner TEXT NOT NULL, submission_key TEXT NOT NULL,
-            request_hash TEXT NOT NULL, tier TEXT NOT NULL, status TEXT NOT NULL,
-            created REAL NOT NULL, updated REAL NOT NULL,
-            lease_until REAL NOT NULL DEFAULT 0, worker TEXT,
-            data TEXT NOT NULL, UNIQUE(owner, submission_key)
-        )""")
-        database.execute("CREATE INDEX IF NOT EXISTS planner_queue ON planner_jobs(status, created)")
-        # Saved projects link to the original job; plan remains for older saved records.
-        database.execute("""CREATE TABLE IF NOT EXISTS saved_projects (
-            id INTEGER PRIMARY KEY AUTOINCREMENT, owner TEXT NOT NULL, job_id TEXT NOT NULL,
-            name TEXT NOT NULL, plan TEXT NOT NULL,
-            crew TEXT, completed INTEGER NOT NULL DEFAULT 0,
-            created REAL NOT NULL, updated REAL NOT NULL, UNIQUE(owner, job_id)
-        )""")
-        database.execute("""CREATE TABLE IF NOT EXISTS crew_cart (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            owner TEXT NOT NULL, crew TEXT NOT NULL,
-            UNIQUE(owner, crew)
-        )""")
-        with database:
-            yield database
-    finally:
-        database.close()
 
 
 def decode(row):
@@ -124,14 +79,16 @@ def check_submission(owner, submission_key, project, tier, answers):
     return hashlib.sha256(request_text.encode()).hexdigest()
 
 
-def check_queue_capacity(database, owner):
-    active = database.execute(
-        "SELECT COUNT(*) FROM planner_jobs WHERE owner = ? AND status IN ('queued', 'running')",
+def check_queue_capacity(cursor, owner):
+    cursor.execute(
+        "SELECT COUNT(*) AS total FROM planner_jobs WHERE owner = %s AND status IN ('queued', 'running')",
         (owner,),
-    ).fetchone()[0]
+    )
+    active = cursor.fetchone()["total"]
     if active:
         raise ValueError("Finish or cancel your current planning job first.")
-    queued = database.execute("SELECT COUNT(*) FROM planner_jobs WHERE status = 'queued'").fetchone()[0]
+    cursor.execute("SELECT COUNT(*) AS total FROM planner_jobs WHERE status = 'queued'")
+    queued = cursor.fetchone()["total"]
     if queued >= MAX_QUEUED_JOBS:
         raise ValueError("The planner queue is full. Please try again later.")
 
@@ -141,123 +98,129 @@ def submit_job(owner, submission_key, project, tier="fast", answers=None):
     if answers is None:
         answers = []
     request_hash = check_submission(owner, submission_key, project, tier, answers)
-    owner = str(owner)
+    owner = int(owner)
     now = time.time()
     job_id = uuid.uuid4().hex
     data = {"project": project, "questions": [], "answers": answers,
             "specification": None, "result": None, "error": None,
             "stages": pending_stages(tier)}
-    with connection() as database:
-        # Lock while checking limits so two requests cannot slip through together.
-        database.execute("BEGIN IMMEDIATE")
-        existing = database.execute(
-            "SELECT * FROM planner_jobs WHERE owner = ? AND submission_key = ?",
+    with database_cursor(lock_name="planner_queue") as cursor:
+        # Keep queue checks and the insert in the same locked transaction.
+        cursor.execute(
+            "SELECT * FROM planner_jobs WHERE owner = %s AND submission_key = %s",
             (owner, submission_key),
-        ).fetchone()
+        )
+        existing = cursor.fetchone()
         if existing:
             if existing["request_hash"] != request_hash:
                 raise ValueError("This submission key already belongs to another request.")
             return decode(existing)
-        jobs_today = database.execute(
-            "SELECT COUNT(*) FROM planner_jobs WHERE owner = ? AND tier = ? AND created >= ?",
+        cursor.execute(
+            "SELECT COUNT(*) AS total FROM planner_jobs WHERE owner = %s AND tier = %s AND created >= %s",
             (owner, tier, now - ONE_DAY),
-        ).fetchone()[0]
+        )
+        jobs_today = cursor.fetchone()["total"]
         if jobs_today >= WORKFLOW_TIERS[tier]["daily_jobs"]:
             raise ValueError("Your daily planning allowance has been reached.")
-        check_queue_capacity(database, owner)
-        database.execute(
-            "INSERT INTO planner_jobs (id, owner, submission_key, request_hash, tier, status, created, updated, data) VALUES (?, ?, ?, ?, ?, 'queued', ?, ?, ?)",
+        check_queue_capacity(cursor, owner)
+        cursor.execute(
+            "INSERT INTO planner_jobs (id, owner, submission_key, request_hash, tier, status, created, updated, data) VALUES (%s, %s, %s, %s, %s, 'queued', %s, %s, %s)",
             (job_id, owner, submission_key, request_hash, tier, now, now, encode(data)),
         )
-        return find_job(database, job_id, owner)
+        return find_job(cursor, job_id, owner)
 
 
-def find_job(database, job_id, owner):
-    row = database.execute("SELECT * FROM planner_jobs WHERE id = ? AND owner = ?",
-                           (job_id, str(owner))).fetchone()
-    return decode(row)
+def find_job(cursor, job_id, owner, for_update=False):
+    query = "SELECT * FROM planner_jobs WHERE id = %s AND owner = %s"
+    if for_update:
+        query += " FOR UPDATE"
+    cursor.execute(query, (job_id, int(owner)))
+    return decode(cursor.fetchone())
 
 
 def get_job(job_id, owner):
-    with connection() as database:
-        return find_job(database, job_id, owner)
+    with database_cursor() as cursor:
+        return find_job(cursor, job_id, owner)
 
 
 def count_jobs(owner):
-    with connection() as database:
-        return database.execute("SELECT COUNT(*) FROM planner_jobs WHERE owner = ?",
-                                (str(owner),)).fetchone()[0]
+    with database_cursor() as cursor:
+        cursor.execute("SELECT COUNT(*) AS total FROM planner_jobs WHERE owner = %s", (int(owner),))
+        return cursor.fetchone()["total"]
 
 
 def list_jobs(owner, limit=20, offset=0):
-    with connection() as database:
-        rows = database.execute(
-            "SELECT * FROM planner_jobs WHERE owner = ? ORDER BY created DESC, id DESC LIMIT ? OFFSET ?",
-            (str(owner), limit, offset),
-        ).fetchall()
+    with database_cursor() as cursor:
+        cursor.execute(
+            "SELECT * FROM planner_jobs WHERE owner = %s ORDER BY created DESC, id DESC LIMIT %s OFFSET %s",
+            (int(owner), limit, offset),
+        )
+        rows = cursor.fetchall()
     return [decode(row) for row in rows]
 
 
 # Wait for the time limit: another worker may still be running the job.
 # Interrupted jobs fail so the user can restart them.
-def fail_interrupted_jobs(database, now):
-    expired_rows = database.execute(
-        "SELECT * FROM planner_jobs WHERE status = 'running' AND lease_until < ?", (now,)
-    ).fetchall()
+def fail_interrupted_jobs(cursor, now):
+    cursor.execute(
+        "SELECT * FROM planner_jobs WHERE status = 'running' AND lease_until < %s FOR UPDATE", (now,)
+    )
+    expired_rows = cursor.fetchall()
     for row in expired_rows:
         job = decode(row)
         job["error"] = "Planning was interrupted before it finished."
         stop_running_stages(job, "failed")
-        database.execute(
-            "UPDATE planner_jobs SET status = 'failed', worker = NULL, data = ?, updated = ? WHERE id = ?",
+        cursor.execute(
+            "UPDATE planner_jobs SET status = 'failed', worker = NULL, data = %s, updated = %s WHERE id = %s",
             (encode(job), now, row["id"]),
         )
 
 
 def claim_job(worker):
     now = time.time()
-    with connection() as database:
-        # Lock before picking a job so two workers cannot take the same one.
-        database.execute("BEGIN IMMEDIATE")
-        fail_interrupted_jobs(database, now)
-        running = database.execute("SELECT COUNT(*) FROM planner_jobs WHERE status = 'running'").fetchone()[0]
+    with database_cursor(lock_name="planner_queue") as cursor:
+        # Serialize claims and the running-job count across all workers.
+        fail_interrupted_jobs(cursor, now)
+        cursor.execute("SELECT COUNT(*) AS total FROM planner_jobs WHERE status = 'running'")
+        running = cursor.fetchone()["total"]
         if running >= MAX_RUNNING_JOBS:
             return None
-        row = database.execute(
-            "SELECT * FROM planner_jobs WHERE status = 'queued' ORDER BY created LIMIT 1"
-        ).fetchone()
+        cursor.execute(
+            "SELECT * FROM planner_jobs WHERE status = 'queued' ORDER BY created, id LIMIT 1 FOR UPDATE"
+        )
+        row = cursor.fetchone()
         if row is None:
             return None
-        database.execute(
-            "UPDATE planner_jobs SET status = 'running', worker = ?, lease_until = ?, updated = ? WHERE id = ?",
+        cursor.execute(
+            "UPDATE planner_jobs SET status = 'running', worker = %s, lease_until = %s, updated = %s WHERE id = %s",
             (worker, now + LEASE_SECONDS, now, row["id"]),
         )
         job = decode(row)
         job["status"] = "running"
+        job["updated"] = now
         return job
 
 
 def save_job(job, worker):
     now = time.time()
-    with connection() as database:
+    with database_cursor() as cursor:
         # Only the worker still assigned to the running job can save it.
-        changed = database.execute(
-            "UPDATE planner_jobs SET data = ?, status = ?, updated = ?, lease_until = ? WHERE id = ? AND worker = ? AND status = 'running'",
+        cursor.execute(
+            "UPDATE planner_jobs SET data = %s, status = %s, updated = %s, lease_until = %s WHERE id = %s AND worker = %s AND status = 'running'",
             (encode(job), job["status"], now, now + LEASE_SECONDS, job["id"], worker),
-        ).rowcount
-        if changed != 1:
+        )
+        if cursor.rowcount != 1:
             raise LeaseLost("This worker no longer owns the job, or the job was cancelled.")
 
 
 def answer_job(job_id, owner, answers):
-    with connection() as database:
-        database.execute("BEGIN IMMEDIATE")
-        job = find_job(database, job_id, owner)
+    with database_cursor(lock_name="planner_queue") as cursor:
+        job = find_job(cursor, job_id, owner, for_update=True)
         if job is None or job["status"] != "needs_input":
             raise ValueError("This plan is not waiting for answers.")
         if len(answers) != len(job["questions"]) or any(len(answer) > MAX_ANSWER_LENGTH for answer in answers):
             raise ValueError(f"Submit one answer per question, using at most {MAX_ANSWER_LENGTH:,} characters each.")
-        check_queue_capacity(database, job["owner"])
+        check_queue_capacity(cursor, job["owner"])
         job["answers"] = []
         for question, answer in zip(job["questions"], answers):
             answer = answer.strip()
@@ -266,8 +229,8 @@ def answer_job(job_id, owner, answers):
             job["answers"].append({"question": question, "answer": answer})
         job["questions"] = []
         job["stages"] = pending_stages(job["tier"])
-        database.execute(
-            "UPDATE planner_jobs SET data = ?, status = 'queued', worker = NULL, lease_until = 0, updated = ? WHERE id = ?",
+        cursor.execute(
+            "UPDATE planner_jobs SET data = %s, status = 'queued', worker = NULL, lease_until = 0, updated = %s WHERE id = %s",
             (encode(job), time.time(), job_id),
         )
 
@@ -280,22 +243,15 @@ def restart_job(job_id, owner):
     return submit_job(owner, "restart-" + job_id, job["project"], job["tier"], job["answers"])
 
 
-def delete_planner_jobs(owner):
-    with connection() as database:
-        database.execute("DELETE FROM crew_cart WHERE owner = ?", (str(owner),))
-        database.execute("DELETE FROM planner_jobs WHERE owner = ?", (str(owner),))
-        database.execute("DELETE FROM saved_projects WHERE owner = ?", (str(owner),))
-
-
 def cancel_job(job_id, owner):
-    with connection() as database:
-        database.execute("BEGIN IMMEDIATE")
-        job = find_job(database, job_id, owner)
+    with database_cursor(lock_name="planner_queue") as cursor:
+        job = find_job(cursor, job_id, owner, for_update=True)
         if job is None or job["status"] not in ("queued", "running", "needs_input"):
             return False
         stop_running_stages(job, "cancelled")
-        changed = database.execute(
-            "UPDATE planner_jobs SET status = 'cancelled', worker = NULL, data = ?, updated = ? WHERE id = ? AND owner = ? AND status IN ('queued', 'running', 'needs_input')",
-            (encode(job), time.time(), job_id, str(owner)),
-        ).rowcount
+        cursor.execute(
+            "UPDATE planner_jobs SET status = 'cancelled', worker = NULL, data = %s, updated = %s WHERE id = %s AND owner = %s AND status IN ('queued', 'running', 'needs_input')",
+            (encode(job), time.time(), job_id, int(owner)),
+        )
+        changed = cursor.rowcount
     return changed == 1

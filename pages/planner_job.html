@@ -172,7 +172,7 @@
                                             <button class="plan-button-secondary" type="submit" aria-label="Add {{ product.product_name }} to cart">Add to cart</button>
                                         </form>
                                     {% elif item.show_store_link %}
-                                        <a href="{{ url_for('products.products', q=product.product_name) }}">View in store</a>
+                                        <a href="{{ url_for('products.products', query=product.product_name) }}">View in store</a>
                                     {% endif %}
                                 </td>
                             </tr>

@@ -7,9 +7,8 @@
 
 .auth-sheet {
     position: relative;
-    display: grid;
-    grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
-    width: min(1040px, 100%);
+    width: min(480px, 100%);
+    padding: clamp(24px, 5vw, 44px);
     border: 1px solid var(--line);
     background: var(--panel);
 }
@@ -35,125 +34,6 @@
     bottom: -1px;
     border-right: 2px solid var(--amber);
     border-bottom: 2px solid var(--amber);
-}
-
-.auth-intro {
-    display: flex;
-    flex-direction: column;
-    padding: clamp(28px, 4vw, 48px);
-    border-right: 1px solid var(--line);
-    background-color: var(--sheet);
-    background-image:
-        linear-gradient(var(--surface-faint) 1px, transparent 1px),
-        linear-gradient(90deg, var(--surface-faint) 1px, transparent 1px);
-    background-size: 20px 20px;
-}
-
-.auth-intro h1 {
-    margin: 0 0 0.9rem;
-    font: 800 clamp(2rem, 3.6vw, 2.9rem) / 1.02 var(--font-display);
-    letter-spacing: -0.03em;
-    text-wrap: balance;
-}
-
-.auth-drawing {
-    display: block;
-    width: min(100%, 360px);
-    height: auto;
-    margin: auto 0 1.5rem;
-    padding-top: 2rem;
-}
-
-.auth-drawing .wall {
-    fill: none;
-    stroke: var(--amber);
-    stroke-width: 5;
-    stroke-linejoin: miter;
-}
-
-.auth-drawing .window {
-    fill: var(--sheet);
-    stroke: var(--amber);
-    stroke-width: 1.5;
-}
-
-.auth-drawing .o {
-    fill: none;
-    stroke: var(--amber);
-    stroke-width: 1.6;
-}
-
-.auth-drawing path.o:last-child {
-    fill: var(--amber);
-}
-
-.auth-drawing .m {
-    fill: none;
-    stroke: var(--measure);
-    stroke-width: 1;
-}
-
-.auth-drawing .swing {
-    stroke-dasharray: 4 4;
-}
-
-.auth-drawing .f {
-    fill: none;
-    stroke: var(--line-strong);
-    stroke-dasharray: 2 4;
-}
-
-.auth-drawing text {
-    fill: var(--measure);
-    font: 600 10px var(--font-mono);
-    letter-spacing: 0.08em;
-}
-
-@keyframes auth-draw {
-    from { stroke-dashoffset: 1; }
-    to { stroke-dashoffset: 0; }
-}
-
-@media (prefers-reduced-motion: no-preference) {
-    .auth-drawing .draw:not(.swing) {
-        stroke-dasharray: 1;
-        animation: auth-draw 1.1s cubic-bezier(0.4, 0.1, 0.2, 1) var(--d, 0s) both;
-    }
-}
-
-.auth-titleblock {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    margin: 0;
-    border: 1px solid var(--line);
-    background: var(--ink);
-}
-
-.auth-titleblock div {
-    padding: 0.55rem 0.75rem;
-    border-left: 1px solid var(--line);
-}
-
-.auth-titleblock div:first-child {
-    border-left: 0;
-}
-
-.auth-titleblock dt {
-    color: var(--muted);
-    font: 600 0.62rem/1.3 var(--font-mono);
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-}
-
-.auth-titleblock dd {
-    margin: 0;
-    font: 700 0.85rem/1.4 var(--font-mono);
-}
-
-.auth-form-wrap {
-    display: flex;
-    align-items: center;
-    padding: clamp(28px, 4vw, 52px);
 }
 
 .account-form {
@@ -274,6 +154,31 @@
     margin-top: 4px;
 }
 
+/* Hold the button's height so the form doesn't jump while Google loads it. */
+.g_id_signin {
+    justify-self: center;
+    min-height: 44px;
+}
+
+/* A thin line on each side of the word "or". */
+.auth-divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 0;
+    color: var(--muted);
+    font: 600 0.75rem/1 var(--font-mono);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+    content: "";
+    flex: 1;
+    border-top: 1px solid var(--line);
+}
+
 .auth-switch {
     margin: 4px 0 0;
     color: var(--muted);
@@ -289,21 +194,4 @@
 
 .auth-switch a:hover {
     color: var(--amber-bright);
-}
-
-@media (max-width: 800px) {
-    .auth-sheet {
-        grid-template-columns: minmax(0, 1fr);
-    }
-
-    .auth-intro {
-        border-right: 0;
-        border-bottom: 1px solid var(--line);
-    }
-
-    /* Hide the drawing on phones to leave room for the form. */
-    .auth-drawing,
-    .auth-titleblock {
-        display: none;
-    }
 }

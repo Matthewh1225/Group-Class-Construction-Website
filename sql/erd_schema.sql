@@ -1,4 +1,5 @@
 
+-- For a complete installation, also run sql/planner_schema.sql.
 CREATE TABLE `User` (
     id INT AUTO_INCREMENT PRIMARY KEY,
     firstName VARCHAR(50) NOT NULL,

@@ -1,5 +1,3 @@
-import sqlite3
-
 from flask import Blueprint, abort, current_app, flash, redirect, render_template, request, session, url_for
 from mysql.connector import Error, IntegrityError
 
@@ -71,7 +69,7 @@ PROJECT_STATUSES = ["In Progress", "Review Needed", "Ready", "Completed"]
 @dashboard_bp.get("/dashboard/projects")
 @login_required
 def projects():
-    search = request.args.get("q", "").strip()
+    search = request.args.get("query", "").strip()
     status = request.args.get("status", "")
     status_filter = ""
     if status in PROJECT_STATUSES:
@@ -246,8 +244,7 @@ def delete_user(user_id):
 
     try:
         deleted = delete_user_completely(user_id)
-    # Account deletion also removes planner data from SQLite.
-    except (Error, sqlite3.Error):
+    except Error:
         current_app.logger.exception("Deleting user %s failed", user_id)
         flash("Unable to delete user. Nothing was removed.", "error")
         return redirect(url_for("dashboard.dashboard"))

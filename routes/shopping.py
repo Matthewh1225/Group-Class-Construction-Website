@@ -30,8 +30,7 @@ def add_to_cart():
     endpoint = "products.products"
     if request.form.get("category") == "heavy-machinery":
         endpoint = "products.heavy_machinery"
-    return redirect(url_for(endpoint, category=request.form.get("category"),
-                            q=request.form.get("q"), page=request.form.get("page", 1, type=int),
+    return redirect(url_for(endpoint, category=request.form.get("category"),query=request.form.get("query"), page=request.form.get("page", 1, type=int),
                             manufacturer=request.form.get("manufacturer", type=int)), code=303)
 
 

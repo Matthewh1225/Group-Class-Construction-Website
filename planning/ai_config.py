@@ -97,7 +97,7 @@ WORKFLOW_TIERS = {
         "daily_jobs": 30,
     },
     "pro": {
-        "label": "Pro Deep Quantum Ultra Max+",
+        "label": "Quantum Ultra Deep Pro Max+",
         "interpreter": {"model": "gemini_strong", "reasoning": "high", "output_tokens": 16384},
         "planner": {"model": "gemini_strong", "reasoning": "high", "output_tokens": 16384},
         "second_planner": {"model": "gpt_oss", "reasoning": "high", "output_tokens": 32768},

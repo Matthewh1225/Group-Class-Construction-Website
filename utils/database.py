@@ -1,3 +1,4 @@
+import hashlib
 import os
 from contextlib import contextmanager
 
@@ -22,7 +23,7 @@ def close_database(error=None):
 
 
 @contextmanager
-def database_cursor():
+def database_cursor(lock_name=None):
     in_request = has_request_context()
     connection = g.get("database_connection") if in_request else None
     if connection is None:
@@ -33,13 +34,28 @@ def database_cursor():
         )
         if in_request:
             g.database_connection = connection
+    locked = False
+    if lock_name:
+        lock_name = hashlib.sha256(f"{connection.database}:{lock_name}".encode()).hexdigest()
     try:
         with connection.cursor(dictionary=True) as cursor:
+            if lock_name:
+                cursor.execute("SELECT GET_LOCK(%s, 10) AS acquired", (lock_name,))
+                locked = cursor.fetchone()["acquired"] == 1
+                if not locked:
+                    raise mysql.connector.Error("The planner queue is busy. Try again shortly.")
             yield cursor
             connection.commit()
     except Exception:
         connection.rollback()
         raise
     finally:
-        if not in_request:
-            connection.close()
+        try:
+            # Named locks must stay held until after commit or rollback.
+            if locked:
+                with connection.cursor() as cursor:
+                    cursor.execute("SELECT RELEASE_LOCK(%s)", (lock_name,))
+                    cursor.fetchone()
+        finally:
+            if not in_request:
+                connection.close()

@@ -36,7 +36,7 @@
                                         <input type="hidden" name="product_id" value="{{ product.product_id }}">
                                         <input type="hidden" name="category" value="{{ selected_url_name }}">
                                         {% if manufacturer_id %}<input type="hidden" name="manufacturer" value="{{ manufacturer_id }}">{% endif %}
-                                        <input type="hidden" name="q" value="{{ search }}">
+                                        <input type="hidden" name="query" value="{{ search }}">
                                         <input type="hidden" name="page" value="{{ page }}">
                                         <label for="quantity-{{ product.product_id }}">Qty<span class="sr-only"> ({{ product.unit }})</span></label>
                                         <input id="quantity-{{ product.product_id }}" name="quantity" type="number" min="1" step="1" max="{{ product.available_quantity }}" value="1" required>

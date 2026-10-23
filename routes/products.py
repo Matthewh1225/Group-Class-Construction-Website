@@ -22,7 +22,7 @@ PRODUCT_CATEGORIES = [
 ]
 
 # Products share a category image; paths are relative to static/.
-PLACEHOLDER_IMAGE = "images/categories/placeholder.png"
+PLACEHOLDER_IMAGE = "images/placeholder.png"
 CATEGORY_IMAGES = {
     "lumber": "images/Lumber & Building Materials.png",
     "fasteners": "images/Hardware & Fasteners.png",
@@ -51,14 +51,14 @@ def load_product_page(category_url_name):
     manufacturer_id = request.args.get("manufacturer", type=int)
     if "manufacturer" in request.args and (manufacturer_id is None or manufacturer_id < 1):
         abort(404)
-    search = request.args.get("q", "").strip()[:200]
+    search = request.args.get("query", "").strip()[:200]
     page = max(1, request.args.get("page", 1, type=int))
 
     manufacturer = None
     product_list = []
     total_pages = 1
     catalog_error = False
-    # Keep category links visible even when the product query fails.
+    # Keep category links visible  when the product query fails.
     try:
         if manufacturer_id is not None:
             manufacturer = get_manufacturer(manufacturer_id)

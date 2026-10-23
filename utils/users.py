@@ -1,4 +1,5 @@
-from planning.jobs import delete_planner_jobs
+import secrets
+
 from utils.database import database_cursor
 from utils.passwords import check_password, hash_password, validate_password
 
@@ -87,6 +88,38 @@ def create_user(data, permission_level="user"):
         cursor.execute("INSERT INTO Customer (userId) VALUES (%s)", (user_id,))
     return user_id
 
+# Google already verified the email, so sign in the matching account or make one.
+def find_or_create_google_user(email, first_name, last_name):
+    with database_cursor() as cursor:
+        cursor.execute(
+            """SELECT u.id, u.firstName, u.lastName, u.permissions, c.accountStatus
+               FROM `User` u
+               JOIN Customer c ON c.userId = u.id
+               WHERE u.email = %s""",
+            (email,),
+        )
+        user = cursor.fetchone()
+        if user is not None:
+            return user
+
+        # Google accounts never type a password, so store an unguessable one.
+        password_hash = hash_password(secrets.token_urlsafe(32))
+        cursor.execute(
+            """INSERT INTO `User` (firstName, lastName, email, passkey, permissions, dateCreated)
+               VALUES (%s, %s, %s, %s, 'user', CURDATE())""",
+            (first_name[:MAX_NAME_LENGTH], last_name[:MAX_NAME_LENGTH], email, password_hash),
+        )
+        user_id = cursor.lastrowid
+        cursor.execute("INSERT INTO Customer (userId) VALUES (%s)", (user_id,))
+    return {
+        "id": user_id,
+        "firstName": first_name[:MAX_NAME_LENGTH],
+        "lastName": last_name[:MAX_NAME_LENGTH],
+        "permissions": "user",
+        "accountStatus": "active",
+    }
+
+
 def get_all_users():
     with database_cursor() as cursor:
         cursor.execute(
@@ -112,9 +145,6 @@ def set_user_status(user_id, status):
 
 def delete_user_completely(user_id): 
     with database_cursor() as cursor:
+        # Foreign keys remove this user's related records in the same transaction.
         cursor.execute("DELETE FROM `User` WHERE id = %s", (user_id,))
-        if cursor.rowcount == 0:
-            return False
-        # If deleting the planner jobs fails, the MySQL delete is rolled back too.
-        delete_planner_jobs(user_id)
-    return True
+        return cursor.rowcount == 1

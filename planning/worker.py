@@ -2,15 +2,15 @@
 
 import argparse
 import logging
-import sqlite3
 from threading import Event
 import uuid
 
 from dotenv import load_dotenv
+from mysql.connector import Error as DatabaseError
 
 load_dotenv()
 
-from .jobs import LeaseLost, claim_job, database_path, save_job, stop_running_stages
+from .jobs import LeaseLost, claim_job, save_job, stop_running_stages
 from .schemas import PlanningError
 from .workflow import run_workflow
 
@@ -44,7 +44,7 @@ def process_one(worker):
         logger.info("Planner job %s was cancelled or reclaimed; stopping work on it.", job["id"])
     except PlanningError as error:
         mark_failed(job, worker, str(error))
-    except sqlite3.Error:
+    except DatabaseError:
         # The job will be marked interrupted when its time limit runs out.
         raise
     except Exception:
@@ -56,7 +56,7 @@ def process_one(worker):
 def run_worker(stop_event=None, once=False):
     if stop_event is None:
         stop_event = Event()
-    logger.info("Watching planner jobs in %s", database_path())
+    logger.info("Watching planner jobs in MySQL")
     worker = uuid.uuid4().hex
 
     while not stop_event.is_set():
