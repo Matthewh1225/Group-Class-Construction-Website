@@ -5,7 +5,7 @@
 {% endblock %}
 
 {% block auth_form %}
-    <form id="login-form" class="account-form" method="post" action="{{ url_for('auth.login') }}">
+    <form id="login-form" class="account-form" autocomplete="off" method="post" action="{{ url_for('auth.login') }}">
         <h2>Log in</h2>
         {% if google_client_id %}
         {# Google draws its button inside this div and calls handleGoogleSignIn. #}
@@ -26,12 +26,13 @@
         {% endif %}
         <div class="form-field">
             <label for="email">Email</label>
-            <input type="email" id="email" name="email" maxlength="100" autocomplete="username" autocapitalize="none" spellcheck="false" required>
+            <input type="email" id="email" name="email" maxlength="100" autocomplete="off" autocapitalize="none" spellcheck="false" required>
         </div>
         <div class="form-field">
             <label for="password">Password</label>
             <div class="password-field">
-                <input type="password" id="password" name="password" autocomplete="current-password" required>
+                {# Starts readonly so the browser's password manager won't fill it; login.js unlocks it on focus. #}
+                <input type="password" id="password" name="password" autocomplete="new-password" readonly required>
                 <button class="password-toggle" type="button" aria-controls="password" aria-pressed="false" hidden>Show</button>
             </div>
         </div>

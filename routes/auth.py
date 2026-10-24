@@ -1,9 +1,11 @@
 import json
 import os
+import ssl
 from functools import wraps
 from urllib.parse import urlencode
 from urllib.request import urlopen
 
+import certifi
 from flask import Blueprint, current_app, redirect, render_template, request, session, url_for
 from mysql.connector import Error, IntegrityError
 
@@ -12,6 +14,9 @@ from utils.rate_limits import limiter
 from utils.users import check_login, create_user, find_or_create_google_user, full_name, get_account
 
 auth_bp = Blueprint("auth", __name__)
+
+# Use certifi's certificates so checking Google's HTTPS works even when Python's own are missing (common on Mac).
+SSL_CONTEXT = ssl.create_default_context(cafile=certifi.where())
 
 
 def login_required(view):
@@ -110,12 +115,17 @@ def register():
 # Ask Google whether this sign-in token is real and was made for our app.
 def read_google_token(token):
     url = "https://oauth2.googleapis.com/tokeninfo?" + urlencode({"id_token": token})
-    with urlopen(url, timeout=5) as response:
+    with urlopen(url, timeout=5, context=SSL_CONTEXT) as response:
         info = json.load(response)
+
     if info.get("aud") != os.getenv("GOOGLE_CLIENT_ID"):
+        current_app.logger.warning("Google token client ID does not match")
         return None
+
     if info.get("email_verified") not in (True, "true"):
+        current_app.logger.warning("Google email is not verified")
         return None
+
     return info
 
 
@@ -130,6 +140,7 @@ def google_login():
     try:
         info = read_google_token(token)
         if info is None:
+            current_app.logger.warning("read_google_token returned None")
             return {"error": "Google sign-in failed."}, 401
         first_name = info.get("given_name") or info["email"].split("@")[0]
         user = find_or_create_google_user(info["email"], first_name, info.get("family_name", ""))
