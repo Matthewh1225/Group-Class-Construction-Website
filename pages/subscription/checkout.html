@@ -76,17 +76,15 @@
         </div>
 
         <aside id="order-summary" class="sub-summary" data-plan="{{ selected_plan }}" aria-labelledby="summary-title">
-            <div class="sub-summary-heading"><span class="sub-pro-mark">PRO</span><div><h2 id="summary-title">Your membership</h2><p>BuildBetter Pro</p></div></div>
+            <div class="sub-summary-heading"><span class="sub-pro-mark">PRO</span><div><p></p></div></div>
             <div id="plan-summary" aria-live="polite" aria-atomic="true">
                 <dl class="sub-summary-lines">
                     <div><dt id="summary-plan">{{ plan.name }}</dt><dd id="summary-price">{{ money(plan.amount_cents) }}</dd></div>
                     <div><dt>Billing</dt><dd id="summary-billing">{{ plan.billing }}</dd></div>
                     <div id="yearly-savings" class="sub-savings" {% if not plan.savings_cents %}hidden{% endif %}>
-                        <dt>vs 12 monthly payments</dt><dd id="summary-savings">{{ money(plans.yearly.savings_cents) }}</dd>
                     </div>
                 </dl>
                 <div class="sub-total"><div><span>Total due today</span><small>USD</small></div><strong id="summary-total">{{ money(plan.amount_cents) }}</strong></div>
-                <p id="summary-terms" class="sub-renewal-terms">{{ plan.terms }}</p>
             </div>
             <button id="subscription-submit" class="shopping-button shopping-primary sub-submit" type="submit">
                 <span id="checkout-button-label">{{ plan.button_label }}</span>

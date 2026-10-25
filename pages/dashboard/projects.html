@@ -14,9 +14,7 @@
         <div>
             <p class="sheet-tag"><span>D-03</span>Projects</p>
             <h1>Saved Projects</h1>
-        </div>
-        <a class="dashboard-button dashboard-button-primary" href="{{ url_for('planner.planner') }}">Start a new plan <span aria-hidden="true">&rarr;</span></a>
-    </div>
+
     {% for category, message in get_flashed_messages(with_categories=True) %}
         <p class="dashboard-message {{ category }} project-message" role="{{ 'alert' if category == 'error' else 'status' }}">{{ message }}</p>
     {% endfor %}
@@ -52,6 +50,5 @@
     {% endif %}
 
     <p class="project-history-link">
-        <a class="dashboard-text-link" href="{{ url_for('planner.planning_history') }}">Planning history <span aria-hidden="true">&rarr;</span></a>
     </p>
 {% endblock %}

@@ -30,7 +30,7 @@ CATEGORY_IMAGES = {
     "tools": "images/Tools.png",
     "electrical": "images/Electrical.png",
     "drywall": "images/drywall & insulation.png",
-    "roofing": PLACEHOLDER_IMAGE,
+    "roofing": "images/roofing.png",
     "plumbing": "images/Plumbing.png",
     "hvac": "images/HVAC.png",
     "flooring": "images/Flooring & Tile.png",

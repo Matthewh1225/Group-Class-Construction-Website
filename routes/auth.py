@@ -15,7 +15,7 @@ from utils.users import check_login, create_user, find_or_create_google_user, fu
 
 auth_bp = Blueprint("auth", __name__)
 
-# Use certifi's certificates so checking Google's HTTPS works even when Python's own are missing (common on Mac).
+# Use certifi's certificates so checking Google's HTTPS works even when Python's own are missing (like on my Mac).
 SSL_CONTEXT = ssl.create_default_context(cafile=certifi.where())
 
 

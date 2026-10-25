@@ -79,7 +79,7 @@ WORKFLOW_TIERS = {
     "standard": {
         "label": "Standard",
         "interpreter": {"model": "gemini_standard", "reasoning": "medium", "output_tokens": 16384},
-        "planner": {"model": "gpt_oss", "reasoning": "high", "output_tokens": 16384},
+        "planner": {"model": "gpt_oss", "reasoning": "medium", "output_tokens": 16384},
         "auditor": {"model": "gemini_standard_strong", "reasoning": "medium", "output_tokens": 16384},
         "daily_jobs": 30,
     },
@@ -104,7 +104,8 @@ PLANNER_PROMPT = SHARED_RULES + ESTIMATE_RULES + """
 Use explicit follow-up answers over conflicting earlier assumptions in details or project.
 Estimate every material the project needs, independently of what the store sells.
 Set product_id to null for every material. The final auditor handles store product matching.
-Planner: return only the materials list. Each material's notes is one short string with its
+Planner: return one JSON object with a "materials" array, not a bare list.
+Each material's notes is one short string with its
 quantity explanation and item-specific assumptions. Do not add a summary, crew, project-level
 notes or prices.
 """

@@ -62,6 +62,7 @@ def call_gemini(model, prompt, thinking_level, system_instruction, response_sche
 
 def call_groq(model, prompt, thinking_level, system_instruction, response_schema,
               output_tokens):
+    prompt += "\nReturn only one JSON object matching this schema:\n" + json.dumps(response_schema)
     try:
         response = model["client"].with_options(max_retries=0).chat.completions.create(
             model=model["model"],
