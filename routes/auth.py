@@ -4,9 +4,9 @@ import ssl
 from functools import wraps
 from urllib.parse import urlencode
 from urllib.request import urlopen
-
+import time
 import certifi
-from flask import Blueprint, current_app, redirect, render_template, request, session, url_for
+from flask import Blueprint, current_app, redirect, render_template, request, session, url_for,flash
 from mysql.connector import Error, IntegrityError
 
 from utils.passwords import MAX_PASSWORD_LENGTH
@@ -17,6 +17,8 @@ auth_bp = Blueprint("auth", __name__)
 
 # Use certifi's certificates so checking Google's HTTPS works even when Python's own are missing (like on my Mac).
 SSL_CONTEXT = ssl.create_default_context(cafile=certifi.where())
+
+INACTIVITY_LIMIT =  60 *5 # 5 min without a request before logging out
 
 
 def login_required(view):
@@ -35,14 +37,24 @@ def login_required(view):
 def start_session(user_id, display_name, permission_level):
     # A new login needs a fresh CSRF token.
     session.clear()
+    session["last_active"] = time.time()
     session["user_id"] = user_id
     session["display_name"] = display_name
     session["permission_level"] = permission_level
 
 
+# Refresh the session information for the currently logged-in user. static skipped so it doesn't call get_account unnecessarily.
 def refresh_logged_in_user():
     if "user_id" not in session or request.endpoint == "static":
         return None
+
+    # Log out users who have not loaded a page for a while.
+    last_active = session.get("last_active", 0)
+    if time.time() - last_active > INACTIVITY_LIMIT:
+        session.clear()
+        flash("You were logged out after 5 minutes of inactivity.", "message")
+        return None
+    session["last_active"] = time.time()
 
     user = get_account(session["user_id"])
     if user is None or user["accountStatus"] != "active":

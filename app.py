@@ -28,6 +28,7 @@ app.config["SESSION_COOKIE_NAME"] = "buildbetter_session"
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 # Set SESSION_COOKIE_SECURE=true when using HTTPS.
 app.config["SESSION_COOKIE_SECURE"] = os.getenv("SESSION_COOKIE_SECURE", "").lower() == "true"
+#check token, login critera and close db connection
 app.before_request(check_csrf)
 app.before_request(refresh_logged_in_user)
 app.teardown_request(close_database)

@@ -859,7 +859,7 @@
 .plan-filter input { width: 100%; max-width: 420px; padding: 10px 12px; }
 .planner-job .plan-filter p { margin-top: 6px; }
 
-.plan-table { width: 100%; border-collapse: collapse; border: 1px solid var(--plan-border); background: var(--plan-surface); text-align: left; }
+.plan-table { width: 120%; border-collapse: collapse; border: 1px solid var(--plan-border); background: var(--plan-surface); text-align: left; }
 .plan-table th, .plan-table td { padding: 18px 16px; border-bottom: 1px solid var(--plan-border); vertical-align: top; }
 .plan-table thead th { padding-block: 12px; background: var(--sheet); color: var(--measure); font: 600 12px/1.3 var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; }
 .plan-table tbody th { width: 30%; font-size: 16px; font-weight: 600; }

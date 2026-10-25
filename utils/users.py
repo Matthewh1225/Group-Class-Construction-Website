@@ -101,8 +101,6 @@ def find_or_create_google_user(email, first_name, last_name):
         user = cursor.fetchone()
         if user is not None:
             return user
-
-        # Google accounts never type a password, so store an unguessable one.
         password_hash = hash_password(secrets.token_urlsafe(32))
         cursor.execute(
             """INSERT INTO `User` (firstName, lastName, email, passkey, permissions, dateCreated)

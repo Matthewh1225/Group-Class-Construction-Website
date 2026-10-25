@@ -53,18 +53,12 @@ AI_TIMEOUT = 120  # seconds for one AI request
 # Each .env model name overrides its default.
 # Keys 1-3 belong to Fast, Standard and Pro.
 MODELS = {
-    "gemini_fast": {"provider": "gemini", "api_key": "GEMINI_API_KEY",
-                    "model_env": "GEMINI_MODEL_FAST", "default": "gemini-3.5-flash-lite"},
-    "gemini_standard": {"provider": "gemini", "api_key": "GEMINI_API_KEY2",
-                        "model_env": "GEMINI_MODEL_FAST", "default": "gemini-3.5-flash-lite"},
-    "gemini_standard_strong": {"provider": "gemini", "api_key": "GEMINI_API_KEY2",
-                               "model_env": "GEMINI_MODEL_STRONG", "default": "gemini-3.5-flash-lite"},
-    "gemini_strong": {"provider": "gemini", "api_key": "GEMINI_API_KEY3",
-                      "model_env": "GEMINI_MODEL_STRONG", "default": "gemini-3.5-flash-lite"},
-    "gpt_oss": {"provider": "groq", "api_key": "GROQ_API_KEY",
-                "model_env": "GROQ_MODEL", "default": "openai/gpt-oss-120b"},
-    "nemotron": {"provider": "openrouter", "api_key": "OPENROUTER_API_KEY",
-                 "model_env": "OPENROUTER_MODEL", "default": "nvidia/nemotron-3-ultra-550b-a55b:free"},
+    "gemini_fast": {"provider": "gemini", "api_key": "GEMINI_API_KEY", "model_env": "GEMINI_MODEL_FAST", "default": "gemini-3.5-flash-lite"},
+    "gemini_standard": {"provider": "gemini", "api_key": "GEMINI_API_KEY2", "model_env": "GEMINI_MODEL_FAST", "default": "gemini-3.5-flash-lite"},
+    "gemini_standard_strong": {"provider": "gemini", "api_key": "GEMINI_API_KEY2", "model_env": "GEMINI_MODEL_STRONG", "default": "gemini-3.5-flash-lite"},
+    "gemini_strong": {"provider": "gemini", "api_key": "GEMINI_API_KEY3", "model_env": "GEMINI_MODEL_STRONG", "default": "gemini-3.5-flash-lite"},
+    "gpt_oss": {"provider": "groq", "api_key": "GROQ_API_KEY", "model_env": "GROQ_MODEL", "default": "openai/gpt-oss-120b"},
+    "nemotron": {"provider": "openrouter", "api_key": "OPENROUTER_API_KEY", "model_env": "OPENROUTER_MODEL", "default": "nvidia/nemotron-3-ultra-550b-a55b:free"},
 }
 
 
@@ -73,7 +67,7 @@ WORKFLOW_TIERS = {
         "label": "Fast",
         "interpreter": {"model": "gemini_fast", "reasoning": "low", "output_tokens": 8192},
         "planner": {"model": "gpt_oss", "reasoning": "low", "output_tokens": 8192},
-        "auditor": {"model": "gemini_fast", "reasoning": "low", "output_tokens": 8192},
+        "auditor": {"model": "gemini_fast", "reasoning": "medium", "output_tokens": 8192},
         "daily_jobs": 30,
     },
     "standard": {
