@@ -6,5 +6,6 @@ google-genai
 groq
 Flask-Limiter[redis]
 argon2-cffi==25.1.0
+certifi
 openrouter
 pydantic>=2.12,<3

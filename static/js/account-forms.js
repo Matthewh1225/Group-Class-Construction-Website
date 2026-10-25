@@ -1,7 +1,6 @@
 
 // Use the same password rules as Python.
 export function passwordChecks(value) {
-    // Count Unicode characters like Python does, not UTF-16 units.
     let characterCount = 0;
     for (const character of value) {
         characterCount += 1;
