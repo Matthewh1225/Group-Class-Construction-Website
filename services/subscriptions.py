@@ -25,26 +25,6 @@ PRO_PLANS = {
 }
 
 
-def process_subscription_payment(user_id, plan):
-    # TODO: Ask a payment provider to charge for the selected plan and confirm whether it worked.
-    pass
-
-
-def create_subscription(user_id, plan):
-    # TODO: Record the membership after payment is confirmed, including its plan and renewal date.
-    pass
-
-
-def renew_subscription(user_id):
-    # TODO: Confirm a successful recurring payment before extending the user's Pro access.
-    pass
-
-
-def activate_pro(user_id, plan):
-    # TODO: Set the Pro end date after confirmed payment; Lifetime uses 9999-12-31.
-    pass
-
-
 # proDate is the last day of Pro access; NULL means none.
 def has_active_pro(user_id):
     with database_cursor() as cursor:

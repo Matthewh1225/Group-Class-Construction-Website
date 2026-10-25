@@ -17,8 +17,6 @@ function updateSummary() {
     document.getElementById('summary-terms').textContent = plan.terms;
     document.getElementById('yearly-savings').hidden = !plan.savings_cents;
     document.getElementById('summary-savings').textContent = money.format(plans.yearly.savings_cents / 100);
-    document.getElementById('monthly-equivalent').hidden = !plan.monthly_equivalent;
-    document.getElementById('monthly-equivalent').textContent = plan.monthly_equivalent;
     buttonLabel.textContent = plan.button_label;
 }
 

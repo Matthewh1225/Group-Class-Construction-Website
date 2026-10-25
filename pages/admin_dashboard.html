@@ -9,7 +9,7 @@
 {% endblock %}
 
 {% block dashboard_content %}
-    <div class="admin-workspace" id="admin-workspace" data-current-user-id="{{ session.get('user_id') }}">
+    <div class="admin-workspace" id="admin-workspace">
         <div class="dashboard-page-heading">
             <div>
                 <p class="dashboard-eyebrow">ADMINISTRATION / USER MANAGEMENT</p>
@@ -104,7 +104,7 @@
                 </thead>
                 <tbody id="user-list">
                     {% for user in users %}
-                        <tr class="admin-user-row" data-user-id="{{ user.id }}" data-display-name="{{ user.display_name }}" data-email="{{ user.email }}" data-role="{{ user.permissions }}" data-status="{{ user.accountStatus }}" data-joined="{{ user.dateCreated or '' }}">
+                        <tr class="admin-user-row" data-user-id="{{ user.id }}" data-display-name="{{ user.display_name }}" data-email="{{ user.email }}" data-role="{{ user.permissions }}" data-status="{{ user.accountStatus }}" data-joined="{{ user.dateCreated.isoformat() }}">
                             <td class="admin-user-cell">
                                 <div class="admin-user-identity">
                                     <span class="admin-avatar" aria-hidden="true">{{ (user.display_name or '?')[:1]|upper }}</span>
@@ -134,13 +134,7 @@
                                 {% endif %}
                             </td>
                             <td class="admin-joined-cell">
-                                <time data-user-date>
-                                    {% if user.dateCreated %}
-                                        {{ user.dateCreated }}
-                                    {% else %}
-                                        &mdash;
-                                    {% endif %}
-                                </time>
+                                <time data-user-date datetime="{{ user.dateCreated.isoformat() }}">{{ user.dateCreated.strftime('%b') }} {{ user.dateCreated.day }}, {{ user.dateCreated.year }}</time>
                             </td>
                             <td class="admin-actions-cell">
                                 <div class="admin-row-actions">

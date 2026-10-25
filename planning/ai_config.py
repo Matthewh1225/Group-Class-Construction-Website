@@ -11,19 +11,6 @@ Never invent prices or engineering approval. Exclude tools unless
 requested. Keep labor out of materials. Blank, 'Not answered', 'Not sure' and 'use defaults'
 answers mean use reasonable planning assumptions and continue.
 
-Safety:
-- Never assume structural loads, load-bearing adequacy, soil/foundation capacity,
-  electrical capacity, circuit sizing or code compliance. Framing, roofing, footing and
-  support quantities are provisional allowances from a stated planning layout, not approved
-  designs; say so in item notes.
-- Electrical: room sizes/outlet counts cannot determine wire gauge, breaker size,
-  receptacle amperage, protective devices or circuit ratings. Never assume special
-  protection is unnecessary. Without a supplied design, keep outlets/cable generic,
-  with no suitability-implying types or ratings. Estimate cable length from a clearly
-  assumed route and layout, not an arbitrary length per outlet.
-- Elevated decks without a supplied design: estimate decking area and known railing
-  lengths, then provisional supports, concrete and stairs. Distinguish assumed estimating
-  dimensions from approved structural sizes and code-dependent specifications.
 No engineering interviews or requests for users to perform engineering/code checks.
 """
 
@@ -71,9 +58,9 @@ MODELS = {
     "gemini_standard": {"provider": "gemini", "api_key": "GEMINI_API_KEY2",
                         "model_env": "GEMINI_MODEL_FAST", "default": "gemini-3.5-flash-lite"},
     "gemini_standard_strong": {"provider": "gemini", "api_key": "GEMINI_API_KEY2",
-                               "model_env": "GEMINI_MODEL_STRONG", "default": "gemini-3.8-flash"},
+                               "model_env": "GEMINI_MODEL_STRONG", "default": "gemini-3.5-flash-lite"},
     "gemini_strong": {"provider": "gemini", "api_key": "GEMINI_API_KEY3",
-                      "model_env": "GEMINI_MODEL_STRONG", "default": "gemini-3.8-flash"},
+                      "model_env": "GEMINI_MODEL_STRONG", "default": "gemini-3.5-flash-lite"},
     "gpt_oss": {"provider": "groq", "api_key": "GROQ_API_KEY",
                 "model_env": "GROQ_MODEL", "default": "openai/gpt-oss-120b"},
     "nemotron": {"provider": "openrouter", "api_key": "OPENROUTER_API_KEY",
@@ -114,6 +101,7 @@ Do not estimate materials.
 """
 
 PLANNER_PROMPT = SHARED_RULES + ESTIMATE_RULES + """
+Use explicit follow-up answers over conflicting earlier assumptions in details or project.
 Estimate every material the project needs, independently of what the store sells.
 Set product_id to null for every material. The final auditor handles store product matching.
 Planner: return only the materials list. Each material's notes is one short string with its

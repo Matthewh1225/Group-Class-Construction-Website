@@ -2,11 +2,6 @@
 from pydantic import BaseModel, ConfigDict, Field
 
 
-# A bad AI answer stops the current planning job.
-class BadAnswer(Exception):
-    pass
-
-
 # The page shows this error to the user.
 class PlanningError(Exception):
     pass
@@ -63,7 +58,6 @@ class AuditedEstimate(DraftEstimate):
     crew: CrewRecommendation
 
 
-# The schema cannot know the store catalog, so unknown product IDs are cleared here.
 def clear_unknown_products(estimate, catalog_ids):
     for material in estimate["materials"]:
         if material["product_id"] not in catalog_ids:

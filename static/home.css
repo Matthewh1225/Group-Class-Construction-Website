@@ -136,12 +136,6 @@
     letter-spacing: -0.02em;
 }
 
-.pro-teaser {
-    margin-top: 0.35rem;
-    color: var(--muted);
-    font-size: 0.95rem;
-}
-
 .hero-sheet {
     position: relative;
     border: 1px solid var(--line);

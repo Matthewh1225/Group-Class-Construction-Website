@@ -10,7 +10,7 @@ from mysql.connector import Error as DatabaseError
 
 load_dotenv()
 
-from .jobs import LeaseLost, claim_job, save_job, stop_running_stages
+from .jobs import LeaseLost, claim_job, save_job, mark_processing_stages
 from .schemas import PlanningError
 from .workflow import run_workflow
 
@@ -23,7 +23,7 @@ ERROR_DELAY = 10  # seconds after an error
 def mark_failed(job, worker, message):
     job["status"] = "failed"
     job["error"] = message
-    stop_running_stages(job, "failed")
+    mark_processing_stages(job, "failed")
     try:
         save_job(job, worker)
     except LeaseLost:

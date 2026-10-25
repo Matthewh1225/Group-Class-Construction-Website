@@ -1,7 +1,6 @@
 import {passwordChecks, setupPasswordToggles} from "./account-forms.js";
 
 
-const workspace = document.getElementById("admin-workspace");
 const tableBody = document.getElementById("user-list");
 const search = document.getElementById("admin-search");
 const roleFilter = document.getElementById("admin-role-filter");
@@ -26,28 +25,6 @@ const state = { sort: "displayName", direction: "asc", page: 1, pageSize: 10 };
 
 // Sort names like user2 before user10.
 const collator = new Intl.Collator(undefined, { sensitivity: "base", numeric: true });
-const dateFormatter = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" });
-
-
-
-function parseDate(value) {
-    if (!value) {
-        return null;
-    }
-    // A MySQL DATE is a local calendar day, not a UTC timestamp.
-    const timestamp = Date.parse(value.trim() + "T00:00:00");
-    if (Number.isNaN(timestamp)) {
-        return null;
-    }
-    return timestamp;
-}
-
-function formatDate(timestamp) {
-    if (timestamp === null) {
-        return "—"; 
-    }
-    return dateFormatter.format(new Date(timestamp));
-}
 
 const users = [];
 for (const row of document.querySelectorAll(".admin-user-row")) {
@@ -58,13 +35,8 @@ for (const row of document.querySelectorAll(".admin-user-row")) {
         email: row.dataset.email,
         role: row.dataset.role,
         status: row.dataset.status,
-        joined: parseDate(row.dataset.joined),
+        joined: row.dataset.joined,
     };
-    const time = row.querySelector("[data-user-date]");
-    time.textContent = formatDate(user.joined);
-    if (user.joined !== null) {
-        time.dateTime = new Date(user.joined).toISOString();
-    }
     users.push(user);
 }
 
@@ -87,17 +59,7 @@ function userMatches(user, query) {
 function compareUsers(a, b) {
     let compared;
     if (state.sort === "joined") {
-        // Always put missing dates last.
-        if (a.joined === null && b.joined === null) {
-            return collator.compare(a.id, b.id);
-        }
-        if (a.joined === null) {
-            return 1;
-        }
-        if (b.joined === null) {
-            return -1;
-        }
-        compared = a.joined - b.joined;
+        compared = a.joined.localeCompare(b.joined);
     } else {
 
         compared = collator.compare(a[state.sort], b[state.sort]);
@@ -280,7 +242,7 @@ function showUserDetails(user) {
     document.getElementById("admin-detail-email").textContent = user.email || "—";
     document.getElementById("admin-detail-role").textContent = role;
     document.getElementById("admin-detail-status").textContent = status;
-    document.getElementById("admin-detail-joined").textContent = formatDate(user.joined);
+    document.getElementById("admin-detail-joined").textContent = user.row.querySelector("[data-user-date]").textContent.trim();
     document.getElementById("admin-detail-id").textContent = user.id;
     document.getElementById("admin-details-dialog").showModal();
 }
@@ -380,47 +342,6 @@ function validateField(input) {
     return error === "";
 }
 
-// Keep each admin's saved form values separate.
-const storageKey = "buildbetter-admin-add-user-erd-" + workspace.dataset.currentUserId;
-
-// Restore non-password fields after a failed submission.
-function saveTypedValues() {
-    const values = {
-        firstName: addForm.elements.firstName.value,
-        lastName: addForm.elements.lastName.value,
-        email: addForm.elements.email.value,
-        role: addForm.elements.permission_level.value,
-    };
-    try {
-        sessionStorage.setItem(storageKey, JSON.stringify(values));
-    } catch {
-        // The form still works without browser storage.
-    }
-}
-
-function restoreAddUserForm() {
-    let saved = null;
-    try {
-        const savedText = sessionStorage.getItem(storageKey);
-        sessionStorage.removeItem(storageKey);
-        saved = JSON.parse(savedText); 
-    } catch {
-        return;
-    }
-
-    const error = document.querySelector('[data-flash-category="error"]');
-    if (saved === null || error === null) {
-        return;
-    }
-    addForm.elements.firstName.value = saved.firstName || "";
-    addForm.elements.lastName.value = saved.lastName || "";
-    addForm.elements.email.value = saved.email;
-    addForm.elements.permission_level.value = saved.role;
-    serverError.textContent = error.textContent;
-    serverError.hidden = false;
-    addDialog.showModal();
-}
-
 function setupAddUserForm() {
     const fields = addForm.querySelectorAll("input:not([type=hidden])");
 
@@ -460,7 +381,6 @@ function setupAddUserForm() {
             return;
         }
 
-        saveTypedValues();
         serverError.hidden = true;
         createButton.disabled = true;
         createButton.textContent = "Creating…";
@@ -476,7 +396,12 @@ function setupAddUserForm() {
         }
     });
 
-    restoreAddUserForm();
+    const error = document.querySelector('[data-flash-category="error"]');
+    if (error && new URLSearchParams(window.location.search).get("add_user") === "error") {
+        serverError.textContent = error.textContent;
+        serverError.hidden = false;
+        addDialog.showModal();
+    }
 }
 
 

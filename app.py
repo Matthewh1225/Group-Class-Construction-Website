@@ -81,5 +81,5 @@ def manufacturers():
 
 
 if __name__ == "__main__":
-    # Avoid port 5000, which macOS may use for AirPlay.
+    # Avoid port 5000, my macOS may use for AirPlay.
     app.run(debug=True, port=5001)

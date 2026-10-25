@@ -10,11 +10,11 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-TARGETS = {
-    "lumber": 50, "fasteners": 35, "concrete": 25, "tools": 20,
-    "electrical": 45, "drywall": 20, "roofing": 30, "plumbing": 50,
-    "hvac": 25, "flooring": 25, "paint": 25, "doors-windows": 25,
-}
+CATEGORIES = (
+    "lumber", "fasteners", "concrete", "tools", "electrical", "drywall",
+    "roofing", "plumbing", "hvac", "flooring", "paint", "doors-windows",
+)
+
 PRODUCT_COLUMNS = (
     "sku", "name", "category", "subCategory", "details", "dimensions",
     "materials", "unit", "itemQty", "price", "stockQty", "keywords", "isActive",
@@ -43,7 +43,7 @@ def load_products(path=ROOT / "sql" / "catalog_products.csv"):
             raise ValueError(f"{label}: details exceeds TEXT capacity")
         if product["subCategory"] not in subcategories:
             raise ValueError(f"{label}: invalid subcategory")
-        if product["category"] not in TARGETS:
+        if product["category"] not in CATEGORIES:
             raise ValueError(f"{label}: invalid category")
         if product["dimensions"] not in product["details"] or product["materials"] not in product["details"]:
             raise ValueError(f"{label}: include dimensions and materials in details for the auditor")
@@ -66,8 +66,6 @@ def load_products(path=ROOT / "sql" / "catalog_products.csv"):
         counts = Counter(product[field].casefold() for product in products)
         if any(count > 1 for count in counts.values()):
             raise ValueError(f"Duplicate {field} in catalog")
-    if Counter(product["category"] for product in products) != Counter(TARGETS):
-        raise ValueError("Product counts do not match the 375-product category targets")
     return products
 
 
@@ -92,8 +90,8 @@ def seed_catalog(cursor, products, apply=False):
     counts = Counter(row["category"] for row in existing
                      if row["isActive"] and (row["sku"] or "").casefold() not in managed_skus)
     counts.update(product["category"] for product in products)
-    if not 350 <= sum(counts.values()) <= 400:
-        raise ValueError(f"Projected active total is {sum(counts.values())}; expected 350-400. No products were deleted.")
+    if sum(counts.values()) > 400:
+        raise ValueError(f"Projected active total is {sum(counts.values())}; the planner supports at most 400. No products were deleted.")
     report = {"counts": dict(counts), "current_active": sum(bool(row["isActive"]) for row in existing),
               "reused": sum(product["sku"].casefold() in by_sku for product in products),
               "new": sum(product["sku"].casefold() not in by_sku for product in products)}
@@ -137,14 +135,6 @@ def seed_catalog(cursor, products, apply=False):
     actual = {row["category"]: row["total"] for row in cursor.fetchall()}
     if actual != dict(counts):
         raise ValueError("Active product counts did not match the preview; rolling back")
-    cursor.execute("""
-        SELECT COUNT(*) AS total FROM Manufacturer_products mp
-        LEFT JOIN Manufacturer m ON m.id = mp.manid
-        LEFT JOIN Product p ON p.id = mp.productId
-        WHERE m.id IS NULL OR p.id IS NULL
-    """)
-    if cursor.fetchone()["total"]:
-        raise ValueError("Invalid manufacturer relationship; rolling back")
     return report
 
 
@@ -156,7 +146,7 @@ def main():
     args = parser.parse_args()
     products = load_products()
     print(f"CSV valid: {len(products)} distinct active products")
-    counts = TARGETS
+    counts = Counter(product["category"] for product in products)
     if not args.check:
         from dotenv import load_dotenv
         from utils.database import database_cursor

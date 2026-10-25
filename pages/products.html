@@ -45,7 +45,6 @@
             </div>
         </nav>
 
-        <p id="category-status" class="sr-only" role="status"></p>
 
         <form class="catalog-search" action="{{ url_for('products.products') }}" method="get" role="search">
             {% if manufacturer_id %}<input type="hidden" name="manufacturer" value="{{ manufacturer_id }}">{% endif %}

@@ -6,7 +6,7 @@ from groq import BadRequestError, Groq
 from openrouter import OpenRouter
 
 from .ai_config import AI_TIMEOUT, MODELS
-from .schemas import BadAnswer, PlanningError
+from .schemas import PlanningError
 
 
 def make_client(provider, key_name):
@@ -27,8 +27,6 @@ for model_name, settings in MODELS.items():
         "client": make_client(settings["provider"], settings["api_key"]),
         "model": os.getenv(settings["model_env"]) or settings["default"],
     }
-    if AI_MODELS[model_name]["model"] == "gemini-3.8-flash":
-        AI_MODELS[model_name]["model"] = "gemini-3.5-flash-lite"
 
 
 def make_messages(system_instruction, prompt):
@@ -83,17 +81,16 @@ def call_groq(model, prompt, thinking_level, system_instruction, response_schema
         )
     except BadRequestError as error:
         if "json_validate_failed" in str(error.body):
-            raise BadAnswer("the AI answer did not match the required format") from error
+            raise PlanningError("the AI answer did not match the required format") from error
         raise
     if not response.choices:
-        raise BadAnswer("the AI provider returned an empty answer")
+        raise PlanningError("the AI provider returned an empty answer")
     choice = response.choices[0]
     return {"text": choice.message.content or "", "finish_reason": choice.finish_reason}
 
 
 def call_openrouter(model, prompt, thinking_level, system_instruction, response_schema,
                     output_tokens):
-    # Put the answer format in the prompt; Python checks the result.
     prompt += "\nReturn only one JSON object matching this schema:\n" + json.dumps(response_schema)
     options = {
         "model": model["model"],
@@ -108,7 +105,7 @@ def call_openrouter(model, prompt, thinking_level, system_instruction, response_
 
     response = model["client"].chat.send(**options)
     if not response.choices:
-        raise BadAnswer("the AI provider returned an empty answer")
+        raise PlanningError("the AI provider returned an empty answer")
     choice = response.choices[0]
     return {"text": choice.message.content or "", "finish_reason": choice.finish_reason}
 
@@ -127,6 +124,6 @@ def ask_model(model_name, prompt, reasoning, instructions, schema, output_tokens
         raise PlanningError(f"Unsupported AI provider: {model['provider']}")
     # Gemini uses STOP; the other providers use stop.
     if result["finish_reason"] not in ("stop", "STOP"):
-        raise BadAnswer("the AI answer was cut off before it finished")
+        raise PlanningError("the AI answer was cut off before it finished")
     return result["text"]
 

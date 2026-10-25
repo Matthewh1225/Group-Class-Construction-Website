@@ -36,8 +36,9 @@ worker ID and running status, so cancelled or interrupted jobs reject late saves
 MySQL named locks require explicit release after commit; see the
 [MySQL locking documentation](https://dev.mysql.com/doc/refman/8.0/en/locking-functions.html).
 
-Saved projects keep their job link and plan snapshot, name, completion flag,
-and optional crew. A unique owner/job key prevents duplicate saves. Crew cart
+Saved projects keep their job link, name, completion flag, and optional crew.
+The linked job stores the plan; saved projects do not copy its JSON.
+A unique owner/job key prevents duplicate saves. Crew cart
 entries store validated JSON and its SHA-256 hash; the owner/hash unique key
 prevents duplicate selections without indexing a long JSON string.
 Each `owner` references `User.id` with `ON DELETE CASCADE`. Saved projects also
@@ -48,6 +49,18 @@ removes their jobs, saved projects, and crew selections in the same transaction.
 The application only deletes the user row; MySQL handles the related records.
 Ownership filters remain in application queries to enforce access permissions.
 See [MySQL foreign keys](https://dev.mysql.com/doc/refman/8.4/en/create-table-foreign-keys.html).
+
+For an existing installation with `saved_projects.plan`, compare each snapshot
+with its linked job before upgrading. Preserve any snapshot-only information
+before dropping the column. Verify that `saved_projects_job_fk` links
+`(owner, job_id)` to `planner_jobs(owner, id)` with `ON DELETE CASCADE`.
+Then run `sql/remove_saved_plan_snapshots.sql` once and restart the website and
+workers with the updated code. New installations already omit this column.
+
+After follow-up questions, the worker reuses the saved interpreter specification.
+Planners receive the original project, interpreted details, and answers, with
+explicit answers taking priority over earlier assumptions. A manual restart
+creates a new job and runs the interpreter again, keeping the original answers.
 
 The application no longer reads local SQLite files or uses
 `PLANNER_JOB_DATABASE`. Existing local files are left untouched and are not

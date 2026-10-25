@@ -24,7 +24,6 @@ CREATE TABLE IF NOT EXISTS saved_projects (
     owner INT NOT NULL,
     job_id CHAR(32) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
     name VARCHAR(120) NOT NULL,
-    plan LONGTEXT NOT NULL,
     crew TEXT,
     completed BOOLEAN NOT NULL DEFAULT FALSE,
     created DOUBLE NOT NULL,

@@ -85,7 +85,6 @@
                         <dt>vs 12 monthly payments</dt><dd id="summary-savings">{{ money(plans.yearly.savings_cents) }}</dd>
                     </div>
                 </dl>
-                <p id="monthly-equivalent" class="sub-equivalent" {% if not plan.monthly_equivalent %}hidden{% endif %}>{{ plan.monthly_equivalent }}</p>
                 <div class="sub-total"><div><span>Total due today</span><small>USD</small></div><strong id="summary-total">{{ money(plan.amount_cents) }}</strong></div>
                 <p id="summary-terms" class="sub-renewal-terms">{{ plan.terms }}</p>
             </div>

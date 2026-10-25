@@ -78,26 +78,6 @@
     text-transform: uppercase;
 }
 
-.planner-history {
-    flex-shrink: 0;
-    display: inline-flex;
-    align-items: center;
-    gap: 12px;
-    padding: 9px 14px;
-    border: 1px solid var(--line-strong);
-    border-radius: var(--radius);
-    color: var(--text);
-    font-size: 0.9rem;
-    font-weight: 600;
-    text-decoration: none;
-    transition: color 0.2s, border-color 0.2s;
-}
-
-.planner-history:hover {
-    border-color: var(--amber);
-    color: var(--amber);
-}
-
 .planner-signin-note {
     margin-bottom: 20px !important;
     padding: 12px 16px;
@@ -192,12 +172,6 @@
     background-color: var(--panel-raised);
 }
 
-.method-number {
-    color: var(--measure);
-    font: 600 0.65rem/1.4 var(--font-mono);
-    letter-spacing: 0.12em;
-}
-
 .method-drawing {
     width: 100%;
     height: 100px;
@@ -220,29 +194,6 @@
 .planner-method > strong {
     font: 700 1.45rem/1.2 var(--font-display);
     letter-spacing: -0.02em;
-}
-
-.method-text {
-    margin-top: 8px;
-    color: var(--muted);
-    font-size: 0.92rem;
-    line-height: 1.5;
-}
-
-.method-examples {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    margin: 14px 0 22px;
-}
-
-.method-examples span {
-    padding: 3px 8px;
-    border: 1px solid var(--line);
-    border-radius: var(--radius);
-    background: var(--panel);
-    color: var(--muted);
-    font: 0.72rem/1.4 var(--font-mono);
 }
 
 /* Looks like the main button: choosing a way to start is the first thing to do. */
@@ -771,10 +722,6 @@
 
     .planner-method > strong {
         font-size: 1.3rem;
-    }
-
-    .method-examples {
-        margin-bottom: 16px;
     }
 
     .planner-pro {

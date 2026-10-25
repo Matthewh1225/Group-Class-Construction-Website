@@ -9,45 +9,4 @@
 
 6. Back up important database data
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+7. Implement subscription payments, record confirmed memberships, and add renewal, cancellation, and billing history. Checkout currently reports that payment processing is unavailable.

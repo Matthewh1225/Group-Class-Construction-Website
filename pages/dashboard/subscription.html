@@ -33,36 +33,6 @@
                 <a class="dashboard-button dashboard-button-primary" href="{{ url_for('subscription.subscribe') }}">Subscribe</a>
             </div>
         {% endif %}
-        {% if subscription and subscription.management_url %}
-            <div class="sub-actions">
-                <a class="dashboard-button dashboard-button-primary" href="{{ subscription.management_url }}">Manage plan</a>
-            </div>
-        {% endif %}
     </section>
 
-    {% if invoices %}
-    <section class="dashboard-card dashboard-detail-card sub-card" aria-labelledby="billing-history-title">
-        <div class="sub-card-head"><h2 id="billing-history-title">Billing history</h2></div>
-            <div class="dashboard-table-wrap">
-                <table class="dashboard-data-table">
-                    <thead><tr><th scope="col">Date</th><th scope="col">Description</th><th scope="col">Amount</th><th scope="col">Status</th><th scope="col">Invoice</th></tr></thead>
-                    <tbody>
-                        {% for invoice in invoices %}
-                            <tr>
-                                <td>{{ invoice.date }}</td><td>{{ invoice.description }}</td>
-                                <td>{{ invoice.amount }}</td><td>{{ invoice.status|title }}</td>
-                                <td>
-                                    {% if invoice.url %}
-                                        <a class="dashboard-text-link" href="{{ invoice.url }}">View</a>
-                                    {% else %}
-                                        ?
-                                    {% endif %}
-                                </td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-    </section>
-    {% endif %}
 {% endblock %}

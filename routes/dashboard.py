@@ -1,11 +1,11 @@
 from flask import Blueprint, abort, current_app, flash, redirect, render_template, request, session, url_for
 from mysql.connector import Error, IntegrityError
 
-from planning.presentation import add_store_details, project_spec_rows, status_label
+from planning.presentation import status_label
 from planning.ai_config import WORKFLOW_TIERS
 from routes.auth import login_required
 from services.orders import get_order, get_order_items, get_user_orders
-from services.crews import CREW_RATES, HOURS_PER_DAY, parse_crew, estimate_crew_cost
+from services.crews import parse_crew
 from services.projects import (PROJECT_STATUS_LABELS, delete_project, get_project_details, count_projects, get_project_list,
                                rename_project, save_project_crew, set_project_completed)
 from utils.users import create_user, delete_user_completely, get_all_users, set_user_status
@@ -27,6 +27,7 @@ def dashboard():
         try:
             create_user(request.form, permission_lvl)
             flash("User created.", "success")
+            return redirect(url_for("dashboard.dashboard"))
         except ValueError as error:
             flash(str(error), "error")
         except IntegrityError:
@@ -35,7 +36,7 @@ def dashboard():
             current_app.logger.exception("Unable to create an admin user")
             flash("User creation is temporarily unavailable. Nothing was changed.", "error")
         # Redirect so refreshing does not create another user.
-        return redirect(url_for("dashboard.dashboard"))
+        return redirect(url_for("dashboard.dashboard", add_user="error"))
 
     if permission_level == "admin":
         users_error = False
@@ -77,8 +78,6 @@ def projects():
 
     shown = get_project_list(session["user_id"], search=search, status=status_filter)
     total = count_projects(session["user_id"])
-    if shown is None or total is None:
-        return render_template("unavailable.html", message="Projects unavailable."), 503
     for job in shown:
         label, tone = status_label(job)
         job["planning_status_label"] = label
@@ -102,19 +101,7 @@ def get_project_or_404(project_id):
 @login_required
 def project_detail(project_id):
     project = get_project_or_404(project_id)
-    if project["job_exists"]:
-        return redirect(url_for("planner.planning_job", job_id=project["job_id"]))
-    crew = None
-    if project["crew"]:
-        crew = estimate_crew_cost(project["crew"])
-    plan = project["plan"]
-    materials = []
-    if plan.get("result"):
-        materials = add_store_details(plan["result"]["materials"])
-    return render_template("dashboard/project_detail.html", project=project, plan=plan,
-                           materials=materials, crew=crew,
-                           project_fields=project_spec_rows(plan.get("project") or {}),
-                           crew_rates=CREW_RATES, hours_per_day=HOURS_PER_DAY)
+    return redirect(url_for("planner.planning_job", job_id=project["job_id"]))
 
 
 @dashboard_bp.post("/dashboard/projects/<int:project_id>/rename")

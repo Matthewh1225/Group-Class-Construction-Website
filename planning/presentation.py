@@ -3,7 +3,7 @@ from decimal import Decimal, ROUND_CEILING
 
 from services.products import get_products_by_ids
 from planning.jobs import pending_stages
-
+# AI planner status labels
 STATUS_LABELS = {
     "queued": ("Queued for planning", "neutral"),
     "running": ("Preparing your plan", "neutral"),
@@ -67,11 +67,8 @@ def project_spec_rows(project):
     return rows
 
 
-UNIT_ALIASES = {"feet": "ft", "foot": "ft", "inches": "in", "inch": "in",
-                "meters": "m", "metres": "m", "square feet": "sq_ft", "sq ft": "sq_ft",
-                "square meters": "sq_m", "sq m": "sq_m", "layers": "count",
-                "layer": "count", "coats": "count", "coat": "count",
-                "gallons": "gallon", "sheets": "sheet", "pieces": "piece",
+UNIT_ALIASES = {"feet": "ft", "foot": "ft", "inches": "in", "inch": "in","meters": "m", "metres": "m", "square feet": "sq_ft", "sq ft": "sq_ft",
+                "square meters": "sq_m", "sq m": "sq_m", "layers": "count","layer": "count", "coats": "count", "coat": "count", "gallons": "gallon", "sheets": "sheet", "pieces": "piece",
                 "rolls": "roll", "screws": "screw", "boxes": "box", "bags": "bag"}
 
 
@@ -80,7 +77,7 @@ def normalize_unit(unit):
     return UNIT_ALIASES.get(text, text)
 
 
-# Buy whole boxes, bags, or pieces, even when the estimate needs a fraction.
+# Buy whole boxes, bags, or pieces
 def round_up_quantity(needed):
     return needed.to_integral_value(rounding=ROUND_CEILING)
 
@@ -107,15 +104,9 @@ def add_store_details(materials):
         row["product"] = product
         row["buy_quantity"] = buy_quantity(material, product)
 
-        row["out_of_stock"] = False
-        if product is not None and product["available_quantity"] is not None:
-            row["out_of_stock"] = product["available_quantity"] <= 0
-
-        row["can_add"] = row["buy_quantity"] is not None and not row["out_of_stock"]
-
+        row["can_add"] = False
         row["match_status"] = "unmatched"
         row["stock_status"] = "unknown"
-        row["incompatible_units"] = False
         row["insufficient_stock"] = False
         row["show_store_link"] = False
         if product is None:
@@ -123,20 +114,21 @@ def add_store_details(materials):
                 row["match_status"] = "missing"
         else:
             row["match_status"] = "matched"
-            row["incompatible_units"] = row["buy_quantity"] is None
-            row["show_store_link"] = row["incompatible_units"] and not row["out_of_stock"]
             stock = product["available_quantity"]
-            if stock is not None:
-                if row["out_of_stock"]:
-                    row["stock_status"] = "out_of_stock"
-                else:
-                    row["stock_status"] = "available"
-                if row["buy_quantity"] is not None:
-                    row["insufficient_stock"] = stock < row["buy_quantity"]
+            out_of_stock = stock <= 0
+            incompatible_units = row["buy_quantity"] is None
+            row["can_add"] = not incompatible_units and not out_of_stock
+            row["show_store_link"] = incompatible_units and not out_of_stock
+            if out_of_stock:
+                row["stock_status"] = "out_of_stock"
+            else:
+                row["stock_status"] = "available"
+            if not incompatible_units:
+                row["insufficient_stock"] = stock < row["buy_quantity"]
 
         row["line_total"] = None
-        if row["can_add"] and product["unit_price"] is not None:
-            row["line_total"] = row["buy_quantity"] * Decimal(str(product["unit_price"]))
+        if row["can_add"]:
+            row["line_total"] = row["buy_quantity"] * product["unit_price"]
         rows.append(row)
     return rows
 
@@ -164,6 +156,5 @@ def cart_items(rows):
 def cart_total(items):
     total = Decimal("0")
     for item in items:
-        if item["product"]["unit_price"] is not None:
-            total += item["quantity"] * Decimal(str(item["product"]["unit_price"]))
+        total += item["quantity"] * item["product"]["unit_price"]
     return total

@@ -180,9 +180,7 @@
     <section class="dashboard-card dashboard-detail-card project-section" id="actions" aria-labelledby="actions-title">
         <h2 id="actions-title">Project actions</h2>
         <div class="project-actions">
-            {% if project.job_exists %}
-                <a class="dashboard-button dashboard-button-secondary" href="{{ url_for('planner.planning_job', job_id=project.job_id) }}">View AI Plan</a>
-            {% endif %}
+            <a class="dashboard-button dashboard-button-secondary" href="{{ url_for('planner.planning_job', job_id=project.job_id) }}">View AI Plan</a>
             <form method="post" action="{{ url_for('dashboard.project_completed', project_id=project.id) }}">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 {% if project.completed %}

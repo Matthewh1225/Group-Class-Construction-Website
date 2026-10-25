@@ -1,5 +1,3 @@
-# Planner jobs and saved projects use the shared MySQL database.
-# Answering questions requeues a job; restarting a failed job creates a new one.
 
 import hashlib
 import json
@@ -11,7 +9,7 @@ from utils.database import database_cursor
 
 from .ai_config import WORKFLOW_TIERS
 
-LEASE_SECONDS = 15 * 60       # seconds before an unsaved job is interrupted
+LEASE_SECONDS = 15 * 60  # seconds before an unsaved job is interrupted
 MAX_RUNNING_JOBS = 2
 MAX_QUEUED_JOBS = 100
 MAX_REQUEST_BYTES = 20000
@@ -22,7 +20,6 @@ ONE_DAY = 24 * 60 * 60# seconds
 COLUMN_FIELDS = ["id", "owner", "tier", "status", "created", "updated"]
 
 
-# Not a ValueError: the routes use those for user input errors.
 class LeaseLost(Exception):
     pass
 
@@ -57,8 +54,7 @@ def pending_stages(tier):
     return stages
 
 
-# Older jobs may not have stage details.
-def stop_running_stages(job, new_state):
+def mark_processing_stages(job, new_state):
     for stage, state in job.get("stages", {}).items():
         if state == "processing":
             job["stages"][stage] = new_state
@@ -98,14 +94,12 @@ def submit_job(owner, submission_key, project, tier="fast", answers=None):
     if answers is None:
         answers = []
     request_hash = check_submission(owner, submission_key, project, tier, answers)
-    owner = int(owner)
     now = time.time()
     job_id = uuid.uuid4().hex
     data = {"project": project, "questions": [], "answers": answers,
             "specification": None, "result": None, "error": None,
             "stages": pending_stages(tier)}
     with database_cursor(lock_name="planner_queue") as cursor:
-        # Keep queue checks and the insert in the same locked transaction.
         cursor.execute(
             "SELECT * FROM planner_jobs WHERE owner = %s AND submission_key = %s",
             (owner, submission_key),
@@ -134,7 +128,7 @@ def find_job(cursor, job_id, owner, for_update=False):
     query = "SELECT * FROM planner_jobs WHERE id = %s AND owner = %s"
     if for_update:
         query += " FOR UPDATE"
-    cursor.execute(query, (job_id, int(owner)))
+    cursor.execute(query, (job_id, owner))
     return decode(cursor.fetchone())
 
 
@@ -145,18 +139,25 @@ def get_job(job_id, owner):
 
 def count_jobs(owner):
     with database_cursor() as cursor:
-        cursor.execute("SELECT COUNT(*) AS total FROM planner_jobs WHERE owner = %s", (int(owner),))
+        cursor.execute("SELECT COUNT(*) AS total FROM planner_jobs WHERE owner = %s", (owner,))
         return cursor.fetchone()["total"]
 
 
 def list_jobs(owner, limit=20, offset=0):
     with database_cursor() as cursor:
         cursor.execute(
-            "SELECT * FROM planner_jobs WHERE owner = %s ORDER BY created DESC, id DESC LIMIT %s OFFSET %s",
-            (int(owner), limit, offset),
+            """SELECT j.*, s.id AS saved_project_id FROM planner_jobs j
+               LEFT JOIN saved_projects s ON s.owner = j.owner AND s.job_id = j.id
+               WHERE j.owner = %s ORDER BY j.created DESC, j.id DESC LIMIT %s OFFSET %s""",
+            (owner, limit, offset),
         )
         rows = cursor.fetchall()
-    return [decode(row) for row in rows]
+    jobs = []
+    for row in rows:
+        job = decode(row)
+        job["saved_project_id"] = row["saved_project_id"]
+        jobs.append(job)
+    return jobs
 
 
 # Wait for the time limit: another worker may still be running the job.
@@ -169,7 +170,7 @@ def fail_interrupted_jobs(cursor, now):
     for row in expired_rows:
         job = decode(row)
         job["error"] = "Planning was interrupted before it finished."
-        stop_running_stages(job, "failed")
+        mark_processing_stages(job, "failed")
         cursor.execute(
             "UPDATE planner_jobs SET status = 'failed', worker = NULL, data = %s, updated = %s WHERE id = %s",
             (encode(job), now, row["id"]),
@@ -229,6 +230,7 @@ def answer_job(job_id, owner, answers):
             job["answers"].append({"question": question, "answer": answer})
         job["questions"] = []
         job["stages"] = pending_stages(job["tier"])
+        job["stages"]["interpreter"] = "done"
         cursor.execute(
             "UPDATE planner_jobs SET data = %s, status = 'queued', worker = NULL, lease_until = 0, updated = %s WHERE id = %s",
             (encode(job), time.time(), job_id),
@@ -248,10 +250,10 @@ def cancel_job(job_id, owner):
         job = find_job(cursor, job_id, owner, for_update=True)
         if job is None or job["status"] not in ("queued", "running", "needs_input"):
             return False
-        stop_running_stages(job, "cancelled")
+        mark_processing_stages(job, "cancelled")
         cursor.execute(
             "UPDATE planner_jobs SET status = 'cancelled', worker = NULL, data = %s, updated = %s WHERE id = %s AND owner = %s AND status IN ('queued', 'running', 'needs_input')",
-            (encode(job), time.time(), job_id, int(owner)),
+            (encode(job), time.time(), job_id, owner),
         )
         changed = cursor.rowcount
     return changed == 1

@@ -13,7 +13,7 @@ from services.crews import CREW_RATES, HOURS_PER_DAY, MAX_DAYS, MAX_WORKERS, che
 from . import ai_config
 from .ai_planner import ask_model
 from .jobs import pro_access_allowed
-from .schemas import (AuditedEstimate, BadAnswer, DraftEstimate, PlanningError, Specification,
+from .schemas import (AuditedEstimate, DraftEstimate, PlanningError, Specification,
                       clear_unknown_products)
 
 MAX_QUESTIONS = 3
@@ -29,8 +29,7 @@ def error_code(error):
         return code
     return None
 
-
-# Keep provider details out of the errors users see.
+#group: Error handling functions
 def describe_error(error):
     code = error_code(error)
     if code == 429:
@@ -56,10 +55,7 @@ def run_stage(tier, role, record_type, inputs, instructions):
             catalog_ids = {product["product_id"] for product in inputs.get("catalog", [])}
             clear_unknown_products(output, catalog_ids)
             output["crew"]["label"] = "AI-estimated crew"
-            try:
-                output["crew"] = check_crew(output["crew"])
-            except ValueError as error:
-                raise BadAnswer(str(error)) from error
+            output["crew"] = check_crew(output["crew"])
         elif record_type is DraftEstimate:
             # Drafts describe materials; only the auditor assigns store IDs.
             for material in output["materials"]:
@@ -67,7 +63,7 @@ def run_stage(tier, role, record_type, inputs, instructions):
         return output
     except ValidationError as error:
         raise PlanningError(f"The {stage_name} step failed: the AI answer was incomplete or invalid.") from error
-    except (BadAnswer, PlanningError) as error:
+    except (ValueError, PlanningError) as error:
         raise PlanningError(f"The {stage_name} step failed: {str(error).rstrip('.')}.") from error
     except PROVIDER_ERRORS as error:
         raise PlanningError(f"The {stage_name} step failed: {describe_error(error)}.") from error
@@ -82,14 +78,17 @@ def run_workflow(job, save_progress):
         job["stages"][role] = state
         save_progress(job)
 
-    update_stage("interpreter", "processing")
     context = {"project": job["project"], "answers": job["answers"], "details": []}
-    specification = run_stage(tier, "interpreter", Specification, context,
-                              ai_config.INTERPRETER_PROMPT)
-    job["specification"] = specification
-    update_stage("interpreter", "done")
+    if job["stages"]["interpreter"] == "done":
+        specification = job["specification"]
+    else:
+        update_stage("interpreter", "processing")
+        specification = run_stage(tier, "interpreter", Specification, context,
+                                  ai_config.INTERPRETER_PROMPT)
+        job["specification"] = specification
+        update_stage("interpreter", "done")
 
-    # Limit follow-up questions to one round.
+    # Limit follow-up questions to one rtime.
     questions = []
     for question in specification["questions"]:
         if question:
@@ -103,23 +102,20 @@ def run_workflow(job, save_progress):
     planner_inputs = dict(context)
     planner_inputs["details"] = specification["details"]
 
+    roles = ["planner"]
     if tier == "pro":
-        estimates = []
-        for role in ("planner", "second_planner"):
-            update_stage(role, "processing")
-            estimate = run_stage(tier, role, DraftEstimate, planner_inputs,
-                                 ai_config.PLANNER_PROMPT)
-            estimates.append(estimate)
-            update_stage(role, "done")
-    else:
-        update_stage("planner", "processing")
-        estimates = [run_stage(tier, "planner", DraftEstimate, planner_inputs,
-                               ai_config.PLANNER_PROMPT)]
-        update_stage("planner", "done")
+        roles.append("second_planner")
+    estimates = []
+    for role in roles:
+        update_stage(role, "processing")
+        estimate = run_stage(tier, role, DraftEstimate, planner_inputs,
+                             ai_config.PLANNER_PROMPT)
+        estimates.append(estimate)
+        update_stage(role, "done")
 
     update_stage("auditor", "processing")
     auditor_inputs = dict(planner_inputs)
-    # Store matching happens only after the planners have estimated the whole project.
+    # matching products from the db
     try:
         auditor_inputs["catalog"] = get_planner_catalog()
     except MySQLError as error:

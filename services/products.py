@@ -66,7 +66,7 @@ def search_products(search=None, category_url_name=None, page=1, manufacturer_id
 
     return products, total_pages
 
-
+#get all products for the planner catalog limited to 400
 def get_planner_catalog():
 
     sql = """

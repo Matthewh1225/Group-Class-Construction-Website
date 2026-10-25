@@ -75,17 +75,13 @@ def load_product_page(category_url_name):
     for product in product_list:
         product["image"] = CATEGORY_IMAGES.get(product["category"], PLACEHOLDER_IMAGE)
         stock = product["available_quantity"]
-        product["can_buy"] = False
-        product["availability_status"] = "unavailable"
-        product["availability_label"] = "Unavailable"
-        if product["unit_price"] is not None:
-            if stock is None or stock <= 0:
-                product["availability_status"] = "out_of_stock"
-                product["availability_label"] = "Out of stock"
-            else:
-                product["availability_status"] = "available"
-                product["availability_label"] = "In stock"
-                product["can_buy"] = stock >= 1
+        product["can_buy"] = stock >= 1
+        if product["can_buy"]:
+            product["availability_status"] = "available"
+            product["availability_label"] = "In stock"
+        else:
+            product["availability_status"] = "out_of_stock"
+            product["availability_label"] = "Out of stock"
 
     return {
         "products": product_list,

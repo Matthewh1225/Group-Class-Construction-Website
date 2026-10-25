@@ -4,24 +4,6 @@ import json
 from services.crews import estimate_crew_cost, parse_crew
 from utils.database import database_cursor
 
-MAX_QUANTITY = 2_147_483_647
-
-
-def read_quantity(quantity):
-    # TODO: Check for a positive whole number within the quantity limit.
-    pass
-
-
-def find_product(cursor, product_id):
-    # TODO: Look up the product and its current price, stock, and availability.
-    pass
-
-
-def check_product_available(product, quantity):
-    # TODO: Check that the product is still sold, has a price, and has enough stock.
-    pass
-
-
 def get_cart(user_id):
     # TODO: Get the user's cart items with current prices, totals
     pass
@@ -55,19 +37,19 @@ def add_crew(user_id, crew_json):
         cursor.execute(
             """INSERT INTO crew_cart (owner, crew, crew_hash) VALUES (%s, %s, %s)
                ON DUPLICATE KEY UPDATE id = LAST_INSERT_ID(id)""",
-            (int(user_id), crew_json, crew_hash),
+            (user_id, crew_json, crew_hash),
         )
     return crew["label"]
 
 
 def get_cart_crews(user_id):
     with database_cursor() as cursor:
-        cursor.execute("SELECT id, crew FROM crew_cart WHERE owner = %s ORDER BY id DESC", (int(user_id),))
+        cursor.execute("SELECT id, crew FROM crew_cart WHERE owner = %s ORDER BY id DESC", (user_id,))
         rows = cursor.fetchall()
     return [{"id": row["id"], "estimate": estimate_crew_cost(json.loads(row["crew"]))} for row in rows]
 
 
 def remove_crew(user_id, crew_id):
     with database_cursor() as cursor:
-        cursor.execute("DELETE FROM crew_cart WHERE id = %s AND owner = %s", (crew_id, int(user_id)))
+        cursor.execute("DELETE FROM crew_cart WHERE id = %s AND owner = %s", (crew_id, user_id))
         return cursor.rowcount == 1

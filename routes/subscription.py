@@ -2,7 +2,7 @@ from flask import Blueprint, render_template, request, session
 
 from planning.ai_config import WORKFLOW_TIERS
 from routes.auth import login_required
-from services.subscriptions import PRO_PLANS, get_user_subscription, process_subscription_payment
+from services.subscriptions import PRO_PLANS, get_user_subscription
 
 subscription_bp = Blueprint("subscription", __name__)
 
@@ -27,14 +27,12 @@ def subscribe():
             checkout_error = "Choose a valid membership plan."
             status = 400
     elif request.method == "POST":
-        process_subscription_payment(session["user_id"], selected_plan)
         checkout_error = "Payment processing is not implemented."
         status = 503
 
     plans = {}
     for key, configuration in PRO_PLANS.items():
         plan = dict(configuration)
-        plan["monthly_equivalent"] = ""
         plan["savings_cents"] = 0
         if plan["interval"] == "year":
             monthly_cents = plan["amount_cents"] / 12
@@ -54,9 +52,9 @@ def manage_subscription():
     subscription = get_user_subscription(session["user_id"])
     if subscription:
         subscription["period_label"] = "Current period ends"
-        if subscription["status"] in ["cancelled", "expired"]:
+        if subscription["status"] == "expired":
             subscription["period_label"] = "Access ends"
     return render_template(
         "dashboard/subscription.html", tiers=WORKFLOW_TIERS,
-        subscription=subscription, invoices=[],
+        subscription=subscription,
     )

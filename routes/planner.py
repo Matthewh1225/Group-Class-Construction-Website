@@ -8,7 +8,7 @@ from planning.project_forms import PROJECT_SIZES, PROJECT_TEMPLATES, build_proje
 from planning.presentation import (STAGE_STATUS_LABELS, add_store_details, cart_items, cart_total,  project_spec_rows, stage_rows, status_label)
 from services.cart import add_materials_to_cart
 from services.crews import CREW_RATES, HOURS_PER_DAY, estimate_crew_cost
-from services.projects import (can_save_project, default_project_name, get_project_saved_from_job, get_project_list, save_job_as_project)
+from services.projects import (can_save_project, default_project_name, get_project_saved_from_job, save_job_as_project)
 from utils.rate_limits import limiter
 
 planner_bp = Blueprint("planner", __name__)
@@ -137,9 +137,6 @@ def planning_job_save(job_id):
     except ValueError as error:
         flash(str(error), "error")
         return redirect(url_for("planner.planning_job", job_id=job_id), code=303)
-    if project_id is None:
-        flash("Project could not be saved.", "error")
-        return redirect(url_for("planner.planning_job", job_id=job_id), code=303)
     flash("Project saved.", "success")
     if request.form.get("return_to") == "history":
         return redirect(url_for("planner.planning_history"), code=303)
@@ -200,12 +197,8 @@ def planning_history():
     elif page > last_page:
         page = last_page
     offset = (page - 1) * page_size
-    saved_ids = {}
-    for saved in get_project_list(session["user_id"]):
-        saved_ids[saved["id"]] = saved["saved_project_id"]
     shown = list_jobs(session["user_id"], limit=page_size, offset=offset)
     for job in shown:
-        job["saved_project_id"] = saved_ids.get(job["id"])
         label, tone = status_label(job)
         job["planning_status_label"] = label
         job["planning_status_tone"] = tone

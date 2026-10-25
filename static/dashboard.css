@@ -552,6 +552,8 @@
 }
 
 .dashboard-card-actions {
+    padding-top: 15px;
+    border-top: 1px solid var(--dash-line);
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -584,11 +586,6 @@
     color: var(--dash-text);
     font-size: 13px;
     font-weight: 650;
-}
-
-.dashboard-card-actions {
-    padding-top: 15px;
-    border-top: 1px solid var(--dash-line);
 }
 
 .dashboard-breadcrumb {
