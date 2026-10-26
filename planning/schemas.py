@@ -41,6 +41,11 @@ class DraftEstimate(Record):
     materials: list[Material] = Field(min_length=1)
 
 
+class AuditedMaterial(Material):
+    category: str | None = Field(description="A category from classifications, or null if uncertain.")
+    subcategory: str | None = Field(description="A subcategory belonging to that category, or null if uncertain.")
+
+
 class CrewMember(Record):
     role: str
     workers: int = Field(ge=0)
@@ -53,6 +58,7 @@ class CrewRecommendation(Record):
 
 
 class AuditedEstimate(DraftEstimate):
+    materials: list[AuditedMaterial] = Field(min_length=1)
     summary: str
     notes: list[str]
     crew: CrewRecommendation | None = Field(
@@ -77,8 +83,10 @@ class CatalogMatches(Record):
     machinery: list[MachineryRecommendation]
 
 
-def merge_catalog_matches(estimate, matching, material_catalog, machinery_catalog):
-    material_ids = {product["product_id"] for product in material_catalog}
+def merge_catalog_matches(estimate, matching, material_candidates, machinery_catalog):
+    material_ids = {}
+    for group in material_candidates:
+        material_ids[group["material_index"]] = {product["product_id"] for product in group["candidates"]}
     machinery_ids = {product["product_id"] for product in machinery_catalog}
     material_count = len(estimate["materials"])
     if len(matching["matches"]) != material_count:
@@ -89,8 +97,8 @@ def merge_catalog_matches(estimate, matching, material_catalog, machinery_catalo
         if index < 0 or index >= material_count or index in seen:
             raise ValueError("The Matcher returned an invalid or repeated material index")
         seen.add(index)
-        if match["product_id"] is not None and match["product_id"] not in material_ids:
-            raise ValueError("The Matcher returned a material product ID outside the supplied catalog")
+        if match["product_id"] is not None and match["product_id"] not in material_ids[index]:
+            raise ValueError(f"The Matcher returned a product ID outside the candidates for material {index}")
     seen = set()
     for machine in matching["machinery"]:
         product_id = machine["product_id"]

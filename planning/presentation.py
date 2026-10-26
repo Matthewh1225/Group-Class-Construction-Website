@@ -1,7 +1,7 @@
 
 from decimal import Decimal, ROUND_CEILING
 
-from services.products import get_products_by_ids
+from services.products import get_products_by_ids, normalize_unit
 from planning.jobs import pending_stages
 # AI planner status labels
 STATUS_LABELS = {
@@ -70,16 +70,6 @@ def project_spec_rows(project):
             display_value = value
         rows.append({"label": name.replace("_", " ").capitalize(), "value": display_value})
     return rows
-
-
-UNIT_ALIASES = {"linear_ft": "ft", "linear feet": "ft", "each": "piece", "feet": "ft", "foot": "ft", "inches": "in", "inch": "in","meters": "m", "metres": "m", "square feet": "sq_ft", "sq ft": "sq_ft",
-                "square meters": "sq_m", "sq m": "sq_m", "layers": "count","layer": "count", "coats": "count", "coat": "count", "gallons": "gallon", "sheets": "sheet", "pieces": "piece",
-                "rolls": "roll", "screws": "screw", "boxes": "box", "bags": "bag"}
-
-
-def normalize_unit(unit):
-    text = unit.strip().lower()
-    return UNIT_ALIASES.get(text, text)
 
 
 # Buy whole boxes, bags, or pieces

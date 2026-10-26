@@ -8,7 +8,7 @@ from mysql.connector import Error as MySQLError
 from openrouter.errors import NoResponseError, OpenRouterError
 from pydantic import ValidationError
 
-from services.products import get_planner_catalog
+from services.products import get_catalog_classifications, get_planner_catalog
 from services.crews import CREW_RATES, HOURS_PER_DAY, MAX_DAYS, MAX_WORKERS, check_crew
 
 from . import ai_config
@@ -75,6 +75,15 @@ def run_stage(tier, role, record_type, inputs, instructions):
             for material in output["materials"]:
                 material["product_id"] = None
         if record_type is AuditedEstimate:
+            classifications = inputs["classifications"]
+            for material in output["materials"]:
+                category = material["category"]
+                subcategory = material["subcategory"]
+                if category is not None and category not in classifications:
+                    raise ValueError("The Auditor returned an unknown category")
+                if subcategory is not None:
+                    if category is None or subcategory not in classifications[category]:
+                        raise ValueError("The Auditor returned a subcategory outside its category")
             crew = output["crew"]
             if crew is not None:
                 # Zero-worker roles do not contribute to the crew or its cost.
@@ -86,7 +95,7 @@ def run_stage(tier, role, record_type, inputs, instructions):
                 output["crew"] = None
         elif record_type is CatalogMatches:
             output = merge_catalog_matches(inputs["estimate"], output,
-                                           inputs["material_catalog"], inputs["machinery_catalog"])
+                                           inputs["material_candidates"], inputs["machinery_catalog"])
         return output
     except ValidationError as error:
         if error.errors()[0]["type"] == "json_invalid":
@@ -152,6 +161,10 @@ def run_workflow(job, save_progress):
 
     update_stage("auditor", "processing")
     auditor_inputs = dict(planner_inputs)
+    try:
+        auditor_inputs["classifications"] = get_catalog_classifications()
+    except MySQLError as error:
+        raise PlanningError("The auditor step failed: category and subcategory labels could not be loaded.") from error
     auditor_inputs["estimates"] = estimates
     auditor_inputs["available_crew_roles"] = {role: info["name"] for role, info in CREW_RATES.items()}
     auditor_inputs["hours_per_day"] = HOURS_PER_DAY
@@ -166,7 +179,7 @@ def run_workflow(job, save_progress):
     matcher_inputs = dict(planner_inputs)
     matcher_inputs["estimate"] = result
     try:
-        matcher_inputs["material_catalog"] = get_planner_catalog(materials=result["materials"])
+        matcher_inputs["material_candidates"] = get_planner_catalog(materials=result["materials"])
         matcher_inputs["machinery_catalog"] = get_planner_catalog(machinery=True)
     except MySQLError as error:
         raise PlanningError("The matcher step failed: the product and machinery catalogs could not be loaded.") from error

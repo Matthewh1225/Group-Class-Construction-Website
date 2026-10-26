@@ -144,6 +144,13 @@ You do not receive store inventory. Audit independently of what the store sells.
 Set product_id to null for every material. Do not match products or recommend catalog machinery;
 the Matcher handles those tasks after your estimate is final.
 
+classifications maps each database category to its valid subcategories. These are labels
+only, not evidence of product availability. Add category and subcategory to every material,
+using exact labels from this map. Use null for both when uncertain, or a known category
+with subcategory=null when only the category is clear. A non-null subcategory must belong
+to the selected category. These labels guide a later search; never change material names,
+specifications, quantities, units or calculations to fit the classification labels.
+
 Write one final summary and a notes list for the whole project. Project notes hold useful
 assumptions, staffing explanations and uncertainty, without repeating material notes or each
 other. For example, an assumed ceiling height belongs with that material; weather-dependent
@@ -177,7 +184,12 @@ materials, names, specifications, quantities, units, calculation notes, summary 
 Return matches with exactly one entry for each material in estimate.materials.
 material_index is the zero-based position in that list. Each entry contains only
 material_index and product_id. Use null when there is no compatible product.
-Use IDs from material_catalog only. Match dimensions, material type, grade, specifications
+material_candidates contains groups with material_index and candidates. For each material,
+use only an ID from its own candidates, or null. An empty candidate list requires null.
+Category and subcategory are search preferences, not compatibility requirements: a suitable
+candidate may have different labels. Compare the supplied product specification, dimensions,
+material_type, unit and pack_quantity against the audited requirements.
+Match dimensions, material type, grade, specifications
 and units, not just similar names. Check pack_quantity and coverage against the needed unit.
 For broad large-project estimates, match the stated material type and intended use without
 requiring dimensions or grades that were never requested. Calculation assumptions in notes

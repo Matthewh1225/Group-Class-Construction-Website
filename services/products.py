@@ -4,6 +4,15 @@ from utils.database import database_cursor
 
 PAGE_SIZE = 12
 
+UNIT_ALIASES = {"linear_ft": "ft", "linear feet": "ft", "each": "piece", "feet": "ft", "foot": "ft", "inches": "in", "inch": "in", "meters": "m", "metres": "m", "square feet": "sq_ft", "sq ft": "sq_ft",
+                "square meters": "sq_m", "sq m": "sq_m", "layers": "count", "layer": "count", "coats": "count", "coat": "count", "gallons": "gallon", "sheets": "sheet", "pieces": "piece",
+                "rolls": "roll", "screws": "screw", "boxes": "box", "bags": "bag"}
+
+
+def normalize_unit(unit):
+    text = unit.strip().lower()
+    return UNIT_ALIASES.get(text, text)
+
 
 def get_all_manufacturers():
     with database_cursor() as cursor:
@@ -68,12 +77,27 @@ def search_products(search=None, category_url_name=None, page=1, manufacturer_id
 
     return products, total_pages
 
-# Only the Matcher receives inventory. Search every active product, not the first 400.
+def get_catalog_classifications():
+    # Separate enums do not describe which subcategories belong to each category.
+    with database_cursor() as cursor:
+        cursor.execute("""
+            SELECT DISTINCT category, subCategory AS subcategory
+            FROM Product ORDER BY category, subCategory
+        """)
+        rows = cursor.fetchall()
+    classifications = {}
+    for row in rows:
+        classifications.setdefault(row["category"], []).append(row["subcategory"])
+    return classifications
+
+
+# Only the Matcher receives products. Search every active product.
 def get_planner_catalog(machinery=False, materials=None):
 
     sql = """
         SELECT p.id AS product_id, p.name AS product_name, p.unit, p.details AS specification,
-               p.itemQty AS pack_quantity, p.keywords, p.category, p.subCategory AS subcategory
+               p.itemQty AS pack_quantity, p.keywords, p.category, p.subCategory AS subcategory,
+               p.dimensions, p.materials AS material_type
         FROM Product p
         WHERE p.isActive = 1
     """
@@ -86,25 +110,45 @@ def get_planner_catalog(machinery=False, materials=None):
         cursor.execute(sql, ("heavy-machinery",))
         products = cursor.fetchall()
     if materials is not None and not machinery:
-        selected = {}
-        for material in materials:
+        groups = []
+        for index, material in enumerate(materials):
             name_words = catalog_words(material["material_name"])
             spec_words = catalog_words(material["specification"])
+            requirement_words = name_words | spec_words
             ranked = []
-            for product in products:
+            # Check the suggested category first, but let stronger matches elsewhere win.
+            preferred = [p for p in products if p["category"] == material.get("category")]
+            others = [p for p in products if p["category"] != material.get("category")]
+            for product in preferred + others:
                 product_words = catalog_words(product["product_name"])
                 search_words = catalog_words((product["keywords"] or "") + " " + product["subcategory"])
                 name_matches = len(name_words & product_words)
                 keyword_matches = len(name_words & search_words)
-                if not name_matches and not keyword_matches:
+                # A shared size alone does not make two product types related.
+                shared_names = name_words & (product_words | search_words)
+                if not any(word.isalpha() for word in shared_names):
                     continue
+                spec_name_matches = len(spec_words & product_words)
                 spec_matches = len(spec_words & catalog_words(product["specification"] or ""))
-                score = 5 * name_matches + keyword_matches + 2 * spec_matches
+                dimension_matches = len(requirement_words & catalog_words(product["dimensions"] or ""))
+                type_matches = len(requirement_words & catalog_words(product["material_type"] or ""))
+                score = 5 * name_matches + keyword_matches + 5 * spec_name_matches + 2 * spec_matches
+                score += 2 * dimension_matches + 3 * type_matches
+                if normalize_unit(material["unit"]) == normalize_unit(product["unit"]):
+                    score += 3
+                if product["category"] == material.get("category"):
+                    score += 2
+                if product["subcategory"] == material.get("subcategory"):
+                    score += 1
                 ranked.append((score, product))
             ranked.sort(key=lambda entry: (-entry[0], entry[1]["product_id"]))
-            for score, product in ranked[:12]:
-                selected[product["product_id"]] = product
-        products = list(selected.values())
+            candidates = []
+            for score, product in ranked[:10]:
+                candidate = dict(product)
+                del candidate["keywords"]
+                candidates.append(candidate)
+            groups.append({"material_index": index, "candidates": candidates})
+        return groups
     for product in products:
         del product["keywords"]
     return products
@@ -112,7 +156,7 @@ def get_planner_catalog(machinery=False, materials=None):
 
 def catalog_words(text):
     words = set()
-    for word in re.findall(r"[a-z0-9]+", text.lower()):
+    for word in re.findall(r"[a-z]+|\d+(?:\.\d+)?", text.lower()):
         if word in {"a", "an", "the", "for", "of", "and", "with", "in", "x", "ft", "required"}:
             continue
         if len(word) > 3 and word.endswith("s") and not word.endswith("ss"):
