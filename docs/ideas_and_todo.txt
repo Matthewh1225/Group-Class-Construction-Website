@@ -2,8 +2,6 @@
 1. Password recovery by email
 2. Email verification and automatic emails (promos, discount codes, in-progress project reminders)
 
-4. Auto-logout after a period of inactivity
-
 5. Metric/imperial unit selection for users
 
 6. Back up important database data

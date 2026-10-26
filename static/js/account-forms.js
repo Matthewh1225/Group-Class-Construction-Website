@@ -1,11 +1,11 @@
 
 // Use the same password rules as Python.
-export function passwordChecks(value) {
+export function passwordChecks(value, maximumLength) {
     let characterCount = 0;
     for (const character of value) {
         characterCount += 1;
     }
-    return { length: characterCount >= 3, number: /[0-9]/.test(value) };
+    return { length: characterCount >= 3, maximum: characterCount <= maximumLength, number: /[0-9]/.test(value) };
 }
 
 export async function submitAccountForm(form, message, data) {

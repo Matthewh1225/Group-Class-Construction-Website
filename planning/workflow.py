@@ -47,9 +47,7 @@ def run_stage(tier, role, record_type, inputs, instructions):
     stage_name = role.replace("_", " ")
 
     try:
-        text = ask_model(settings["model"], json.dumps(inputs, ensure_ascii=False),
-                         settings["reasoning"], instructions, schema,
-                         settings["output_tokens"])
+        text = ask_model(settings["model"], json.dumps(inputs, ensure_ascii=False),settings["reasoning"], instructions, schema, settings["output_tokens"])
         output = record_type.model_validate_json(text).model_dump()
         if record_type is AuditedEstimate:
             catalog_ids = {product["product_id"] for product in inputs.get("catalog", [])}
@@ -57,7 +55,6 @@ def run_stage(tier, role, record_type, inputs, instructions):
             output["crew"]["label"] = "AI-estimated crew"
             output["crew"] = check_crew(output["crew"])
         elif record_type is DraftEstimate:
-            # Drafts describe materials; only the auditor assigns store IDs.
             for material in output["materials"]:
                 material["product_id"] = None
         return output

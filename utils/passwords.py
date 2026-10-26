@@ -3,7 +3,7 @@ from argon2.exceptions import VerificationError
 from argon2.low_level import Type, verify_secret
 
 MIN_PASSWORD_LENGTH = 3
-MAX_PASSWORD_LENGTH = 128
+MAX_PASSWORD_LENGTH = 50
 
 password_hasher = PasswordHasher(type=Type.ID)
 

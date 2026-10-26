@@ -32,7 +32,7 @@
             <label for="password">Password</label>
             <div class="password-field">
                 {# Starts readonly so the browser's password manager won't fill it; login.js unlocks it on focus. #}
-                <input type="password" id="password" name="password" autocomplete="new-password" readonly required>
+                <input type="password" id="password" name="password" autocomplete="new-password" maxlength="{{ password_max_length }}" readonly required>
                 <button class="password-toggle" type="button" aria-controls="password" aria-pressed="false" hidden>Show</button>
             </div>
         </div>
