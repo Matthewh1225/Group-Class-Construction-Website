@@ -25,21 +25,21 @@ PRO_PLANS = {
 }
 
 
-# proDate is the last day of Pro access; NULL means none.
+# pro_expires_on is the last day of Pro access; NULL means none.
 def has_active_pro(user_id):
     with database_cursor() as cursor:
-        cursor.execute("SELECT 1 FROM Customer WHERE userId = %s AND proDate >= CURDATE()", (user_id,))
+        cursor.execute("SELECT 1 FROM `User` WHERE id = %s AND pro_expires_on >= CURDATE()", (user_id,))
         return cursor.fetchone() is not None
 
 
 def get_user_subscription(user_id):
     with database_cursor() as cursor:
-        cursor.execute("SELECT proDate, proDate >= CURDATE() AS active FROM Customer WHERE userId = %s", (user_id,))
+        cursor.execute("SELECT pro_expires_on, pro_expires_on >= CURDATE() AS active FROM `User` WHERE id = %s", (user_id,))
         row = cursor.fetchone()
-    if row is None or row["proDate"] is None:
+    if row is None or row["pro_expires_on"] is None:
         return None
     if row["active"]:
         status = "active"
     else:
         status = "expired"
-    return {"plan_name": "Pro", "status": status, "current_period_end": row["proDate"]}
+    return {"plan_name": "Pro", "status": status, "current_period_end": row["pro_expires_on"]}

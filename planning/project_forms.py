@@ -15,7 +15,6 @@ def read_number(form, name, label, minimum, whole=False, default=None):
 
 
 def read_choice(form, name, label, choices=("no", "yes")):
-    # Unchecked boxes mean no; dropdowns start with their first option.
     value = form.get(name, choices[0])
     if value not in choices:
         raise ValueError(f"Choose a valid option for {label}.")

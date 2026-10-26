@@ -15,6 +15,8 @@ STATUS_LABELS = {
 
 
 def status_label(job):
+    if job.get("status") == "running" and job.get("stages", {}).get("matcher") == "processing":
+        return "Matching products and machinery", "neutral"
     return STATUS_LABELS.get(job.get("status"), ("Status unavailable", "neutral"))
 
 
@@ -26,10 +28,13 @@ STAGE_STATUS_LABELS = {
 
 def stage_rows(job):
     names = {"interpreter": "Interpreter", "planner": "Planner",
-             "second_planner": "Planner 2", "auditor": "Auditor"}
+             "second_planner": "Planner 2", "auditor": "Auditor", "matcher": "Catalog & Machinery Matcher"}
     stages = job.get("stages") or {}
     rows = []
     for name in pending_stages(job["tier"]):
+        # Finished older plans did not have a Matcher stage.
+        if name == "matcher" and name not in stages and job.get("status") in ("complete", "failed", "cancelled"):
+            continue
         state = stages.get(name, "pending")
         rows.append({"name": name, "label": names[name], "state": state,
                      "status_label": STAGE_STATUS_LABELS.get(state, "Status unavailable")})
@@ -67,7 +72,7 @@ def project_spec_rows(project):
     return rows
 
 
-UNIT_ALIASES = {"feet": "ft", "foot": "ft", "inches": "in", "inch": "in","meters": "m", "metres": "m", "square feet": "sq_ft", "sq ft": "sq_ft",
+UNIT_ALIASES = {"linear_ft": "ft", "linear feet": "ft", "each": "piece", "feet": "ft", "foot": "ft", "inches": "in", "inch": "in","meters": "m", "metres": "m", "square feet": "sq_ft", "sq ft": "sq_ft",
                 "square meters": "sq_m", "sq m": "sq_m", "layers": "count","layer": "count", "coats": "count", "coat": "count", "gallons": "gallon", "sheets": "sheet", "pieces": "piece",
                 "rolls": "roll", "screws": "screw", "boxes": "box", "bags": "bag"}
 
@@ -158,3 +163,19 @@ def cart_total(items):
     for item in items:
         total += item["quantity"] * item["product"]["unit_price"]
     return total
+
+
+def add_machinery_details(machinery):
+    products = get_products_by_ids([item["product_id"] for item in machinery])
+    rows = []
+    for item in machinery:
+        row = dict(item)
+        product = products.get(item["product_id"])
+        if product is not None and product["category"] != "heavy-machinery":
+            product = None
+        row["product"] = product
+        row["line_total"] = None
+        if product is not None and product["unit_price"] is not None:
+            row["line_total"] = item["quantity"] * product["unit_price"]
+        rows.append(row)
+    return rows

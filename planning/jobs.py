@@ -51,6 +51,7 @@ def pending_stages(tier):
     if tier == "pro":
         stages["second_planner"] = "pending"
     stages["auditor"] = "pending"
+    stages["matcher"] = "pending"
     return stages
 
 

@@ -1,5 +1,5 @@
 import json
-
+import math
 CREW_RATES = {
     "general": {"name": "General labor", "rate": 40},
     "carpenter": {"name": "Carpenters", "rate": 55},
@@ -16,8 +16,8 @@ CREW_RATES = {
 }
 
 HOURS_PER_DAY = 8
-MAX_WORKERS = 99
-MAX_DAYS = 1000
+MAX_WORKERS = 9999
+MAX_DAYS = 365*10
 
 
 def read_days(value):

@@ -185,6 +185,40 @@
         </section>
     {% endif %}
 
+    {% if job.result and 'machinery' in job.result %}
+        <section class="plan-crew" id="plan-machinery" aria-labelledby="machinery-title">
+            <h2 id="machinery-title">Suggested machinery</h2>
+            <p class="plan-muted">Listed separately from the materials and crew estimates.</p>
+            {% for item in machinery %}
+                <article class="plan-machine">
+                    <h3>{{ item.product.product_name if item.product else 'Catalog machine #' ~ item.product_id }}</h3>
+                    <p><strong>{{ 'Required' if item.required else 'Optional' }}</strong> &middot; Suggested quantity: {{ item.quantity }}</p>
+                    <p>{{ item.justification }}</p>
+                    {% if item.product %}
+                        {% if item.product.unit_price is not none %}
+                            <p>{{ money(item.product.unit_price) }} per {{ item.product.unit }} &middot; Estimated machinery subtotal: {{ money(item.line_total) }}</p>
+                        {% else %}
+                            <p class="plan-muted">Price unavailable.</p>
+                        {% endif %}
+                        {% if item.product.available_quantity <= 0 %}
+                            <p class="plan-warning">Out of stock.</p>
+                        {% elif item.product.available_quantity < item.quantity %}
+                            <p class="plan-warning">Only {{ item.product.available_quantity|amount }} in stock; {{ item.quantity }} suggested.</p>
+                        {% else %}
+                            <p class="plan-muted">{{ item.product.available_quantity|amount }} in stock.</p>
+                        {% endif %}
+                        <a href="{{ url_for('products.heavy_machinery', query=item.product.product_name) }}">View machinery in store</a>
+                    {% else %}
+                        <p class="plan-muted">This machine is no longer available in the catalog.</p>
+                        <a href="{{ url_for('products.heavy_machinery') }}">Browse machinery</a>
+                    {% endif %}
+                </article>
+            {% else %}
+                <p>No catalog machinery was recommended for this project.</p>
+            {% endfor %}
+        </section>
+    {% endif %}
+
     {% if job.result %}
         <section class="plan-crew" aria-label="AI-estimated crew">
             {% with recommendation=crew_recommendation %}

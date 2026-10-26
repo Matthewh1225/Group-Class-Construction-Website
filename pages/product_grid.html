@@ -1,7 +1,7 @@
                 <div class="catalog-grid">
                     {% for product in products %}
                         <article class="product-card">
-                            {# Products share their category's picture (see CATEGORY_IMAGES in routes/products.py).
+                            {# Products share their category's picture
                                If that file is missing, the browser swaps in the placeholder. #}
                             <div class="product-image grid-bg">
                                 <img src="{{ url_for('static', filename=product.image) }}" alt="" width="480" height="320" loading="lazy"
@@ -11,12 +11,8 @@
                             <div class="product-body">
                                 <p class="product-category">{{ product.category_name or 'Materials & tools' }}</p>
                                 <h3 class="product-name" title="{{ product.product_name }}">{{ product.product_name }}</h3>
-                                {% if product.specification %}
-                                    <p class="product-specification" title="{{ product.specification }}">{{ product.specification }}</p>
-                                {% endif %}
                                 {% if product.manufacturer_name %}<p class="product-manufacturer">{{ product.manufacturer_name }}</p>{% endif %}
                                 <p class="product-meta">
-                                    {% if product.sku %}<span>SKU {{ product.sku }}</span>{% endif %}
                                     {% if product.pack_quantity > 1 %}<span>{{ '%g'|format(product.pack_quantity) }} per {{ product.unit }}</span>{% endif %}
                                 </p>
                             </div>

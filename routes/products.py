@@ -1,3 +1,5 @@
+import os
+
 from flask import Blueprint, abort, current_app, render_template, request
 from mysql.connector import Error
 
@@ -19,6 +21,11 @@ PRODUCT_CATEGORIES = [
     {"url_name": "flooring", "code": "MAT-10", "name": "Flooring & Tile"},
     {"url_name": "paint", "code": "MAT-11", "name": "Paint & Supplies"},
     {"url_name": "doors-windows", "code": "MAT-12", "name": "Doors & Windows"},
+    {"url_name": "structural-metals", "code": "MAT-13", "name": "Structural Metals"},
+    {"url_name": "facility-equipment", "code": "MAT-14", "name": "Facility Equipment"},
+    {"url_name": "fire-safety", "code": "MAT-15", "name": "Fire Protection & Safety"},
+    {"url_name": "vertical-transportation", "code": "MAT-16", "name": "Elevators & Escalators"},
+    {"url_name": "sitework", "code": "MAT-17", "name": "Sitework & Landscaping"},
 ]
 
 # Products share a category image; paths are relative to static/.
@@ -38,6 +45,15 @@ CATEGORY_IMAGES = {
     "doors-windows": "images/Doors & Windows.png",
     "heavy-machinery": "images/Heavy Machinery.png",
 }
+
+
+# clean name andd find image for each
+def find_machine_image(machine_name):
+    file_name = machine_name.strip().lower().replace(" ", "-") + ".png"
+    image_path = "images/machines/" + file_name
+    if os.path.exists(os.path.join(current_app.static_folder, image_path)):
+        return image_path
+    return None
 
 
 def find_category(url_name):
@@ -119,5 +135,9 @@ def heavy_machinery():
 
     for machine in catalog["products"]:
         machine["category_name"] = "Heavy Machinery"
+        # Use the machine's own picture when there is one; otherwise keep the shared image.
+        machine_image = find_machine_image(machine["product_name"])
+        if machine_image is not None:
+            machine["image"] = machine_image
 
     return render_template("heavy_machinery.html", **catalog)

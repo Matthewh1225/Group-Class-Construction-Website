@@ -1,4 +1,4 @@
-<h3>{{ recommendation.label or 'AI-estimated crew' }}</h3>
+<h3>{{ recommendation.label if recommendation else 'AI-estimated crew' }}</h3>
 {% if recommendation %}
 <p>Estimated completion: {{ recommendation.days[0] }}–{{ recommendation.days[1] }} working days, assuming {{ hours_per_day }}-hour workdays.</p>
 <ul>
@@ -9,5 +9,5 @@
 {% if crew_estimate %}<p>Estimated labor cost: <strong>{{ crew_estimate.cost }}</strong></p>{% endif %}
 <a href="{{ crew_url }}">Review and adjust crew</a>
 {% else %}
-<p>A crew could not be estimated from the supplied project details.</p>
+<p>The AI did not return a crew.</p>
 {% endif %}

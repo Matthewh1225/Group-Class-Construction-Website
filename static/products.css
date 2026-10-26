@@ -159,6 +159,8 @@
 }
 
 .category-more-menu {
+    max-height: 60vh;
+    overflow-y: auto;
     display: none;
     position: absolute;
     top: 100%;

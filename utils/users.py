@@ -88,7 +88,6 @@ def create_user(data, permission_level="user"):
         cursor.execute("INSERT INTO Customer (userId) VALUES (%s)", (user_id,))
     return user_id
 
-# Google already verified the email, so sign in the matching account or make one.
 def find_or_create_google_user(email, first_name, last_name):
     with database_cursor() as cursor:
         cursor.execute(
