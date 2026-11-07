@@ -8,7 +8,7 @@ from mysql.connector import Error as MySQLError
 from openrouter.errors import NoResponseError, OpenRouterError
 from pydantic import ValidationError
 
-from services.products import get_catalog_classifications, get_planner_catalog
+from services.products import get_catalog_classifications, get_material_candidates, get_machinery_catalog
 from services.crews import CREW_RATES, HOURS_PER_DAY, MAX_DAYS, MAX_WORKERS, check_crew
 
 from . import ai_config
@@ -61,6 +61,35 @@ def describe_error(error):
     return "the AI request failed without a specific error code"
 
 
+def clean_audited_estimate(output, classifications):
+    for material in output["materials"]:
+        category = material["category"]
+        subcategory = material["subcategory"]
+        if category not in classifications:
+            material["category"] = None
+            material["subcategory"] = None
+        elif subcategory not in classifications[category]:
+            material["subcategory"] = None
+
+    crew = output["crew"]
+    if crew is None:
+        return output
+
+    # Zero-worker roles do not contribute to the crew or its cost.
+    members = []
+    for member in crew["members"]:
+        if member["workers"] > 0:
+            members.append(member)
+    crew["members"] = members
+    if not members:
+        output["crew"] = None
+        return output
+
+    crew["label"] = "AI-estimated crew"
+    output["crew"] = check_crew(crew)
+    return output
+
+
 def run_stage(tier, role, record_type, inputs, instructions):
     settings = ai_config.WORKFLOW_TIERS[tier][role]
     schema = record_type.model_json_schema()
@@ -75,24 +104,7 @@ def run_stage(tier, role, record_type, inputs, instructions):
             for material in output["materials"]:
                 material["product_id"] = None
         if record_type is AuditedEstimate:
-            classifications = inputs["classifications"]
-            for material in output["materials"]:
-                category = material["category"]
-                subcategory = material["subcategory"]
-                if category is not None and category not in classifications:
-                    raise ValueError("The Auditor returned an unknown category")
-                if subcategory is not None:
-                    if category is None or subcategory not in classifications[category]:
-                        raise ValueError("The Auditor returned a subcategory outside its category")
-            crew = output["crew"]
-            if crew is not None:
-                # Zero-worker roles do not contribute to the crew or its cost.
-                crew["members"] = [member for member in crew["members"] if member["workers"] > 0]
-            if crew is not None and crew["members"]:
-                crew["label"] = "AI-estimated crew"
-                output["crew"] = check_crew(crew)
-            else:
-                output["crew"] = None
+            output = clean_audited_estimate(output, inputs["classifications"])
         elif record_type is CatalogMatches:
             output = merge_catalog_matches(inputs["estimate"], output,
                                            inputs["material_candidates"], inputs["machinery_catalog"])
@@ -179,8 +191,8 @@ def run_workflow(job, save_progress):
     matcher_inputs = dict(planner_inputs)
     matcher_inputs["estimate"] = result
     try:
-        matcher_inputs["material_candidates"] = get_planner_catalog(materials=result["materials"])
-        matcher_inputs["machinery_catalog"] = get_planner_catalog(machinery=True)
+        matcher_inputs["material_candidates"] = get_material_candidates(result["materials"])
+        matcher_inputs["machinery_catalog"] = get_machinery_catalog()
     except MySQLError as error:
         raise PlanningError("The matcher step failed: the product and machinery catalogs could not be loaded.") from error
     result = run_stage(tier, "matcher", CatalogMatches, matcher_inputs,

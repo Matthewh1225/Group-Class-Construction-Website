@@ -1,7 +1,7 @@
 {% macro project_list(jobs, label, offset=0) %}
 <ol class="plan-register" aria-label="{{ label }}">
     <li class="plan-register-head" aria-hidden="true">
-        <span>No.</span><span>Project</span><span>Mode</span><span>Status</span><span>Updated</span><span></span>
+        <span>No.</span><span>Project</span><span>Mode</span><span>{{ 'Project status' if request.endpoint == 'dashboard.projects' else 'Plan status' }}</span><span>Updated</span><span></span>
     </li>
     {% for job in jobs %}
         <li>
@@ -13,7 +13,11 @@
                 </span>
                 <span class="plan-row-meta">
                     <span class="plan-row-tier">{{ workflow_tiers[job.tier].label }}{% if job.result %} &middot; {{ job.result.materials|length }} material{{ '' if job.result.materials|length == 1 else 's' }}{% endif %}</span>
-                    <span class="status-tag status-{{ job.planning_status_tone }}">{{ job.planning_status_label }}</span>
+                    {% if request.endpoint == 'dashboard.projects' %}
+                        <span class="status-tag status-{{ job.project_status_tone }}">{{ job.project_status_label }}</span>
+                    {% else %}
+                        <span class="status-tag status-{{ job.planning_status_tone }}">{{ job.planning_status_label }}</span>
+                    {% endif %}
                     <time class="plan-row-date" data-timestamp="{{ job.updated }}"></time>
                 </span>
                 <span class="plan-row-arrow" aria-hidden="true">&rarr;</span>
@@ -28,11 +32,7 @@
                         <button class="dashboard-button dashboard-button-secondary" type="submit">Remove from Saved Projects</button>
                     </form>
                 {% elif job.can_save %}
-                    <form method="post" action="{{ url_for('planner.planning_job_save', job_id=job.id) }}">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <input type="hidden" name="return_to" value="history">
-                        <button class="dashboard-button dashboard-button-secondary" type="submit">Save Project</button>
-                    </form>
+                    <a class="dashboard-button dashboard-button-secondary" href="{{ url_for('planner.planning_job', job_id=job.id, _anchor='save-project') }}">Review and save</a>
                 {% endif %}
             </div>
         </li>

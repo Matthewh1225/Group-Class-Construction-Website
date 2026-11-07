@@ -8,8 +8,7 @@ class PlanningError(Exception):
 
 
 class Record(BaseModel):
-    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False,
-                              str_strip_whitespace=True)
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False, str_strip_whitespace=True)
 
 
 class Specification(Record):

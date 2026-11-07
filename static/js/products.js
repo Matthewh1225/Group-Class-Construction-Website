@@ -33,6 +33,8 @@ if (moreCategories) {
         moreButton.setAttribute("aria-expanded", String(open));
     }
 
+    setMoreMenuOpen(false);
+
     moreButton.addEventListener("click", function () {
         const isOpen = moreCategories.classList.contains("is-open");
         setMoreMenuOpen(!isOpen);

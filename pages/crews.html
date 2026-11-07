@@ -20,13 +20,16 @@
         <input type="hidden" name="crew" id="crew-input">
         <div class="crew-fields">
             <label class="crew-name"><span>Crew name</span><input id="crew-label" maxlength="120" required value="Custom crew"></label>
-            <label><span>days(min)</span><input id="project-days-min" type="number" min="1" max="{{ max_days }}" step="1" required value="1"></label>
-            <label><span>days(max)</span><input id="project-days-max" type="number" min="1" max="{{ max_days }}" step="1" required value="1"></label>
+            <label><span>Project days (min)</span><input id="project-days-min" type="number" min="1" max="{{ max_days }}" step="1" required value="1"></label>
+            <label><span>Project days (max)</span><input id="project-days-max" type="number" min="1" max="{{ max_days }}" step="1" required value="1"></label>
         </div>
+        {% if crew_data.savedCrew %}
+            <p class="crews-note">Saved trade days stay unchanged when you edit the project duration. New trades use the project duration.</p>
+        {% endif %}
         <div class="crew-table-wrap" tabindex="0" role="region" aria-label="Crew workers by role">
             <table class="crew-table">
                 <caption class="sr-only">Workers and estimated labor costs by role</caption>
-                <thead><tr><th scope="col">Role</th><th scope="col">Rate / hour</th><th scope="col">Workers</th><th scope="col">Labor cost</th></tr></thead>
+                <thead><tr><th scope="col">Role</th><th scope="col">Rate / hour</th><th scope="col">Workers</th><th scope="col">Days on site</th><th scope="col">Labor cost</th></tr></thead>
                 <tbody>
                     {% for role, info in crew_rates.items() %}
                     <tr data-role="{{ role }}">
@@ -39,6 +42,7 @@
                                 <button type="button" data-worker-step="1" aria-label="Increase {{ info.name }} workers" disabled>+</button>
                             </div>
                         </td>
+                        <td data-days>&mdash;</td>
                         <td data-cost>$0</td>
                     </tr>
                     {% endfor %}

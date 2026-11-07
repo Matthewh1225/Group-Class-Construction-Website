@@ -1,8 +1,8 @@
 {% extends "base.html" %}
-{% from "cart/cart_components.html" import money %}
+{% from "cart/cart_components.html" import format_money_cents %}
 {% set plan = plans[selected_plan] %}
 
-{% block title %}Pro checkout - BuildBetter{% endblock %}
+{% block title %}Pro pricing preview - BuildBetter{% endblock %}
 {% block body_attributes %} class="shopping-body"{% endblock %}
 {% block styles %}
     <link rel="stylesheet" href="{{ url_for('static', filename='checkout.css') }}">
@@ -14,11 +14,12 @@
     <nav class="sub-checkout-breadcrumb" aria-label="Breadcrumb">
         <a href="{{ url_for('planner.planner') }}">AI Planner</a>
         <span aria-hidden="true">/</span>
-        <span aria-current="page">Pro membership</span>
+        <span aria-current="page">Pro pricing preview</span>
     </nav>
     <header class="sub-heading">
         <div>
             <h1>Quantum Ultra Deep Pro Max+</h1>
+            <p>Pricing preview only. Payments and subscriptions are not available. No payment will be taken or Pro access activated.</p>
         </div>
     </header>
     <div id="checkout-error" class="sub-checkout-error" role="alert" tabindex="-1" {% if not checkout_error %}hidden{% endif %}>
@@ -38,7 +39,7 @@
                             <input id="plan-{{ key }}" type="radio" name="plan" value="{{ key }}" {% if key == selected_plan %}checked{% endif %} required>
                             <span class="sub-plan-name">{{ option.name }}</span>
                             <span class="sub-plan-tag">{{ option.badge }}</span>
-                            <span class="sub-plan-price">{{ money(option.amount_cents) }}</span>
+                            <span class="sub-plan-price">{{ format_money_cents(option.price) }}</span>
                             <span class="sub-plan-frequency">{{ option.frequency }}</span>
                             <span class="sub-plan-detail">{{ option.detail }}</span>
                         </label>
@@ -46,9 +47,9 @@
                 </div>
             </fieldset>
 
-            <fieldset class="sub-panel">
-                <legend class="sr-only">Payment method</legend>
-                <div class="sub-section-heading"><span>02</span><h2>Payment method</h2></div>
+            <fieldset class="sub-panel" disabled>
+                <legend class="sr-only">Payment form preview</legend>
+                <div class="sub-section-heading"><span>02</span><h2>Payment form preview</h2></div>
                 {# No name attributes: these fields are not included in the checkout request. #}
                 <div class="sub-payment-fields">
                     <div class="sub-payment-field">
@@ -79,13 +80,15 @@
             <div class="sub-summary-heading"><span class="sub-pro-mark">PRO</span><div><p></p></div></div>
             <div id="plan-summary" aria-live="polite" aria-atomic="true">
                 <dl class="sub-summary-lines">
-                    <div><dt id="summary-plan">{{ plan.name }}</dt><dd id="summary-price">{{ money(plan.amount_cents) }}</dd></div>
-                    <div><dt>Billing</dt><dd id="summary-billing">{{ plan.billing }}</dd></div>
+                    <div><dt id="summary-plan">{{ plan.name }}</dt><dd id="summary-price">{{ format_money_cents(plan.price) }}</dd></div>
+                    <div><dt>Example billing</dt><dd id="summary-billing">{{ plan.billing }}</dd></div>
                     <div id="yearly-savings" class="sub-savings" {% if not plan.savings_cents %}hidden{% endif %}>
+                        <dt>Annual savings vs. monthly</dt><dd id="summary-savings">{{ format_money_cents(plans.yearly.savings_cents) }}</dd>
                     </div>
                 </dl>
-                <div class="sub-total"><div><span>Total due today</span><small>USD</small></div><strong id="summary-total">{{ money(plan.amount_cents) }}</strong></div>
+                <div class="sub-total"><div><span>Example price</span><small>USD</small></div><strong id="summary-total">{{ format_money_cents(plan.price) }}</strong></div>
             </div>
+            <p id="summary-terms">{{ plan.terms }}</p>
             <button id="subscription-submit" class="shopping-button shopping-primary sub-submit" type="submit">
                 <span id="checkout-button-label">{{ plan.button_label }}</span>
                 <span class="sub-submit-arrow" aria-hidden="true">&rarr;</span>

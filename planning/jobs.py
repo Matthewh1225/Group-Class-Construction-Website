@@ -9,7 +9,7 @@ from utils.database import database_cursor
 
 from .ai_config import WORKFLOW_TIERS
 
-LEASE_SECONDS = 15 * 60  # seconds before an unsaved job is interrupted
+LEASE_SECONDS = 15 * 60  # Worker lease duration; renewed when progress is saved.
 MAX_RUNNING_JOBS = 2
 MAX_QUEUED_JOBS = 100
 MAX_REQUEST_BYTES = 20000
@@ -114,9 +114,9 @@ def submit_job(owner, submission_key, project, tier="fast", answers=None):
             "SELECT COUNT(*) AS total FROM planner_jobs WHERE owner = %s AND tier = %s AND created >= %s",
             (owner, tier, now - ONE_DAY),
         )
-        jobs_today = cursor.fetchone()["total"]
-        if jobs_today >= WORKFLOW_TIERS[tier]["daily_jobs"]:
-            raise ValueError("Your daily planning allowance has been reached.")
+        jobs_last_24h = cursor.fetchone()["total"]
+        if jobs_last_24h >= WORKFLOW_TIERS[tier]["max_jobs_per_24h"]:
+            raise ValueError("This planning mode's limit for the past 24 hours has been reached.")
         check_queue_capacity(cursor, owner)
         cursor.execute(
             "INSERT INTO planner_jobs (id, owner, submission_key, request_hash, tier, status, created, updated, data) VALUES (%s, %s, %s, %s, %s, 'queued', %s, %s, %s)",

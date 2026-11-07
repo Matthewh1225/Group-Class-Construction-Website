@@ -1,8 +1,15 @@
-import re
-
 from utils.database import database_cursor
 
 PAGE_SIZE = 12
+
+CATALOG_SYNONYMS = {
+    "gypsum board": "drywall",
+    "wallboard": "drywall gypsum board",
+    "drawer runners": "drawer slides",
+    "cupboard": "cabinet",
+    "abrasive paper": "sandpaper sanding sheets",
+    "carcass backing": "cabinet backs plywood",
+}
 
 UNIT_ALIASES = {"linear_ft": "ft", "linear feet": "ft", "each": "piece", "feet": "ft", "foot": "ft", "inches": "in", "inch": "in", "meters": "m", "metres": "m", "square feet": "sq_ft", "sq ft": "sq_ft",
                 "square meters": "sq_m", "sq m": "sq_m", "layers": "count", "layer": "count", "coats": "count", "coat": "count", "gallons": "gallon", "sheets": "sheet", "pieces": "piece",
@@ -56,9 +63,11 @@ def search_products(search=None, category_url_name=None, page=1, manufacturer_id
         values.append(manufacturer_id)
 
     if search:
-        pattern = "%" + search + "%"
-        filters += " AND (p.name LIKE %s OR p.keywords LIKE %s OR p.sku LIKE %s OR p.details LIKE %s)"
-        values.extend([pattern, pattern, pattern, pattern])
+        # All words must occur, but they need not form one exact phrase.
+        for word in search.split():
+            pattern = "%" + word + "%"
+            filters += " AND (p.name LIKE %s OR p.keywords LIKE %s OR p.sku LIKE %s OR p.details LIKE %s)"
+            values.extend([pattern, pattern, pattern, pattern])
 
     if category_url_name:
         filters += " AND p.category = %s"
@@ -91,78 +100,75 @@ def get_catalog_classifications():
     return classifications
 
 
-# Only the Matcher receives products. Search every active product.
-def get_planner_catalog(machinery=False, materials=None):
+# Only the Matcher receives products.
+PLANNER_PRODUCT_FIELDS = """
+    p.id AS product_id, p.name AS product_name, p.unit, p.details AS specification,
+    p.itemQty AS pack_quantity, p.category, p.subCategory AS subcategory,
+    p.dimensions, p.materials AS material_type
+"""
 
-    sql = """
-        SELECT p.id AS product_id, p.name AS product_name, p.unit, p.details AS specification,
-               p.itemQty AS pack_quantity, p.keywords, p.category, p.subCategory AS subcategory,
-               p.dimensions, p.materials AS material_type
-        FROM Product p
-        WHERE p.isActive = 1
-    """
-    if machinery:
-        sql += " AND p.category = %s"
-    else:
-        sql += " AND p.category <> %s"
-    sql += " ORDER BY p.id"
+
+def get_machinery_catalog():
     with database_cursor() as cursor:
-        cursor.execute(sql, ("heavy-machinery",))
-        products = cursor.fetchall()
-    if materials is not None and not machinery:
-        groups = []
+        cursor.execute("SELECT " + PLANNER_PRODUCT_FIELDS
+                       + " FROM Product p WHERE p.isActive = 1 AND p.category = %s ORDER BY p.id",
+                       ("heavy-machinery",))
+        return cursor.fetchall()
+
+
+def get_material_candidates(materials):
+    if not materials:
+        return []
+
+    classifications = get_catalog_classifications()
+    match = "MATCH(p.name, p.details, p.keywords, p.dimensions, p.materials)"
+    groups = []
+    with database_cursor() as cursor:
         for index, material in enumerate(materials):
-            name_words = catalog_words(material["material_name"])
-            spec_words = catalog_words(material["specification"])
-            requirement_words = name_words | spec_words
-            ranked = []
-            # Check the suggested category first, but let stronger matches elsewhere win.
-            preferred = [p for p in products if p["category"] == material.get("category")]
-            others = [p for p in products if p["category"] != material.get("category")]
-            for product in preferred + others:
-                product_words = catalog_words(product["product_name"])
-                search_words = catalog_words((product["keywords"] or "") + " " + product["subcategory"])
-                name_matches = len(name_words & product_words)
-                keyword_matches = len(name_words & search_words)
-                # A shared size alone does not make two product types related.
-                shared_names = name_words & (product_words | search_words)
-                if not any(word.isalpha() for word in shared_names):
-                    continue
-                spec_name_matches = len(spec_words & product_words)
-                spec_matches = len(spec_words & catalog_words(product["specification"] or ""))
-                dimension_matches = len(requirement_words & catalog_words(product["dimensions"] or ""))
-                type_matches = len(requirement_words & catalog_words(product["material_type"] or ""))
-                score = 5 * name_matches + keyword_matches + 5 * spec_name_matches + 2 * spec_matches
-                score += 2 * dimension_matches + 3 * type_matches
-                if normalize_unit(material["unit"]) == normalize_unit(product["unit"]):
-                    score += 3
-                if product["category"] == material.get("category"):
-                    score += 2
-                if product["subcategory"] == material.get("subcategory"):
-                    score += 1
-                ranked.append((score, product))
-            ranked.sort(key=lambda entry: (-entry[0], entry[1]["product_id"]))
+            name = material["material_name"]
+            search_name = name
+            for phrase, synonym in CATALOG_SYNONYMS.items():
+                if phrase in name.lower():
+                    search_name += " " + synonym
+            search_text = search_name + " " + material["specification"]
+
+            category = material.get("category")
+            subcategory = material.get("subcategory")
+            scopes = []
+            if category in classifications:
+                if subcategory in classifications[category]:
+                    scopes.append((category, subcategory))
+                scopes.append((category, None))
+            scopes.append((None, None))
+
             candidates = []
-            for score, product in ranked[:10]:
-                candidate = dict(product)
-                del candidate["keywords"]
-                candidates.append(candidate)
+            seen = set()
+            for category, subcategory in scopes:
+                sql = ("SELECT " + PLANNER_PRODUCT_FIELDS + ", " + match
+                       + " AGAINST (%s IN NATURAL LANGUAGE MODE) AS relevance"
+                       + " FROM Product p WHERE p.isActive = 1 AND p.category <> %s"
+                       + " AND " + match + " AGAINST (%s IN NATURAL LANGUAGE MODE) > 0")
+                # A specification alone must not qualify an unrelated material.
+                values = [search_text, "heavy-machinery", search_name]
+                if category is not None:
+                    sql += " AND p.category = %s"
+                    values.append(category)
+                if subcategory is not None:
+                    sql += " AND p.subCategory = %s"
+                    values.append(subcategory)
+                sql += " HAVING relevance > 0 ORDER BY relevance DESC, p.id LIMIT 10"
+                cursor.execute(sql, values)
+                for product in cursor.fetchall():
+                    if product["product_id"] not in seen:
+                        seen.add(product["product_id"])
+                        del product["relevance"]
+                        candidates.append(product)
+                    if len(candidates) == 10:
+                        break
+                if len(candidates) == 10:
+                    break
             groups.append({"material_index": index, "candidates": candidates})
-        return groups
-    for product in products:
-        del product["keywords"]
-    return products
-
-
-def catalog_words(text):
-    words = set()
-    for word in re.findall(r"[a-z]+|\d+(?:\.\d+)?", text.lower()):
-        if word in {"a", "an", "the", "for", "of", "and", "with", "in", "x", "ft", "required"}:
-            continue
-        if len(word) > 3 and word.endswith("s") and not word.endswith("ss"):
-            word = word[:-1]
-        words.add(word)
-    return words
+    return groups
 
 
 def get_products_by_ids(product_ids):

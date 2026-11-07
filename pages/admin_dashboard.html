@@ -104,7 +104,7 @@
                 </thead>
                 <tbody id="user-list">
                     {% for user in users %}
-                        <tr class="admin-user-row" data-user-id="{{ user.id }}" data-display-name="{{ user.display_name }}" data-email="{{ user.email }}" data-role="{{ user.permissions }}" data-status="{{ user.accountStatus }}" data-joined="{{ user.dateCreated.isoformat() }}">
+                        <tr class="admin-user-row" data-user-id="{{ user.id }}" data-display-name="{{ user.display_name }}" data-email="{{ user.email }}" data-role="{{ user.role }}" data-status="{{ user.accountStatus }}" data-joined="{{ user.dateCreated.isoformat() }}">
                             <td class="admin-user-cell">
                                 <div class="admin-user-identity">
                                     <span class="admin-avatar" aria-hidden="true">{{ (user.display_name or '?')[:1]|upper }}</span>
@@ -120,7 +120,7 @@
                                 </div>
                             </td>
                             <td class="admin-role-cell">
-                                {% if user.permissions == 'admin' %}
+                                {% if user.role == 'admin' %}
                                     <span class="admin-role-badge admin-role-admin">Admin</span>
                                 {% else %}
                                     <span class="admin-role-badge admin-role-user">User</span>
@@ -233,7 +233,7 @@
                             required
                             aria-describedby="admin-password-help admin-password-error"
                         >
-                        <button class="password-toggle" type="button" aria-controls="admin-password" aria-label="Show password" aria-pressed="false">Show</button>
+                        <button class="password-toggle" type="button" aria-controls="admin-password" aria-pressed="false">Show</button>
                     </div>
                     <small id="admin-password-help">At least 3 characters and one number. At most {{ password_max_length }} characters.</small>
                     <span class="admin-field-error" id="admin-password-error" aria-live="polite"></span>
@@ -250,7 +250,7 @@
                             required
                             aria-describedby="admin-confirm-password-error"
                         >
-                        <button class="password-toggle" type="button" aria-controls="admin-confirm-password" aria-label="Show confirm password" aria-pressed="false">Show</button>
+                        <button class="password-toggle" type="button" aria-controls="admin-confirm-password" aria-pressed="false">Show</button>
                     </div>
                     <span class="admin-field-error" id="admin-confirm-password-error" aria-live="polite"></span>
                 </div>

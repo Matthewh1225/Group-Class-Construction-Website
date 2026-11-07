@@ -25,7 +25,7 @@
                 {% if session.get("user_id") %}
                     <li><a href="{{ url_for('dashboard.dashboard') }}">Dashboard</a></li>
                     <li><a href="{{ url_for('subscription.manage_subscription') }}">Subscription</a></li>
-                    <li><a href="{{ url_for('dashboard.settings') }}">Settings</a></li>
+                    <li><a href="{{ url_for('dashboard.settings') }}">Account</a></li>
                     <li>
                         <form method="post" action="{{ url_for('auth.logout') }}">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">

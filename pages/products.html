@@ -32,7 +32,7 @@
                     <li><a href="{{ url_for('products.products', category=category.url_name, manufacturer=manufacturer_id) }}" {% if category.url_name == selected_url_name %}aria-current="page"{% endif %}>{{ category.name }}</a></li>
                 {% endfor %}
             </ul>
-            {# CSS handles hover; JavaScript handles clicks and keyboard controls. #}
+            {# JavaScript keeps the menu visibility and expanded state together. #}
             <div class="category-more">
                 <button class="category-more-button{% if selected in more_categories %} is-current{% endif %}" type="button" aria-expanded="false" aria-controls="more-categories">
                     View more categories <span class="category-more-arrow" aria-hidden="true"></span>

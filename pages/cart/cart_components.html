@@ -4,7 +4,7 @@
     </svg>
 {%- endmacro %}
 
-{% macro money(cents) -%}
+{% macro format_money_cents(cents) -%}
     {% if cents is not none %}
         ${{ '{:,.2f}'.format(cents / 100) }}
     {% else %}
@@ -43,7 +43,7 @@
                             {{ product_name(item) }}
                             <small>Qty {{ item.quantity }}</small>
                         </div>
-                        <strong>{{ money(item.total_cents) }}</strong>
+                        <strong>{{ format_money_cents(item.total_cents) }}</strong>
                     </li>
                 {% else %}
                     <li class="shopping-summary-empty">
@@ -57,19 +57,19 @@
             <dl class="shopping-totals">
                 <div>
                     <dt>Subtotal</dt>
-                    <dd>{{ money(totals.get('subtotal_cents')) }}</dd>
+                    <dd>{{ format_money_cents(totals.get('subtotal_cents')) }}</dd>
                 </div>
                 <div>
                     <dt>Shipping</dt>
-                    <dd>{{ money(totals.get('shipping_cents')) }}</dd>
+                    <dd>{{ format_money_cents(totals.get('shipping_cents')) }}</dd>
                 </div>
                 <div>
                     <dt>Estimated tax</dt>
-                    <dd>{{ money(totals.get('tax_cents')) }}</dd>
+                    <dd>{{ format_money_cents(totals.get('tax_cents')) }}</dd>
                 </div>
                 <div class="shopping-total">
                     <dt>Total</dt>
-                    <dd>{{ money(totals.get('total_cents')) }}</dd>
+                    <dd>{{ format_money_cents(totals.get('total_cents')) }}</dd>
                 </div>
             </dl>
         {% endif %}

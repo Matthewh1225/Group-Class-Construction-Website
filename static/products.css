@@ -180,13 +180,6 @@
     display: block;
 }
 
-/* Only open on hover when a mouse is available. */
-@media (hover: hover) {
-    .category-more:hover .category-more-menu {
-        display: block;
-    }
-}
-
 .category-more-menu a {
     display: block;
     padding: 9px 12px;

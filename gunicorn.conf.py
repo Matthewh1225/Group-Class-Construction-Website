@@ -49,4 +49,4 @@ def worker_exit(server, worker):
     stop_event.set()
     worker.planner_thread.join(timeout=5)
     if worker.planner_thread.is_alive():
-        worker.log.info("Planner is still finishing a call; an unfinished job is marked failed when its lease runs out.")
+        worker.log.info("Planner is still finishing a call; a worker marks expired running jobs failed when checking the queue.")

@@ -27,7 +27,7 @@ def mark_failed(job, worker, message):
     try:
         save_job(job, worker)
     except LeaseLost:
-        logger.info("Planner job %s was cancelled before its failure could be saved.", job["id"])
+        logger.info("Planner job %s no longer belongs to this worker; its failure was not saved.", job["id"])
 
 
 def process_one(worker):
@@ -45,7 +45,7 @@ def process_one(worker):
     except PlanningError as error:
         mark_failed(job, worker, str(error))
     except DatabaseError:
-        # The job will be marked interrupted when its time limit runs out.
+        # A worker marks expired running jobs failed when checking the queue.
         raise
     except Exception:
         logger.exception("Planner job %s stopped with an unexpected error.", job["id"])

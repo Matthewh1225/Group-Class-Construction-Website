@@ -1,26 +1,27 @@
 from utils.database import database_cursor
 
+# Prices are stored in cents.
 PRO_PLANS = {
     "monthly": {
-        "name": "Monthly Pro", "amount_cents": 1999, "interval": "month",
-        "billing": "Billed monthly",
+        "name": "Monthly Pro", "price": 1999, "interval": "month",
+        "billing": "Monthly (preview)",
         "badge": "Stay flexible", "frequency": "per month",
-        "detail": "Renews every month", "button_label": "Subscribe to Pro",
-        "terms": "Renews at $19.99 every month until canceled."
+        "detail": "Example monthly price", "button_label": "Check availability",
+        "terms": "Pricing preview only. No payment or subscription will be created."
     },
     "yearly": {
-        "name": "Yearly Pro", "amount_cents": 19200, "interval": "year",
-        "billing": "Billed yearly",
+        "name": "Yearly Pro", "price": 19200, "interval": "year",
+        "billing": "Yearly (preview)",
         "badge": "Save about 20%", "frequency": "per year",
-        "button_label": "Subscribe to Pro",
-        "terms": "Renews until canceled.",
+        "button_label": "Check availability",
+        "terms": "Pricing preview only. No payment or subscription will be created.",
     },
     "lifetime": {
-        "name": "Lifetime Pro", "amount_cents": 100000000, "interval": "once",
-        "billing": "One-time payment",
+        "name": "Lifetime Pro", "price": 100000000, "interval": "once",
+        "billing": "One-time (preview)",
         "badge": "One payment", "frequency": "One-time purchase",
-        "detail": "No recurring charges", "button_label": "Complete purchase",
-        "terms": "Pay $1,000,000.00 once for lifetime Pro access.",
+        "detail": "Example one-time price", "button_label": "Check availability",
+        "terms": "Pricing preview only. No payment or subscription will be created.",
     },
 }
 

@@ -80,7 +80,7 @@ MODELS = {
     "gemini_strong": {"provider": "gemini", "api_key": "GEMINI_API_KEY3", "model_env": "GEMINI_MODEL_STRONG", "default": "gemini-3.5-flash-lite"},
     "gpt_oss": {"provider": "groq", "api_key": "GROQ_API_KEY", "model_env": "GROQ_MODEL", "default": "openai/gpt-oss-120b"},
     "nemotron": {"provider": "openrouter", "api_key": "OPENROUTER_API_KEY", "model_env": "OPENROUTER_MODEL", "default": "nvidia/nemotron-3-ultra-550b-a55b:free"},
-    "glm_matcher": {"provider": "cloudflare", "api_key": "CLOUDFARE_API_Token", "model_env": "CLOUDFLARE_MATCHER_MODEL", "default": "@cf/zai-org/glm-4.7-flash"},
+    "glm_matcher": {"provider": "cloudflare", "api_key": "CLOUDFLARE_API_TOKEN", "model_env": "CLOUDFLARE_MATCHER_MODEL", "default": "@cf/zai-org/glm-4.7-flash"},
 }
 
 
@@ -91,7 +91,7 @@ WORKFLOW_TIERS = {
         "planner": {"model": "gpt_oss", "reasoning": "low", "output_tokens": 8192},
         "auditor": {"model": "gemini_fast", "reasoning": "medium", "output_tokens": 8192},
         "matcher": {"model": "glm_matcher", "reasoning": False, "output_tokens": 8192},
-        "daily_jobs": 30,
+        "max_jobs_per_24h": 30,
     },
     "standard": {
         "label": "Standard",
@@ -99,7 +99,7 @@ WORKFLOW_TIERS = {
         "planner": {"model": "gpt_oss", "reasoning": "medium", "output_tokens": 16384},
         "auditor": {"model": "gemini_standard_strong", "reasoning": "medium", "output_tokens": 16384},
         "matcher": {"model": "glm_matcher", "reasoning": False, "output_tokens": 8192},
-        "daily_jobs": 30,
+        "max_jobs_per_24h": 30,
     },
     "pro": {
         "label": "Quantum Ultra Deep Pro Max+",
@@ -108,7 +108,7 @@ WORKFLOW_TIERS = {
         "second_planner": {"model": "gpt_oss", "reasoning": "high", "output_tokens": 32768},
         "auditor": {"model": "nemotron", "reasoning": "high", "output_tokens": 16384},
         "matcher": {"model": "glm_matcher", "reasoning": False, "output_tokens": 8192},
-        "daily_jobs": 10,
+        "max_jobs_per_24h": 10,
     },
 }
 

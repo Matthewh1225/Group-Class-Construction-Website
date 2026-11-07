@@ -1,5 +1,5 @@
 {% extends "cart/layout.html" %}
-{% from "cart/cart_components.html" import icon, money, product_image, product_name %}
+{% from "cart/cart_components.html" import icon, format_money_cents, product_image, product_name %}
 
 {% block title %}
     Order Confirmation - BuildBetter
@@ -25,7 +25,7 @@
                 </div>
                 <div>
                     <dt>Final total</dt>
-                    <dd>{{ money(verified_order.total_cents) }}</dd>
+                    <dd>{{ format_money_cents(verified_order.total_cents) }}</dd>
                 </div>
             </dl>
             <h2>Purchased materials</h2>
@@ -37,7 +37,7 @@
                             {{ product_name(item) }}
                             <small>Qty {{ item.quantity }}</small>
                         </div>
-                        <strong>{{ money(item.total_cents) }}</strong>
+                        <strong>{{ format_money_cents(item.total_cents) }}</strong>
                     </li>
                 {% endfor %}
             </ul>

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "planner_components.html" import money, project_specs, planning_notes %}
+{% from "planner_components.html" import format_money_dollars, project_specs, planning_notes %}
 {% block title %}{{ title }} plan - BuildBetter{% endblock %}
 {% block flash_messages %}{% endblock %}
 {% block styles %}<link rel="stylesheet" href="{{ url_for('static', filename='planner.css') }}">{% endblock %}
@@ -80,11 +80,11 @@
             <div class="plan-materials-heading">
                 <div>
                     <h2 id="materials-title">Materials</h2>
-                    <p class="plan-muted">Everything this project needs. Products we sell can go straight into your cart.</p>
+                    <p class="plan-muted">Estimated materials for your project. Review quantities and product matches.</p>
                 </div>
                 <div class="plan-cart-box">
-                    {% if cart %}
-                        <p><strong>{{ cart|length }}</strong> product{{ '' if cart|length == 1 else 's' }} ready to add{% if cart_total > 0 %} &middot; about <strong>{{ money(cart_total) }}</strong>{% endif %}</p>
+                    {% if suggested_items %}
+                        <p><strong>{{ suggested_items|length }}</strong> product{{ '' if suggested_items|length == 1 else 's' }} ready to add{% if matched_materials_total > 0 %} &middot; Matched materials subtotal: <strong>{{ format_money_dollars(matched_materials_total) }}</strong>{% endif %}</p>
                         <form method="post" action="{{ url_for('planner.planning_job_add_to_cart', job_id=job.id) }}" data-submit-once>
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <button class="plan-button" type="submit">Add all available to cart</button>
@@ -130,7 +130,7 @@
                                         {{ product.product_name }}
                                         <small>
                                             {% if product.unit_price is not none %}
-                                                {{ money(product.unit_price) }} per {{ product.unit }}
+                                                {{ format_money_dollars(product.unit_price) }} per {{ product.unit }}
                                             {% else %}
                                                 Price not listed
                                             {% endif %}
@@ -144,16 +144,16 @@
                                             {% endif %}
                                         </small>
                                     {% elif item.match_status == 'missing' %}
-                                        <span class="plan-tag">No longer sold</span>
+                                        <span class="plan-tag">Product unavailable</span>
                                     {% else %}
-                                        <span class="plan-tag">Not sold here</span>
+                                        <span class="plan-tag">No catalog match found</span>
                                     {% endif %}
                                 </td>
                                 <td data-label="You buy">
                                     {% if item.can_add %}
                                         <span class="plan-number">{{ item.buy_quantity|amount }}</span> {{ product.unit }}
                                         {% if item.line_total is not none %}
-                                            <small>{{ money(item.line_total) }}</small>
+                                            <small>{{ format_money_dollars(item.line_total) }}</small>
                                         {% endif %}
                                         {% if item.insufficient_stock %}
                                             <small class="plan-warning">Only {{ product.available_quantity|amount }} in stock</small>
@@ -196,7 +196,7 @@
                     <p>{{ item.justification }}</p>
                     {% if item.product %}
                         {% if item.product.unit_price is not none %}
-                            <p>{{ money(item.product.unit_price) }} per {{ item.product.unit }} &middot; Estimated machinery subtotal: {{ money(item.line_total) }}</p>
+                            <p>{{ format_money_dollars(item.product.unit_price) }} per {{ item.product.unit }} &middot; Estimated machinery subtotal: {{ format_money_dollars(item.line_total) }}</p>
                         {% else %}
                             <p class="plan-muted">Price unavailable.</p>
                         {% endif %}

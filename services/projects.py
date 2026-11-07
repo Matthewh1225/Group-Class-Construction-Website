@@ -5,7 +5,10 @@ from planning.jobs import decode, find_job
 from planning.project_forms import PROJECT_TEMPLATES
 from utils.database import database_cursor
 
-PROJECT_STATUS_LABELS = {"Review Needed": "Partial result"}
+PROJECT_STATUS_LABELS = {
+    "In Progress": "Planning in progress", "Review Needed": "Partial result",
+    "Ready": "Plan ready", "Completed": "Project completed",
+}
 PROJECT_QUERY = """SELECT s.*, j.data, j.status AS job_status, j.tier, j.created AS job_created, j.updated AS job_updated
                    FROM saved_projects s JOIN planner_jobs j ON j.id = s.job_id AND j.owner = s.owner"""
 
@@ -62,8 +65,6 @@ def read_project(row):
     row["status"] = status
     row["status_label"] = PROJECT_STATUS_LABELS.get(status, status)
     row["status_tone"] = tone
-    project_type = (plan.get("project") or {}).get("project_type", "custom")
-    row["type"] = PROJECT_TEMPLATES.get(project_type, {}).get("title", project_type.replace("_", " ").title())
     return row
 
 
@@ -79,7 +80,8 @@ def get_project_list(user_id, search="", status=""):
         if status and project["status"] != status:
             continue
         job = project["plan"].copy()
-        job.update(saved_project_id=project["id"], saved_name=project["name"], updated=project["updated"])
+        job.update(saved_project_id=project["id"], saved_name=project["name"], updated=project["updated"],
+                   project_status_label=project["status_label"], project_status_tone=project["status_tone"])
         projects.append(job)
     return projects
 

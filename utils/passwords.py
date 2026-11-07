@@ -22,8 +22,8 @@ def hash_password(password):
     return password_hasher.hash(password)
 
 
-def check_password(stored_hash, entered_password):
+def check_password(password_hash, entered_password):
     try:
-        return verify_secret(stored_hash.encode("utf-8"), entered_password.encode("utf-8"), Type.ID)
+        return verify_secret(password_hash.encode("utf-8"), entered_password.encode("utf-8"), Type.ID)
     except (VerificationError, ValueError):
         return False

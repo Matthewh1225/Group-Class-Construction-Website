@@ -34,13 +34,13 @@ def login_required(view):
     return check_login_before_view
 
 
-def start_session(user_id, display_name, permission_level):
+def start_session(user_id, display_name, role):
     # A new login needs a fresh CSRF token.
     session.clear()
     session["last_active"] = time.time()
     session["user_id"] = user_id
     session["display_name"] = display_name
-    session["permission_level"] = permission_level
+    session["permission_level"] = role
 
 
 # Refresh the session information for the currently logged-in user. static skipped so it doesn't call get_account unnecessarily.
@@ -52,7 +52,7 @@ def refresh_logged_in_user():
     last_active = session.get("last_active", 0)
     if time.time() - last_active > INACTIVITY_LIMIT:
         session.clear()
-        flash("You were logged out after 5 minutes of inactivity.", "message")
+        flash(f"You were logged out after {INACTIVITY_LIMIT / 60:g} minutes of inactivity.", "message")
         return None
     session["last_active"] = time.time()
 
@@ -62,7 +62,7 @@ def refresh_logged_in_user():
         return None
 
     session["display_name"] = full_name(user["firstName"], user["lastName"])
-    session["permission_level"] = user["permissions"]
+    session["permission_level"] = user["role"]
     return None
 
 
@@ -96,7 +96,7 @@ def login():
     if user["accountStatus"] != "active":
         return {"error": "This account is disabled."}, 403
 
-    start_session(user["id"], full_name(user["firstName"], user["lastName"]), user["permissions"])
+    start_session(user["id"], full_name(user["firstName"], user["lastName"]), user["role"])
     return {"redirect_url": url_for("dashboard.dashboard")}
 
 
@@ -165,7 +165,7 @@ def google_login():
 
     if user["accountStatus"] != "active":
         return {"error": "This account is disabled."}, 403
-    start_session(user["id"], full_name(user["firstName"], user["lastName"]), user["permissions"])
+    start_session(user["id"], full_name(user["firstName"], user["lastName"]), user["role"])
     return {"redirect_url": url_for("dashboard.dashboard")}
 
 

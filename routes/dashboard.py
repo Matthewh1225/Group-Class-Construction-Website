@@ -1,7 +1,6 @@
 from flask import Blueprint, abort, current_app, flash, redirect, render_template, request, session, url_for
 from mysql.connector import Error, IntegrityError
 
-from planning.presentation import status_label
 from planning.ai_config import WORKFLOW_TIERS
 from routes.auth import login_required
 from services.orders import get_order, get_order_items, get_user_orders
@@ -17,15 +16,15 @@ dashboard_bp = Blueprint("dashboard", __name__)
 @dashboard_bp.route("/dashboard", methods=["GET", "POST"])
 @login_required
 def dashboard():
-    permission_level = session.get("permission_level", "user")
+    role = session.get("permission_level", "user")
 
     if request.method == "POST":
-        if permission_level != "admin":
+        if role != "admin":
             abort(403)
 
-        permission_lvl = request.form.get("permission_level", "user")
+        new_role = request.form.get("permission_level", "user")
         try:
-            create_user(request.form, permission_lvl)
+            create_user(request.form, new_role)
             flash("User created.", "success")
             return redirect(url_for("dashboard.dashboard"))
         except ValueError as error:
@@ -38,7 +37,7 @@ def dashboard():
         # Redirect so refreshing does not create another user.
         return redirect(url_for("dashboard.dashboard", add_user="error"))
 
-    if permission_level == "admin":
+    if role == "admin":
         users_error = False
         try:
             users = get_all_users()
@@ -48,7 +47,7 @@ def dashboard():
             users_error = True
         admin_count = 0
         for user in users:
-            if user["permissions"] == "admin":
+            if user["role"] == "admin":
                 admin_count += 1
         user_statistics = [
             ("Total Users", len(users), "icon-user"),
@@ -57,14 +56,11 @@ def dashboard():
         ]
         return render_template(
             "admin_dashboard.html", display_name=session.get("display_name"),
-            permission_level=permission_level, users=users, users_error=users_error,
+            role=role, users=users, users_error=users_error,
             admin_workspace=True, user_statistics=user_statistics,
         )
 
     return redirect(url_for("dashboard.settings"))
-
-
-PROJECT_STATUSES = ["In Progress", "Review Needed", "Ready", "Completed"]
 
 
 @dashboard_bp.get("/dashboard/projects")
@@ -73,18 +69,14 @@ def projects():
     search = request.args.get("query", "").strip()
     status = request.args.get("status", "")
     status_filter = ""
-    if status in PROJECT_STATUSES:
+    if status in PROJECT_STATUS_LABELS:
         status_filter = status
 
     shown = get_project_list(session["user_id"], search=search, status=status_filter)
     total = count_projects(session["user_id"])
-    for job in shown:
-        label, tone = status_label(job)
-        job["planning_status_label"] = label
-        job["planning_status_tone"] = tone
     status_options = []
-    for value in PROJECT_STATUSES:
-        status_options.append({"value": value, "label": PROJECT_STATUS_LABELS.get(value, value)})
+    for value, label in PROJECT_STATUS_LABELS.items():
+        status_options.append({"value": value, "label": label})
     return render_template("dashboard/projects.html", projects=shown, total=total, search=search,
                            status=status, statuses=status_options,
                            workflow_tiers=WORKFLOW_TIERS)

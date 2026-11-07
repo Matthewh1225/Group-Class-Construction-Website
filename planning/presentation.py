@@ -10,7 +10,7 @@ STATUS_LABELS = {
     "needs_input": ("Details needed", "attention"),
     "failed": ("Planning failed", "attention"),
     "cancelled": ("Cancelled", "neutral"),
-    "complete": ("Complete", "ready"),
+    "complete": ("Plan ready", "ready"),
 }
 
 
@@ -77,14 +77,6 @@ def round_up_quantity(needed):
     return needed.to_integral_value(rounding=ROUND_CEILING)
 
 
-def buy_quantity(material, product):
-    if product is None:
-        return None
-    if normalize_unit(material["unit"]) != normalize_unit(product["unit"]):
-        return None
-    return round_up_quantity(Decimal(str(material["quantity"])))
-
-
 def add_store_details(materials):
     product_ids = []
     for material in materials:
@@ -96,40 +88,52 @@ def add_store_details(materials):
     for material in materials:
         row = dict(material)
         product = products.get(material.get("product_id"))
-        row["product"] = product
-        row["buy_quantity"] = buy_quantity(material, product)
-
-        row["can_add"] = False
-        row["match_status"] = "unmatched"
-        row["stock_status"] = "unknown"
-        row["insufficient_stock"] = False
-        row["show_store_link"] = False
+        row.update({
+            "product": product,
+            "buy_quantity": None,
+            "can_add": False,
+            "match_status": "unmatched",
+            "stock_status": "unknown",
+            "insufficient_stock": False,
+            "show_store_link": False,
+            "line_total": None,
+        })
         if product is None:
             if material.get("product_id") is not None:
                 row["match_status"] = "missing"
-        else:
-            row["match_status"] = "matched"
-            stock = product["available_quantity"]
-            out_of_stock = stock <= 0
-            incompatible_units = row["buy_quantity"] is None
-            row["can_add"] = not incompatible_units and not out_of_stock
-            row["show_store_link"] = incompatible_units and not out_of_stock
-            if out_of_stock:
-                row["stock_status"] = "out_of_stock"
-            else:
-                row["stock_status"] = "available"
-            if not incompatible_units:
-                row["insufficient_stock"] = stock < row["buy_quantity"]
+            rows.append(row)
+            continue
 
-        row["line_total"] = None
+        row["match_status"] = "matched"
+        material_unit = normalize_unit(material["unit"])
+        product_unit = normalize_unit(product["unit"])
+        units_match = material_unit == product_unit
+        if units_match:
+            needed = Decimal(str(material["quantity"]))
+            row["buy_quantity"] = round_up_quantity(needed)
+
+        stock = product["available_quantity"]
+        in_stock = stock > 0
+        if in_stock:
+            row["stock_status"] = "available"
+        else:
+            row["stock_status"] = "out_of_stock"
+
+        if units_match:
+            has_enough_stock = stock >= row["buy_quantity"]
+            row["insufficient_stock"] = not has_enough_stock
+
+        # With some stock left, a shortage warns the user but keeps the cart action.
+        row["can_add"] = units_match and in_stock
+        row["show_store_link"] = not units_match and in_stock
         if row["can_add"]:
             row["line_total"] = row["buy_quantity"] * product["unit_price"]
         rows.append(row)
     return rows
 
 
-# Add matching amounts before rounding so shared packs are not bought twice.
-def cart_items(rows):
+# Combine quantities for each matched product before rounding.
+def suggested_items(rows):
     needed = {}
     products = {}
     for row in rows:
@@ -148,7 +152,7 @@ def cart_items(rows):
     return items
 
 
-def cart_total(items):
+def matched_materials_total(items):
     total = Decimal("0")
     for item in items:
         total += item["quantity"] * item["product"]["unit_price"]

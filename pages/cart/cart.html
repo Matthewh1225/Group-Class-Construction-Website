@@ -1,5 +1,5 @@
 {% extends "cart/layout.html" %}
-{% from "cart/cart_components.html" import money, product_image, product_name, order_summary %}
+{% from "cart/cart_components.html" import format_money_cents, product_image, product_name, order_summary %}
 {% block title %}Shopping Cart - BuildBetter{% endblock %}
 {% block shopping_content %}
 <header class="shopping-heading">
@@ -23,7 +23,7 @@
             {{ product_image(item) }}
             <div class="shopping-cart-product">
                 {{ product_name(item) }}
-                <p>{{ money(item.unit_price_cents) }} / {{ item.unit }}</p>
+                <p>{{ format_money_cents(item.unit_price_cents) }} / {{ item.unit }}</p>
                 {% if item.error %}<p class="shopping-notice" role="status">{{ item.error }}</p>{% endif %}
             </div>
             <div class="shopping-cart-controls">
@@ -32,7 +32,7 @@
                 <button class="shopping-button shopping-secondary" type="submit" form="update-{{ item.product_id }}">Update</button>
             </div>
             <div class="shopping-cart-line-total">
-                <strong>{{ money(item.total_cents) }}</strong>
+                <strong>{{ format_money_cents(item.total_cents) }}</strong>
                 <div>
                     <button class="shopping-remove" type="submit" form="remove-{{ item.product_id }}" aria-label="Remove {{ item.name }}">Remove</button>
                 </div>

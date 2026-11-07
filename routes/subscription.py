@@ -27,7 +27,7 @@ def subscribe():
             checkout_error = "Choose a valid membership plan."
             status = 400
     elif request.method == "POST":
-        checkout_error = "Payment processing is not implemented."
+        checkout_error = "Subscriptions are not available yet. No payment was taken."
         status = 503
 
     plans = {}
@@ -35,10 +35,10 @@ def subscribe():
         plan = dict(configuration)
         plan["savings_cents"] = 0
         if plan["interval"] == "year":
-            monthly_cents = plan["amount_cents"] / 12
+            monthly_cents = plan["price"] / 12
             monthly_price = "${:,.2f}".format(monthly_cents / 100)
             plan["detail"] = monthly_price + "/month equivalent"
-            plan["savings_cents"] = (PRO_PLANS["monthly"]["amount_cents"] *12 - PRO_PLANS["yearly"]["amount_cents"])*-1;
+            plan["savings_cents"] = PRO_PLANS["monthly"]["price"] * 12 - PRO_PLANS["yearly"]["price"]
         plans[key] = plan
     return render_template(
         "subscription/checkout.html", tiers=WORKFLOW_TIERS, plans=plans,
@@ -51,9 +51,9 @@ def subscribe():
 def manage_subscription():
     subscription = get_user_subscription(session["user_id"])
     if subscription:
-        subscription["period_label"] = "Current period ends"
+        subscription["period_label"] = "Access through"
         if subscription["status"] == "expired":
-            subscription["period_label"] = "Access ends"
+            subscription["period_label"] = "Access ended"
     return render_template(
         "dashboard/subscription.html", tiers=WORKFLOW_TIERS,
         subscription=subscription,

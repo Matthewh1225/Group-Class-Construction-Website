@@ -5,7 +5,7 @@ from flask import Blueprint, abort, flash, redirect, render_template, request, s
 from planning.ai_config import WORKFLOW_TIERS
 from planning.jobs import answer_job, cancel_job, count_jobs, get_job, list_jobs, pro_access_allowed, restart_job, submit_job
 from planning.project_forms import PROJECT_SIZES, PROJECT_TEMPLATES, build_project
-from planning.presentation import (STAGE_STATUS_LABELS, add_machinery_details, add_store_details, cart_items, cart_total,  project_spec_rows, stage_rows, status_label)
+from planning.presentation import (STAGE_STATUS_LABELS, add_machinery_details, add_store_details, suggested_items, matched_materials_total,  project_spec_rows, stage_rows, status_label)
 from services.cart import add_materials_to_cart
 from services.crews import CREW_RATES, HOURS_PER_DAY, estimate_crew_cost
 from services.projects import (can_save_project, default_project_name, get_project_saved_from_job, save_job_as_project)
@@ -70,7 +70,7 @@ def planning_job(job_id):
     job = get_user_job(job_id)
     materials = get_plan_materials(job)
     machinery = add_machinery_details((job["result"] or {}).get("machinery", []))
-    cart = cart_items(materials)
+    items = suggested_items(materials)
     label, tone = status_label(job)
     template = PROJECT_TEMPLATES.get(job["project"].get("project_type"), {})
     title = template.get("title", "Your project")
@@ -87,7 +87,7 @@ def planning_job(job_id):
     if saved_project:
         crew_url = url_for("crews.crews", project_id=saved_project["id"])
     return render_template("planner_job.html", job=job, materials=materials, machinery=machinery,
-                           cart=cart, cart_total=cart_total(cart),
+                           suggested_items=items, matched_materials_total=matched_materials_total(items),
                            title=title,
                            project_fields=project_spec_rows(job["project"]),
                            stage_rows=stage_rows(job), stage_status_labels=STAGE_STATUS_LABELS,

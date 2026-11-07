@@ -11,8 +11,8 @@ function updateSummary() {
     const plan = plans[selected];
     summary.dataset.plan = selected;
     document.getElementById('summary-plan').textContent = plan.name;
-    document.getElementById('summary-price').textContent = money.format(plan.amount_cents / 100);
-    document.getElementById('summary-total').textContent = money.format(plan.amount_cents / 100);
+    document.getElementById('summary-price').textContent = money.format(plan.price / 100);
+    document.getElementById('summary-total').textContent = money.format(plan.price / 100);
     document.getElementById('summary-billing').textContent = plan.billing;
     document.getElementById('summary-terms').textContent = plan.terms;
     document.getElementById('yearly-savings').hidden = !plan.savings_cents;
@@ -24,25 +24,7 @@ for (const input of form.querySelectorAll('input[name="plan"]')) {
     input.addEventListener('change', updateSummary);
 }
 
-const expiryInput = document.getElementById('card-expiry');
-expiryInput.addEventListener('input', function () {
-    const parts = expiryInput.value.trim().split('/');
-    let message = '';
-    const month = 1 + Number(parts[0]);
-    const year = 2000 + Number(parts[1]);
-    const today = new Date();
-    if (year < today.getFullYear() || (year === today.getFullYear() && month < today.getMonth() + 1)) {
-        message = 'This card has expired.';
-    }
-    expiryInput.setCustomValidity(message);
-});
-
 form.addEventListener('submit', function () {
-    // Clear the local card fields before leaving the page; only the plan is submitted.
-    for (const input of form.querySelectorAll('.sub-payment-fields input')) {
-        input.value = '';
-    }
-    expiryInput.setCustomValidity('');
     submitButton.disabled = true;
     submitButton.setAttribute('aria-busy', 'true');
     buttonLabel.textContent = 'Checking checkout…';

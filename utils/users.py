@@ -26,7 +26,7 @@ def full_name(first_name, last_name):
 def get_account(user_id):
     with database_cursor() as cursor:
         cursor.execute(
-            """SELECT u.firstName, u.lastName, u.permissions, c.accountStatus FROM `User` u
+            """SELECT u.firstName, u.lastName, u.permissions AS role, c.accountStatus FROM `User` u
             JOIN Customer c ON c.userId = u.id WHERE u.id = %s""",
             (user_id,),
         )
@@ -37,19 +37,19 @@ def get_account(user_id):
 def check_login(email, password):
     with database_cursor() as cursor:
         cursor.execute(
-            """SELECT u.id, u.firstName, u.lastName, u.passkey, u.permissions, c.accountStatus
+            """SELECT u.id, u.firstName, u.lastName, u.passkey AS password_hash, u.permissions AS role, c.accountStatus
                FROM `User` u
                JOIN Customer c ON c.userId = u.id
                WHERE u.email = %s""",
             (email,),
         )
         user = cursor.fetchone()
-    if user is None or not check_password(user["passkey"], password):
+    if user is None or not check_password(user["password_hash"], password):
         return None
     return user
 
 
-def create_user(data, permission_level="user"):
+def create_user(data, role="user"):
     first_name = data.get("firstName", "")
     last_name = data.get("lastName", "")
     email = data.get("email", "")
@@ -73,17 +73,17 @@ def create_user(data, permission_level="user"):
     if password != confirm_password:
         raise ValueError("Passwords do not match.")
     validate_password(password)
-    if permission_level not in {"user", "admin"}:
+    if role not in {"user", "admin"}:
         raise ValueError("Choose user or admin.")
     password_hash = hash_password(password)
     with database_cursor() as cursor:
         cursor.execute(
             """INSERT INTO `User` (firstName, lastName, email, passkey, permissions, dateCreated)
                VALUES (%s, %s, %s, %s, %s, CURDATE())""",
-            (first_name, last_name, email, password_hash, permission_level),
+            (first_name, last_name, email, password_hash, role),
         )
         user_id = cursor.lastrowid
-        if permission_level == "admin":
+        if role == "admin":
             cursor.execute("INSERT INTO Administrator (userId) VALUES (%s)", (user_id,))
         cursor.execute("INSERT INTO Customer (userId) VALUES (%s)", (user_id,))
     return user_id
@@ -91,7 +91,7 @@ def create_user(data, permission_level="user"):
 def find_or_create_google_user(email, first_name, last_name):
     with database_cursor() as cursor:
         cursor.execute(
-            """SELECT u.id, u.firstName, u.lastName, u.permissions, c.accountStatus
+            """SELECT u.id, u.firstName, u.lastName, u.permissions AS role, c.accountStatus
                FROM `User` u
                JOIN Customer c ON c.userId = u.id
                WHERE u.email = %s""",
@@ -112,7 +112,7 @@ def find_or_create_google_user(email, first_name, last_name):
         "id": user_id,
         "firstName": first_name[:MAX_NAME_LENGTH],
         "lastName": last_name[:MAX_NAME_LENGTH],
-        "permissions": "user",
+        "role": "user",
         "accountStatus": "active",
     }
 
@@ -121,7 +121,7 @@ def get_all_users():
     with database_cursor() as cursor:
         cursor.execute(
             """SELECT u.id, CONCAT_WS(' ', u.firstName, NULLIF(u.lastName, '')) AS display_name,
-                      u.email, u.permissions, u.dateCreated, c.accountStatus
+                      u.email, u.permissions AS role, u.dateCreated, c.accountStatus
                FROM `User` u
                JOIN Customer c ON c.userId = u.id
                ORDER BY u.id"""

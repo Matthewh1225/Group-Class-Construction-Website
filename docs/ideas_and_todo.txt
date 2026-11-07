@@ -1,9 +1,2 @@
 
-1. Password recovery by email
-2. Email verification and automatic emails (promos, discount codes, in-progress project reminders)
-
-5. Metric/imperial unit selection for users
-
-6. Back up important database data
-
-7. Implement subscription payments, record confirmed memberships, and add renewal, cancellation, and billing history. Checkout currently reports that payment processing is unavailable.
+7. Implement subscription payments, record confirmed memberships, and add renewal, cancellation, and billing history

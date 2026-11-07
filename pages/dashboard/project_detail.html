@@ -1,5 +1,5 @@
 {% extends "dashboard/layout.html" %}
-{% from "planner_components.html" import money, project_specs, planning_notes %}
+{% from "planner_components.html" import format_money_dollars, project_specs, planning_notes %}
 
 
 {% block title %}
@@ -95,7 +95,7 @@
                                         {{ product.product_name }}
                                         <small>
                                             {% if product.unit_price is not none %}
-                                                {{ money(product.unit_price) }} per {{ product.unit }}
+                                                {{ format_money_dollars(product.unit_price) }} per {{ product.unit }}
                                             {% else %}
                                                 Price not listed
                                             {% endif %}

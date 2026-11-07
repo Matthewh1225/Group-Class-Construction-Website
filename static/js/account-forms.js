@@ -8,6 +8,22 @@ export function passwordChecks(value, maximumLength) {
     return { length: characterCount >= 3, maximum: characterCount <= maximumLength, number: /[0-9]/.test(value) };
 }
 
+export function rateLimitMessage(response) {
+    const retryAfter = response.headers.get("Retry-After");
+    if (retryAfter && retryAfter.trim()) {
+        // Retry-After can be seconds or an HTTP date.
+        const value = retryAfter.trim();
+        const seconds = /^\d+$/.test(value)
+            ? Number(value)
+            : (Date.parse(value) - Date.now()) / 1000;
+        if (Number.isFinite(seconds) && seconds >= 0) {
+            const wait = Math.max(1, Math.ceil(seconds));
+            return `Too many attempts. Try again in ${wait} second${wait === 1 ? "" : "s"}.`;
+        }
+    }
+    return "Too many attempts. Please try again later.";
+}
+
 export async function submitAccountForm(form, message, data) {
     const submitButton = form.querySelector('button[type="submit"]');
     const buttonHtml = submitButton.innerHTML;
@@ -28,7 +44,7 @@ export async function submitAccountForm(form, message, data) {
         });
         // Rate-limit errors may be HTML rather than JSON.
         if (response.status === 429) {
-            message.textContent = "Too many attempts. Try again in a minute.";
+            message.textContent = rateLimitMessage(response);
             return;
         }
         const result = await response.json();
@@ -95,6 +111,10 @@ export function setupGoogleSignIn(message) {
                 },
                 body: JSON.stringify({ credential: googleResponse.credential }),
             });
+            if (response.status === 429) {
+                message.textContent = rateLimitMessage(response);
+                return;
+            }
             const result = await response.json();
             if (response.ok && result.redirect_url) {
                 window.location.href = result.redirect_url;

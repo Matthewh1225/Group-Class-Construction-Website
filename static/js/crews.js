@@ -8,6 +8,32 @@ const error = document.getElementById("crew-error");
 const saveButton = document.getElementById("save-crew");
 const cartButton = document.getElementById("add-crew-to-cart");
 const currency = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
+const savedDaysByRole = {};
+
+function daysText(days) {
+    if (days[0] === days[1]) {
+        if (days[0] === 1) {
+            return "1 day";
+        }
+        return days[0] + " days";
+    }
+    return days[0] + "–" + days[1] + " days";
+}
+
+function checkTradeDays(crew) {
+    for (const member of crew.members) {
+        const minimumDays = member.days[0];
+        const maximumDays = member.days[1];
+        if (!Number.isInteger(minimumDays) || !Number.isInteger(maximumDays)
+                || minimumDays < 1 || maximumDays < minimumDays) {
+            return "Each trade needs a valid range of whole working days.";
+        }
+        if (maximumDays > crew.days[1]) {
+            return "The project maximum must cover each trade's working days.";
+        }
+    }
+    return "";
+}
 
 function costText(low, high) {
     if (low === high) {
@@ -51,11 +77,19 @@ function updateEstimate() {
         row.querySelector('[data-worker-step="-1"]').disabled = workers <= Number(input.min);
         row.querySelector('[data-worker-step="1"]').disabled = workers >= Number(input.max);
         row.classList.toggle("in-crew", workers > 0);
+        row.querySelector("[data-days]").textContent = "—";
         if (workers > 0) {
-            selected.members.push({role: row.dataset.role, workers: workers, days: selected.days});
+            // Saved trades keep their days; new trades use the project range.
+            let days = selected.days;
+            if (savedDaysByRole[row.dataset.role]) {
+                days = savedDaysByRole[row.dataset.role];
+            }
+            selected.members.push({role: row.dataset.role, workers: workers, days: days});
+            row.querySelector("[data-days]").textContent = daysText(days);
         }
     }
-    const valid = form.checkValidity();
+    const tradeError = checkTradeDays(selected);
+    const valid = form.checkValidity() && tradeError === "";
     const hasWorkers = selected.members.length > 0;
     if (valid) {
         const result = calculateCrew(selected);
@@ -77,7 +111,10 @@ function updateEstimate() {
     }
     error.textContent = "";
     if (!valid) {
-        error.textContent = "Enter valid worker counts and a project duration range.";
+        error.textContent = tradeError;
+        if (!tradeError) {
+            error.textContent = "Enter valid worker counts and a project duration range.";
+        }
     } else if (!hasWorkers) {
         error.textContent = "Add at least one worker to save a crew.";
     }
@@ -97,6 +134,7 @@ if (saved) {
     for (const member of saved.members) {
         const row = form.querySelector('[data-role="' + member.role + '"]');
         row.querySelector('[data-field="workers"]').value = member.workers;
+        savedDaysByRole[member.role] = member.days;
     }
 }
 

@@ -1,5 +1,5 @@
 
-{% macro money(value) -%}
+{% macro format_money_dollars(value) -%}
     ${{ '{:,.2f}'.format(value|float) }}
 {%- endmacro %}
 
