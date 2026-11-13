@@ -1,8 +1,7 @@
                 <div class="catalog-grid">
                     {% for product in products %}
                         <article class="product-card">
-                            {# Products share their category's picture
-                               If that file is missing, the browser swaps in the placeholder. #}
+                            {# Use category pictures, with a placeholder if missing. #}
                             <div class="product-image grid-bg">
                                 <img src="{{ url_for('static', filename=product.image) }}" alt="" width="480" height="320" loading="lazy"
                                      data-fallback-src="{{ url_for('static', filename=placeholder_image) }}">

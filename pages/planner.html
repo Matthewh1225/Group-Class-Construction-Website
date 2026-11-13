@@ -15,7 +15,7 @@
             <p class="planner-lede">Start from a template or describe your own project. The AI turns it into a materials list matched to products in our store.</p>
         </div>
         <div class="planner-heading-links">
-            {# pro_allowed comes from the account's Pro expiry date, checked by the route. #}
+            {# The route checks the account's Pro expiry date. #}
             {% if pro_allowed %}
                 <span class="planner-pro-badge"><span aria-hidden="true">&#9733;</span> Pro member</span>
             {% endif %}
@@ -39,7 +39,7 @@
             <p class="planner-form-error" role="alert">{{ popup_message }}</p>
         {% endif %}
         <section id="method-step" class="planner-step" {% if has_details %}hidden{% endif %}>
-            {# planner.js moves focus to this heading when the user comes back to this step. #}
+            {# planner.js focuses this heading when returning to this step. #}
             <h2 class="sr-only" tabindex="-1">Choose how to start</h2>
             <div class="planner-methods">
                 <button id="choose-template" class="planner-method" type="button">
@@ -62,7 +62,7 @@
                 </button>
             </div>
 
-            {# Pro members already have Pro; everyone else sees what it adds. #}
+            {# Show upgrade details for accounts without Pro. #}
             {% if not pro_allowed %}
                 <aside class="planner-pro" aria-labelledby="planner-pro-title">
                     <div>

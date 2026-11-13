@@ -30,7 +30,7 @@ form.addEventListener('submit', function () {
     buttonLabel.textContent = 'Checking checkout…';
 });
 
-// Restore the controls when the browser Back button brings this page back.
+// Reset controls when returning with Back.
 window.addEventListener('pageshow', function () {
     submitButton.disabled = false;
     submitButton.removeAttribute('aria-busy');

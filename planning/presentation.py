@@ -32,7 +32,7 @@ def stage_rows(job):
     stages = job.get("stages") or {}
     rows = []
     for name in pending_stages(job["tier"]):
-        # Finished older plans did not have a Matcher stage.
+        # Older plans may not have a Matcher step.
         if name == "matcher" and name not in stages and job.get("status") in ("complete", "failed", "cancelled"):
             continue
         state = stages.get(name, "pending")
@@ -123,7 +123,7 @@ def add_store_details(materials):
             has_enough_stock = stock >= row["buy_quantity"]
             row["insufficient_stock"] = not has_enough_stock
 
-        # With some stock left, a shortage warns the user but keeps the cart action.
+        # Allow adding if any stock remains; show shortages separately.
         row["can_add"] = units_match and in_stock
         row["show_store_link"] = not units_match and in_stock
         if row["can_add"]:

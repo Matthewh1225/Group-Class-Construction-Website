@@ -88,10 +88,9 @@ def checkout():
         else:
             if order_id is not None:
                 return redirect(url_for("shopping.order_confirmation", order_id=order_id), code=303)
-            error = "Placing orders is not available yet."
+            error = "We couldn't place your order. Please try again."
 
     items = get_cart(user_id)
-    # TODO: Reject reused keys in create_order so double clicks create only one order.
     checkout_key = form_data.get("checkout_key") or secrets.token_urlsafe(24)
     page = render_template("cart/checkout.html", cart_items=items, totals=calculate_totals(items),
                            form_data=form_data, error=error, checkout_key=checkout_key)

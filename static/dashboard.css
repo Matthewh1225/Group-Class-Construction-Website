@@ -1731,7 +1731,7 @@
     margin-top: 24px;
 }
 
-/* These are row labels, so use normal text rather than column-heading styles. */
+/* Use normal text for row labels. */
 .dashboard-data-table tbody th {
     background: transparent;
     color: var(--text);

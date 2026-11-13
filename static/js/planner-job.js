@@ -41,7 +41,7 @@ for (const form of submitOnceForms) {
     });
 }
 
-// Re-enable buttons when the Back button restores this page.
+// Reset buttons when returning with Back.
 window.addEventListener("pageshow", function () {
     for (const form of submitOnceForms) {
         form.querySelector("button[type=submit]").disabled = false;

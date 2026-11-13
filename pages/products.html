@@ -32,7 +32,7 @@
                     <li><a href="{{ url_for('products.products', category=category.url_name, manufacturer=manufacturer_id) }}" {% if category.url_name == selected_url_name %}aria-current="page"{% endif %}>{{ category.name }}</a></li>
                 {% endfor %}
             </ul>
-            {# JavaScript keeps the menu visibility and expanded state together. #}
+            {# JavaScript updates menu visibility and aria-expanded. #}
             <div class="category-more">
                 <button class="category-more-button{% if selected in more_categories %} is-current{% endif %}" type="button" aria-expanded="false" aria-controls="more-categories">
                     View more categories <span class="category-more-arrow" aria-hidden="true"></span>
@@ -88,7 +88,7 @@
                         <path class="notice-lines" d="M24 34h72v32H24zM24 34l12-8h72l-12 8M96 66l12-8V26M52 46h16"/>
                     </svg>
                     <div>
-                        <h3>{% if search %}No products match &ldquo;{{ search }}&rdquo;{% elif selected %}No {{ selected.name }} products listed yet{% else %}No products listed yet{% endif %}</h3>
+                        <h3>{% if search %}No products match &ldquo;{{ search }}&rdquo;{% elif selected %}No {{ selected.name }} products listed{% else %}No products listed{% endif %}</h3>
                         <div class="actions">
                             <a class="btn btn-primary" href="{{ url_for('planner.planner') }}">Plan a project <span class="arrow" aria-hidden="true">&rarr;</span></a>
                         </div>
@@ -106,7 +106,7 @@
         </section>
     </div>
 </div>
-{# Module scope avoids name clashes with other scripts. #}
+{# Keep variables separate from other scripts. #}
 <script src="{{ url_for('static', filename='js/products.js') }}" type="module"></script>
 {% endblock %}
 

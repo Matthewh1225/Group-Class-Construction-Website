@@ -69,7 +69,7 @@ document.querySelector(".details-back").addEventListener("click", function () {
     showStep(sizeStep);
 });
 
-// Custom and template forms share the AI mode and Generate controls.
+// Share AI mode and Generate controls across both forms.
 const plannerForms = document.querySelectorAll(".planner-page form");
 
 for (const form of plannerForms) {
@@ -81,7 +81,7 @@ for (const form of plannerForms) {
         }
     });
 
-    // The server also checks the key to stop duplicate submissions.
+    // The server checks the key for duplicate submissions.
     form.addEventListener("submit", function () {
         const status = form.querySelector(".plan-status");
         const button = form.querySelector(".planner-generate");
@@ -92,7 +92,7 @@ for (const form of plannerForms) {
     });
 }
 
-// Re-enable buttons when the Back button restores this page.
+// Reset buttons when returning with Back.
 window.addEventListener("pageshow", function () {
     for (const form of plannerForms) {
         const button = form.querySelector(".planner-generate");

@@ -9,3 +9,7 @@ argon2-cffi==25.1.0
 certifi
 openrouter
 pydantic>=2.12,<3
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.15.0
+sentence-transformers==6.2.0
+numpy==2.5.4

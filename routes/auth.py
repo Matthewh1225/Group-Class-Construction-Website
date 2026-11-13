@@ -15,14 +15,14 @@ from utils.users import check_login, create_user, find_or_create_google_user, fu
 
 auth_bp = Blueprint("auth", __name__)
 
-# Use certifi's certificates so checking Google's HTTPS works even when Python's own are missing (like on my Mac).
+# Use certifi for Google's HTTPS certificate check.
 SSL_CONTEXT = ssl.create_default_context(cafile=certifi.where())
 
 INACTIVITY_LIMIT =  60 *20 # 20 min without a request before logging out
 
 
 def login_required(view):
-    # Keep each route's name so Flask can tell the wrapped views apart.
+    # Keep the route name for Flask.
     @wraps(view)
     def check_login_before_view(*args, **kwargs):
         is_logged_in = "user_id" in session
@@ -43,12 +43,12 @@ def start_session(user_id, display_name, role):
     session["permission_level"] = role
 
 
-# Refresh the session information for the currently logged-in user. static skipped so it doesn't call get_account unnecessarily.
+# Cache account details for GETs; check MySQL for POSTs.
 def refresh_logged_in_user():
     if "user_id" not in session or request.endpoint == "static":
         return None
 
-    # Log out users who have not loaded a page for a while.
+    # Log out inactive users.
     last_active = session.get("last_active", 0)
     if time.time() - last_active > INACTIVITY_LIMIT:
         session.clear()
@@ -56,7 +56,7 @@ def refresh_logged_in_user():
         return None
     session["last_active"] = time.time()
 
-    user = get_account(session["user_id"])
+    user = get_account(session["user_id"], use_cache=request.method in ("GET", "HEAD"))
     if user is None or user["accountStatus"] != "active":
         session.clear()
         return None
@@ -124,7 +124,7 @@ def register():
     return {"redirect_url": url_for("dashboard.dashboard")}, 201
 
 
-# Ask Google whether this sign-in token is real and was made for our app.
+# Ask Google to check the sign-in token.
 def read_google_token(token):
     url = "https://oauth2.googleapis.com/tokeninfo?" + urlencode({"id_token": token})
     with urlopen(url, timeout=5, context=SSL_CONTEXT) as response:

@@ -2,7 +2,7 @@
 {% from "cart/cart_components.html" import format_money_cents %}
 {% set plan = plans[selected_plan] %}
 
-{% block title %}Pro pricing preview - BuildBetter{% endblock %}
+{% block title %}Pro checkout - BuildBetter{% endblock %}
 {% block body_attributes %} class="shopping-body"{% endblock %}
 {% block styles %}
     <link rel="stylesheet" href="{{ url_for('static', filename='checkout.css') }}">
@@ -14,12 +14,12 @@
     <nav class="sub-checkout-breadcrumb" aria-label="Breadcrumb">
         <a href="{{ url_for('planner.planner') }}">AI Planner</a>
         <span aria-hidden="true">/</span>
-        <span aria-current="page">Pro pricing preview</span>
+        <span aria-current="page">Pro checkout</span>
     </nav>
     <header class="sub-heading">
         <div>
             <h1>Quantum Ultra Deep Pro Max+</h1>
-            <p>Pricing preview only. Payments and subscriptions are not available. No payment will be taken or Pro access activated.</p>
+            <p>Choose the Pro plan that fits your projects.</p>
         </div>
     </header>
     <div id="checkout-error" class="sub-checkout-error" role="alert" tabindex="-1" {% if not checkout_error %}hidden{% endif %}>
@@ -48,9 +48,9 @@
             </fieldset>
 
             <fieldset class="sub-panel" disabled>
-                <legend class="sr-only">Payment form preview</legend>
-                <div class="sub-section-heading"><span>02</span><h2>Payment form preview</h2></div>
-                {# No name attributes: these fields are not included in the checkout request. #}
+                <legend class="sr-only">Payment details</legend>
+                <div class="sub-section-heading"><span>02</span><h2>Payment details</h2></div>
+                {# Fields without names aren't submitted. #}
                 <div class="sub-payment-fields">
                     <div class="sub-payment-field">
                         <label for="card-first-name">First name</label>
@@ -81,12 +81,12 @@
             <div id="plan-summary" aria-live="polite" aria-atomic="true">
                 <dl class="sub-summary-lines">
                     <div><dt id="summary-plan">{{ plan.name }}</dt><dd id="summary-price">{{ format_money_cents(plan.price) }}</dd></div>
-                    <div><dt>Example billing</dt><dd id="summary-billing">{{ plan.billing }}</dd></div>
+                    <div><dt>Billing</dt><dd id="summary-billing">{{ plan.billing }}</dd></div>
                     <div id="yearly-savings" class="sub-savings" {% if not plan.savings_cents %}hidden{% endif %}>
                         <dt>Annual savings vs. monthly</dt><dd id="summary-savings">{{ format_money_cents(plans.yearly.savings_cents) }}</dd>
                     </div>
                 </dl>
-                <div class="sub-total"><div><span>Example price</span><small>USD</small></div><strong id="summary-total">{{ format_money_cents(plan.price) }}</strong></div>
+                <div class="sub-total"><div><span>Total</span><small>USD</small></div><strong id="summary-total">{{ format_money_cents(plan.price) }}</strong></div>
             </div>
             <p id="summary-terms">{{ plan.terms }}</p>
             <button id="subscription-submit" class="shopping-button shopping-primary sub-submit" type="submit">

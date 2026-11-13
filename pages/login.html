@@ -8,7 +8,7 @@
     <form id="login-form" class="account-form" autocomplete="off" method="post" action="{{ url_for('auth.login') }}">
         <h2>Log in</h2>
         {% if google_client_id %}
-        {# Google draws its button inside this div and calls handleGoogleSignIn. #}
+        {# Google sign-in button; calls handleGoogleSignIn. #}
         <div id="g_id_onload"
             data-client_id="{{ google_client_id }}"
             data-callback="handleGoogleSignIn"
@@ -31,7 +31,7 @@
         <div class="form-field">
             <label for="password">Password</label>
             <div class="password-field">
-                {# Starts readonly so the browser's password manager won't fill it; login.js unlocks it on focus. #}
+                {# login.js removes readonly on focus to avoid autofill. #}
                 <input type="password" id="password" name="password" autocomplete="new-password" maxlength="{{ password_max_length }}" readonly required>
                 <button class="password-toggle" type="button" aria-controls="password" aria-pressed="false" hidden>Show</button>
             </div>
@@ -41,6 +41,6 @@
         <p class="auth-switch">New to BuildBetter? <a href="{{ url_for('auth.register') }}">Create an account</a></p>
     </form>
     <script src="{{ url_for('static', filename='js/login.js') }}" type="module"></script>
-    {# Load Google after the page script so handleGoogleSignIn already exists. #}
+    {# Define handleGoogleSignIn before loading Google. #}
     <script src="https://accounts.google.com/gsi/client" defer></script>
 {% endblock %}

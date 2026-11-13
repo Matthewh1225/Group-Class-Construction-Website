@@ -3,12 +3,12 @@ import {setupGoogleSignIn, setupPasswordToggles, submitAccountForm} from "./acco
 const loginForm = document.getElementById("login-form");
 const message = document.getElementById("login-message");
 
-// Browsers restore form values on refresh and back/forward, so clear them.
+// Clear form values restored by the browser.
 window.addEventListener("pageshow", function () {
     loginForm.reset();
 });
 
-// The password starts readonly so it can't be autofilled; unlock it once the user clicks in.
+// Keep the password readonly until focus to avoid autofill.
 const passwordInput = loginForm.elements.password;
 function unlockPassword() {
     passwordInput.removeAttribute("readonly");

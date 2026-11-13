@@ -88,7 +88,7 @@ function showPage(matched) {
     for (const user of users) {
         user.row.hidden = true;
     }
-    // Appending existing rows moves them without recreating them.
+    // Move the existing rows into the new order.
     for (let index = 0; index < matched.length; index++) {
         const row = matched[index].row;
         row.hidden = index < start || index >= end;
@@ -228,7 +228,7 @@ function setupUserTable() {
 
 
 
-// Use textContent so user data is never treated as HTML.
+// Use textContent to display user data as plain text.
 function showUserDetails(user) {
     let role = "User";
     if (user.role === "admin") {
@@ -306,7 +306,7 @@ function setupRowButtons() {
         confirmDelete.textContent = "Deleting…";
     });
 
-    // Reset form controls when the Back button restores this page.
+    // Reset controls when returning with Back.
     window.addEventListener("pageshow", function () {
         confirmDelete.disabled = deleteInput.value !== "DELETE";
         confirmDelete.textContent = "Delete Completely";
@@ -388,7 +388,7 @@ function setupAddUserForm() {
         createButton.textContent = "Creating…";
     });
 
-    // Reset form controls when the Back button restores this page.
+    // Reset controls when returning with Back.
     window.addEventListener("pageshow", function (event) {
         createButton.disabled = false;
         createButton.textContent = "Create User";

@@ -1,4 +1,4 @@
-"""Start the planner after Gunicorn loads the app."""
+# Start the planner after Gunicorn loads the app.
 
 import logging
 import os
@@ -12,7 +12,7 @@ errorlog = "-"
 
 
 def _embedded_enabled():
-    # Run the planner on Render unless explicitly disabled.
+    # Run the planner on Render unless turned off.
     value = os.getenv("PLANNER_EMBEDDED_WORKER", os.getenv("RENDER", "false"))
     return value.strip().lower() == "true"
 
@@ -26,7 +26,7 @@ def post_worker_init(worker):
     if existing is not None and existing.is_alive():
         return
 
-    # The app must load .env before the planner creates its AI clients.
+    # Load .env before creating AI clients.
     from planning.worker import run_worker
 
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")

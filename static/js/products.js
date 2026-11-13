@@ -1,7 +1,7 @@
 function useFallbackImage(image) {
     const fallback = image.dataset.fallbackSrc;
     if (!fallback) return;
-    // Remove this first so a missing placeholder cannot cause a loop.
+    // Remove the fallback to prevent repeated image errors.
     image.removeAttribute("data-fallback-src");
     if (image.src !== new URL(fallback, document.baseURI).href) {
         image.src = fallback;
@@ -16,7 +16,7 @@ function checkProductImages(container) {
     }
 }
 
-// Use the placeholder when a product image cannot load.
+// Use the placeholder if an image fails to load.
 document.addEventListener("error", function (event) {
     if (event.target.matches("img[data-fallback-src]")) {
         useFallbackImage(event.target);
@@ -47,7 +47,7 @@ if (moreCategories) {
         }
     });
 
-    // relatedTarget is where focus moves next; null means it left the page.
+    // relatedTarget is the next focused element.
     moreCategories.addEventListener("focusout", function (event) {
         if (!moreCategories.contains(event.relatedTarget)) {
             setMoreMenuOpen(false);

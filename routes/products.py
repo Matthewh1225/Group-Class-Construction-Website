@@ -7,7 +7,7 @@ from services.products import get_manufacturer, search_products
 
 products_bp = Blueprint("products", __name__)
 
-# url_name matches Product.category and the category URL parameter.
+# url_name matches the database category and URL filter.
 PRODUCT_CATEGORIES = [
     {"url_name": "lumber", "code": "MAT-01", "name": " Lumber & Building Materials"},
     {"url_name": "fasteners", "code": "MAT-02", "name": "Hardware & Fasteners"},
@@ -47,7 +47,7 @@ CATEGORY_IMAGES = {
 }
 
 
-# clean name andd find image for each
+# Find a machine image using its name.
 def find_machine_image(machine_name):
     file_name = machine_name.strip().lower().replace(" ", "-") + ".png"
     image_path = "images/machines/" + file_name
@@ -74,7 +74,7 @@ def load_product_page(category_url_name):
     product_list = []
     total_pages = 1
     catalog_error = False
-    # Keep category links visible  when the product query fails.
+    # Keep category links visible if loading products fails.
     try:
         if manufacturer_id is not None:
             manufacturer = get_manufacturer(manufacturer_id)
@@ -135,7 +135,7 @@ def heavy_machinery():
 
     for machine in catalog["products"]:
         machine["category_name"] = "Heavy Machinery"
-        # Use the machine's own picture when there is one; otherwise keep the shared image.
+        # Use the machine's picture if it exists.
         machine_image = find_machine_image(machine["product_name"])
         if machine_image is not None:
             machine["image"] = machine_image

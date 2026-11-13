@@ -69,18 +69,19 @@ projects. Keep necessary compatibility details; do not broaden one product type 
 Small DIY projects should still include the practical sizes needed for their material list.
 """
 
-AI_TIMEOUT = 120  # seconds for one AI request
+AI_TIMEOUT = 300  # seconds for one AI request
 
 # Each .env model name overrides its default.
-# Keys 1-3 belong to Fast, Standard and Pro.
+# Keys 1-3 belong to Fast, Standard and Pro. Key 4 belongs to the Matcher in every tier.
 MODELS = {
+    "gemini_matcher": {"provider": "gemini", "api_key": "GEMINI_API_KEY4", "model_env": "GEMINI_MODEL_MATCHER", "default": "gemini-3.5-flash-lite"},
     "gemini_fast": {"provider": "gemini", "api_key": "GEMINI_API_KEY", "model_env": "GEMINI_MODEL_FAST", "default": "gemini-3.5-flash-lite"},
     "gemini_standard": {"provider": "gemini", "api_key": "GEMINI_API_KEY2", "model_env": "GEMINI_MODEL_FAST", "default": "gemini-3.5-flash-lite"},
     "gemini_standard_strong": {"provider": "gemini", "api_key": "GEMINI_API_KEY2", "model_env": "GEMINI_MODEL_STRONG", "default": "gemini-3.5-flash-lite"},
     "gemini_strong": {"provider": "gemini", "api_key": "GEMINI_API_KEY3", "model_env": "GEMINI_MODEL_STRONG", "default": "gemini-3.5-flash-lite"},
     "gpt_oss": {"provider": "groq", "api_key": "GROQ_API_KEY", "model_env": "GROQ_MODEL", "default": "openai/gpt-oss-120b"},
     "nemotron": {"provider": "openrouter", "api_key": "OPENROUTER_API_KEY", "model_env": "OPENROUTER_MODEL", "default": "nvidia/nemotron-3-ultra-550b-a55b:free"},
-    "glm_matcher": {"provider": "cloudflare", "api_key": "CLOUDFLARE_API_TOKEN", "model_env": "CLOUDFLARE_MATCHER_MODEL", "default": "@cf/zai-org/glm-4.7-flash"},
+    "glm": {"provider": "cloudflare", "api_key": "CLOUDFLARE_API_TOKEN", "model_env": "CLOUDFLARE_MODEL", "default": "@cf/zai-org/glm-4.7-flash"},
 }
 
 
@@ -90,7 +91,7 @@ WORKFLOW_TIERS = {
         "interpreter": {"model": "gemini_fast", "reasoning": "low", "output_tokens": 8192},
         "planner": {"model": "gpt_oss", "reasoning": "low", "output_tokens": 8192},
         "auditor": {"model": "gemini_fast", "reasoning": "medium", "output_tokens": 8192},
-        "matcher": {"model": "glm_matcher", "reasoning": False, "output_tokens": 8192},
+        "matcher": {"model": "gemini_matcher", "reasoning": "medium", "output_tokens": 16384},
         "max_jobs_per_24h": 30,
     },
     "standard": {
@@ -98,7 +99,7 @@ WORKFLOW_TIERS = {
         "interpreter": {"model": "gemini_standard", "reasoning": "medium", "output_tokens": 16384},
         "planner": {"model": "gpt_oss", "reasoning": "medium", "output_tokens": 16384},
         "auditor": {"model": "gemini_standard_strong", "reasoning": "medium", "output_tokens": 16384},
-        "matcher": {"model": "glm_matcher", "reasoning": False, "output_tokens": 8192},
+        "matcher": {"model": "gemini_matcher", "reasoning": "medium", "output_tokens": 16384},
         "max_jobs_per_24h": 30,
     },
     "pro": {
@@ -107,7 +108,7 @@ WORKFLOW_TIERS = {
         "planner": {"model": "gemini_strong", "reasoning": "high", "output_tokens": 16384},
         "second_planner": {"model": "gpt_oss", "reasoning": "high", "output_tokens": 32768},
         "auditor": {"model": "nemotron", "reasoning": "high", "output_tokens": 16384},
-        "matcher": {"model": "glm_matcher", "reasoning": False, "output_tokens": 8192},
+        "matcher": {"model": "gemini_matcher", "reasoning": "medium", "output_tokens": 16384},
         "max_jobs_per_24h": 10,
     },
 }

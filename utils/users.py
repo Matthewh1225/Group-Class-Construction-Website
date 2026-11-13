@@ -1,4 +1,6 @@
 import secrets
+import time
+from threading import Lock
 
 from utils.database import database_cursor
 from utils.passwords import check_password, hash_password, validate_password
@@ -6,6 +8,11 @@ from utils.passwords import check_password, hash_password, validate_password
 # Match the User table's field limits.
 MAX_NAME_LENGTH = 50
 MAX_EMAIL_LENGTH = 100
+
+# Cache account details and their expiry time by user ID.
+ACCOUNT_CACHE_SECONDS = 30
+account_cache = {}
+account_cache_lock = Lock()
 
 
 def looks_like_email(email):
@@ -23,7 +30,35 @@ def full_name(first_name, last_name):
     return (first_name + " " + last_name).strip()
 
 
-def get_account(user_id):
+def clear_account_cache(user_id):
+    with account_cache_lock:
+        account_cache.pop(user_id, None)
+
+
+def get_account(user_id, use_cache=True):
+    # Lock while reading and updating cached accounts.
+    with account_cache_lock:
+        now = time.monotonic()
+        for cached_id in list(account_cache):
+            if account_cache[cached_id]["expires_at"] <= now:
+                del account_cache[cached_id]
+
+        if use_cache and user_id in account_cache:
+            return account_cache[user_id]["user"].copy()
+
+        user = read_account(user_id)
+        if user is None:
+            account_cache.pop(user_id, None)
+            return None
+
+        account_cache[user_id] = {
+            "user": user.copy(),
+            "expires_at": time.monotonic() + ACCOUNT_CACHE_SECONDS,
+        }
+        return user
+
+
+def read_account(user_id):
     with database_cursor() as cursor:
         cursor.execute(
             """SELECT u.firstName, u.lastName, u.permissions AS role, c.accountStatus FROM `User` u
@@ -33,7 +68,7 @@ def get_account(user_id):
         return cursor.fetchone()
 
 
-# Check the password before the route reveals whether the account is disabled.
+# Check the password before showing disabled-account errors.
 def check_login(email, password):
     with database_cursor() as cursor:
         cursor.execute(
@@ -137,11 +172,14 @@ def set_user_status(user_id, status):
         if cursor.fetchone() is None:
             return False
         cursor.execute("UPDATE Customer SET accountStatus = %s WHERE userId = %s", (status, user_id))
+    clear_account_cache(user_id)
     return True
 
 
 def delete_user_completely(user_id): 
     with database_cursor() as cursor:
-        # Foreign keys remove this user's related records in the same transaction.
+        # Foreign keys delete related records in this transaction.
         cursor.execute("DELETE FROM `User` WHERE id = %s", (user_id,))
-        return cursor.rowcount == 1
+        deleted = cursor.rowcount == 1
+    clear_account_cache(user_id)
+    return deleted

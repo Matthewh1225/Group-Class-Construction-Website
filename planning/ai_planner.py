@@ -58,7 +58,7 @@ def call_gemini(model, prompt, thinking_level, system_instruction, response_sche
         contents=prompt,
         config=config,
     )
-    # A blocked prompt may have feedback but no answer candidates.
+    # A blocked prompt may have no answer.
     if not response.candidates:
         feedback = response.prompt_feedback
         if feedback and feedback.block_reason:

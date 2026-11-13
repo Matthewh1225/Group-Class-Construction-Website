@@ -4,29 +4,29 @@ from utils.database import database_cursor
 PRO_PLANS = {
     "monthly": {
         "name": "Monthly Pro", "price": 1999, "interval": "month",
-        "billing": "Monthly (preview)",
+        "billing": "Monthly",
         "badge": "Stay flexible", "frequency": "per month",
-        "detail": "Example monthly price", "button_label": "Check availability",
-        "terms": "Pricing preview only. No payment or subscription will be created."
+        "detail": "Monthly plan", "button_label": "Continue",
+        "terms": "All prices are in USD."
     },
     "yearly": {
         "name": "Yearly Pro", "price": 19200, "interval": "year",
-        "billing": "Yearly (preview)",
+        "billing": "Yearly",
         "badge": "Save about 20%", "frequency": "per year",
-        "button_label": "Check availability",
-        "terms": "Pricing preview only. No payment or subscription will be created.",
+        "button_label": "Continue",
+        "terms": "All prices are in USD.",
     },
     "lifetime": {
         "name": "Lifetime Pro", "price": 100000000, "interval": "once",
-        "billing": "One-time (preview)",
+        "billing": "One-time",
         "badge": "One payment", "frequency": "One-time purchase",
-        "detail": "Example one-time price", "button_label": "Check availability",
-        "terms": "Pricing preview only. No payment or subscription will be created.",
+        "detail": "Lifetime plan", "button_label": "Continue",
+        "terms": "All prices are in USD.",
     },
 }
 
 
-# pro_expires_on is the last day of Pro access; NULL means none.
+# pro_expires_on is the last Pro day; NULL means no access.
 def has_active_pro(user_id):
     with database_cursor() as cursor:
         cursor.execute("SELECT 1 FROM `User` WHERE id = %s AND pro_expires_on >= CURDATE()", (user_id,))

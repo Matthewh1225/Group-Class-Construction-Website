@@ -79,7 +79,7 @@ function updateEstimate() {
         row.classList.toggle("in-crew", workers > 0);
         row.querySelector("[data-days]").textContent = "—";
         if (workers > 0) {
-            // Saved trades keep their days; new trades use the project range.
+            // Keep saved days; use project days for new roles.
             let days = selected.days;
             if (savedDaysByRole[row.dataset.role]) {
                 days = savedDaysByRole[row.dataset.role];
@@ -157,6 +157,6 @@ form.addEventListener("submit", function (event) {
     if (event.submitter) event.submitter.disabled = true;
 });
 
-// Restore the save button when Back returns to this page.
+// Reset the save button when returning with Back.
 window.addEventListener("pageshow", updateEstimate);
 updateEstimate();

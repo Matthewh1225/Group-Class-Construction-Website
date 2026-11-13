@@ -14,7 +14,7 @@ function checkPasswordRules() {
     return checks.length && checks.number && checks.maximum;
 }
 
-// Wait until the user starts confirming the password to show a mismatch.
+// Show mismatches after the user starts confirming their password.
 function checkMatch() {
     const matches = password.value === confirmPassword.value;
     if (confirmPassword.value === "" || matches) {

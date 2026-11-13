@@ -20,19 +20,28 @@ def default_project_name(job):
 
 
 def can_save_project(job):
-    return job.get("status") == "complete" and bool((job.get("result") or {}).get("materials"))
+    if job.get("status") != "complete":
+        return False
+    result = job.get("result")
+    if not result:
+        return False
+    return bool(result.get("materials"))
 
 
 def check_name(name):
-    if not isinstance(name, str) or not name.strip() or len(name.strip()) > 120:
-        raise ValueError("Enter a project name between 1 and 120 characters.")
-    return name.strip()
+    error_message = "Enter a project name between 1 and 120 characters."
+    if not isinstance(name, str):
+        raise ValueError(error_message)
+    name = name.strip()
+    if not name or len(name) > 120:
+        raise ValueError(error_message)
+    return name
 
 
 def save_job_as_project(user_id, job, name):
     name = check_name(name)
     with database_cursor() as cursor:
-        # Read the stored plan and ownership
+        # Check the saved plan and its owner.
         job = find_job(cursor, job["id"], user_id, for_update=True)
         if job is None or not can_save_project(job):
             raise ValueError("Only a finished plan with materials can be saved.")
@@ -101,9 +110,21 @@ def get_project_details(project_id, user_id):
 
 def get_project_saved_from_job(job_id, user_id):
     with database_cursor() as cursor:
-        cursor.execute(PROJECT_QUERY + " WHERE s.job_id = %s AND s.owner = %s", (job_id, user_id))
+        cursor.execute(
+            """SELECT s.id, s.name, s.crew
+               FROM saved_projects s
+               JOIN planner_jobs j ON j.id = s.job_id AND j.owner = s.owner
+               WHERE s.job_id = %s AND s.owner = %s""",
+            (job_id, user_id),
+        )
         row = cursor.fetchone()
-    return read_project(row) if row else None
+    if row is None:
+        return None
+    if row["crew"]:
+        row["crew"] = json.loads(row["crew"])
+    else:
+        row["crew"] = None
+    return row
 
 
 def rename_project(project_id, user_id, name):

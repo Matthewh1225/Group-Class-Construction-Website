@@ -24,7 +24,7 @@ PROVIDER_ERRORS = (GeminiAPIError, GroqAPIError, OpenRouterError, NoResponseErro
                    httpx.TransportError, httpx.HTTPStatusError, TimeoutError, ConnectionError)
 
 
-# Gemini names the HTTP status "code"; Groq and OpenRouter name it "status_code".
+# Gemini uses code; Groq and OpenRouter use status_code.
 def error_code(error):
     if isinstance(error, httpx.HTTPStatusError):
         return error.response.status_code
@@ -33,7 +33,7 @@ def error_code(error):
         return code
     return None
 
-#group Error handling functions
+# AI error messages.
 def describe_error(error):
     code = error_code(error)
     if code == 429:
@@ -75,7 +75,7 @@ def clean_audited_estimate(output, classifications):
     if crew is None:
         return output
 
-    # Zero-worker roles do not contribute to the crew or its cost.
+    # Leave out roles with no workers.
     members = []
     for member in crew["members"]:
         if member["workers"] > 0:
@@ -163,29 +163,39 @@ def run_workflow(job, save_progress):
     roles = ["planner"]
     if tier == "pro":
         roles.append("second_planner")
+    # Save finished steps for restarts.
+    saved = job.setdefault("checkpoints", {})
+
     estimates = []
     for role in roles:
+        if role in saved:
+            estimates.append(saved[role])
+            continue
         update_stage(role, "processing")
         estimate = run_stage(tier, role, DraftEstimate, planner_inputs,
                              ai_config.PLANNER_PROMPT)
+        saved[role] = estimate
         estimates.append(estimate)
         update_stage(role, "done")
 
-    update_stage("auditor", "processing")
-    auditor_inputs = dict(planner_inputs)
-    try:
-        auditor_inputs["classifications"] = get_catalog_classifications()
-    except MySQLError as error:
-        raise PlanningError("The auditor step failed: category and subcategory labels could not be loaded.") from error
-    auditor_inputs["estimates"] = estimates
-    auditor_inputs["available_crew_roles"] = {role: info["name"] for role, info in CREW_RATES.items()}
-    auditor_inputs["hours_per_day"] = HOURS_PER_DAY
-    auditor_inputs["max_workers_per_role"] = MAX_WORKERS
-    auditor_inputs["max_working_days"] = MAX_DAYS
-    result = run_stage(tier, "auditor", AuditedEstimate, auditor_inputs,
-                       ai_config.AUDITOR_PROMPT)
-
-    update_stage("auditor", "done")
+    if "auditor" in saved:
+        result = saved["auditor"]
+    else:
+        update_stage("auditor", "processing")
+        auditor_inputs = dict(planner_inputs)
+        try:
+            auditor_inputs["classifications"] = get_catalog_classifications()
+        except MySQLError as error:
+            raise PlanningError("The auditor step failed: category and subcategory labels could not be loaded.") from error
+        auditor_inputs["estimates"] = estimates
+        auditor_inputs["available_crew_roles"] = {role: info["name"] for role, info in CREW_RATES.items()}
+        auditor_inputs["hours_per_day"] = HOURS_PER_DAY
+        auditor_inputs["max_workers_per_role"] = MAX_WORKERS
+        auditor_inputs["max_working_days"] = MAX_DAYS
+        result = run_stage(tier, "auditor", AuditedEstimate, auditor_inputs,
+                           ai_config.AUDITOR_PROMPT)
+        saved["auditor"] = result
+        update_stage("auditor", "done")
 
     update_stage("matcher", "processing")
     matcher_inputs = dict(planner_inputs)

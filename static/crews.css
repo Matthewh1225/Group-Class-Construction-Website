@@ -143,7 +143,7 @@
     font-weight: 600;
 }
 
-/* Keep the role visible while scrolling; its background hides cells passing underneath. */
+/* Keep role names visible with a solid background while scrolling. */
 .crew-table thead th:first-child,
 .crew-table tbody th {
     position: sticky;

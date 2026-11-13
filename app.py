@@ -20,15 +20,16 @@ from utils.database import close_database
 from utils.rate_limits import limiter
 from utils.passwords import MAX_PASSWORD_LENGTH
 from services.products import get_all_manufacturers
+from services.vector_search import load_vector_search
 
 app = Flask(__name__, template_folder="pages")
 app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")
 app.config["SESSION_COOKIE_NAME"] = "buildbetter_session"
-# Lax keeps this cookie out of form posts from other sites.
+# Keep session cookies out of cross-site POSTs.
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 # Set SESSION_COOKIE_SECURE=true when using HTTPS.
 app.config["SESSION_COOKIE_SECURE"] = os.getenv("SESSION_COOKIE_SECURE", "").lower() == "true"
-#check token, login critera and close db connection
+# Check CSRF and login; close database connections after requests.
 app.before_request(check_csrf)
 app.before_request(refresh_logged_in_user)
 app.teardown_request(close_database)
@@ -47,6 +48,9 @@ app.register_blueprint(shopping_bp)
 app.register_blueprint(dashboard_bp)
 app.register_blueprint(subscription_bp)
 app.register_blueprint(crews_bp)
+
+# Load product vectors once; use keyword search if loading fails.
+load_vector_search()
 
 
 @app.errorhandler(DatabaseError)
@@ -82,5 +86,5 @@ def manufacturers():
 
 
 if __name__ == "__main__":
-    # Avoid port 5000, my macOS may use for AirPlay.
+    # Port 5000 may be used by AirPlay on macOS.
     app.run(debug=True, port=5001)

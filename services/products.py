@@ -1,6 +1,8 @@
+from services import vector_search
 from utils.database import database_cursor
 
 PAGE_SIZE = 12
+MIN_SIMILARITY = 0.35
 
 CATALOG_SYNONYMS = {
     "gypsum board": "drywall",
@@ -43,7 +45,7 @@ def get_manufacturer(manufacturer_id):
 
 
 def search_products(search=None, category_url_name=None, page=1, manufacturer_id=None):
-    "Return (products, total_pages) using the same filters for both."
+    # Return products and page count with the same filters.
     sql = """
         SELECT p.id AS product_id, p.name AS product_name, p.details AS specification,
                p.sku, p.unit, p.category,
@@ -63,7 +65,7 @@ def search_products(search=None, category_url_name=None, page=1, manufacturer_id
         values.append(manufacturer_id)
 
     if search:
-        # All words must occur, but they need not form one exact phrase.
+        # All words must occur
         for word in search.split():
             pattern = "%" + word + "%"
             filters += " AND (p.name LIKE %s OR p.keywords LIKE %s OR p.sku LIKE %s OR p.details LIKE %s)"
@@ -87,7 +89,6 @@ def search_products(search=None, category_url_name=None, page=1, manufacturer_id
     return products, total_pages
 
 def get_catalog_classifications():
-    # Separate enums do not describe which subcategories belong to each category.
     with database_cursor() as cursor:
         cursor.execute("""
             SELECT DISTINCT category, subCategory AS subcategory
@@ -116,7 +117,70 @@ def get_machinery_catalog():
         return cursor.fetchall()
 
 
+def search_products_by_meaning(query, limit=10, skip_category=None):
+    # Return None if vector search isn't ready.
+    ranked = vector_search.search_product_ids(query, limit * 3)
+    if ranked is None:
+        return None
+    if not ranked:
+        return []
+
+    ids = []
+    for product_id, score in ranked:
+        ids.append(product_id)
+
+    placeholders = ", ".join(["%s"] * len(ids))
+    sql = ("SELECT " + PLANNER_PRODUCT_FIELDS
+           + " FROM Product p WHERE p.isActive = 1 AND p.id IN (" + placeholders + ")")
+    values = list(ids)
+    if skip_category is not None:
+        sql += " AND p.category <> %s"
+        values.append(skip_category)
+    with database_cursor() as cursor:
+        cursor.execute(sql, values)
+        rows = cursor.fetchall()
+
+    # Put the database rows back in search order.
+    rows_by_id = {}
+    for row in rows:
+        rows_by_id[row["product_id"]] = row
+    products = []
+    for product_id, score in ranked:
+        if product_id in rows_by_id:
+            product = rows_by_id[product_id]
+            product["similarity"] = round(score, 3)
+            products.append(product)
+        if len(products) == limit:
+            break
+    return products
+
+
 def get_material_candidates(materials):
+    if not materials:
+        return []
+
+    # Use keyword search if vector search isn't ready.
+    if not vector_search.load_vector_search():
+        return get_material_candidates_by_keywords(materials)
+
+    groups = []
+    for index, material in enumerate(materials):
+        query = material["material_name"] + ". " + material["specification"]
+        products = search_products_by_meaning(query, limit=10, skip_category="heavy-machinery")
+        candidates = []
+        for product in products:
+            # Skip products with low similarity.
+            if product["similarity"] < MIN_SIMILARITY:
+                continue
+            # Leave the search score out of the Matcher input.
+            del product["similarity"]
+            candidates.append(product)
+        groups.append({"material_index": index, "candidates": candidates})
+    return groups
+
+
+def get_material_candidates_by_keywords(materials):
+    # Use MySQL keyword search when vector search isn't ready.
     if not materials:
         return []
 
@@ -148,7 +212,7 @@ def get_material_candidates(materials):
                        + " AGAINST (%s IN NATURAL LANGUAGE MODE) AS relevance"
                        + " FROM Product p WHERE p.isActive = 1 AND p.category <> %s"
                        + " AND " + match + " AGAINST (%s IN NATURAL LANGUAGE MODE) > 0")
-                # A specification alone must not qualify an unrelated material.
+                # Require a name match, not just matching details.
                 values = [search_text, "heavy-machinery", search_name]
                 if category is not None:
                     sql += " AND p.category = %s"
@@ -172,7 +236,7 @@ def get_material_candidates(materials):
 
 
 def get_products_by_ids(product_ids):
-    # Read current store data instead of saving prices in the AI plan.
+    # Read current prices and stock from the store.
     product_ids = sorted(set(product_ids))
     if not product_ids:
         return {}

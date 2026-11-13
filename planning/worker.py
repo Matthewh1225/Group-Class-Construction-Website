@@ -13,6 +13,7 @@ load_dotenv()
 from .jobs import LeaseLost, claim_job, save_job, mark_processing_stages
 from .schemas import PlanningError
 from .workflow import run_workflow
+from services.vector_search import load_vector_search
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +46,7 @@ def process_one(worker):
     except PlanningError as error:
         mark_failed(job, worker, str(error))
     except DatabaseError:
-        # A worker marks expired running jobs failed when checking the queue.
+        # The queue check marks expired jobs as failed.
         raise
     except Exception:
         logger.exception("Planner job %s stopped with an unexpected error.", job["id"])
@@ -56,6 +57,8 @@ def process_one(worker):
 def run_worker(stop_event=None, once=False):
     if stop_event is None:
         stop_event = Event()
+    # Load vector search before taking jobs.
+    load_vector_search()
     logger.info("Watching planner jobs in MySQL")
     worker = uuid.uuid4().hex
 

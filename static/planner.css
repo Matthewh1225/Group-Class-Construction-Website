@@ -63,7 +63,7 @@
     gap: 12px;
 }
 
-/* Shown instead of the upgrade panel when the account has Pro. */
+/* Show this panel for Pro accounts. */
 .planner-pro-badge {
     display: inline-flex;
     align-items: center;
@@ -196,7 +196,7 @@
     letter-spacing: -0.02em;
 }
 
-/* Looks like the main button: choosing a way to start is the first thing to do. */
+/* Highlight the starting choices. */
 .method-action {
     display: flex;
     justify-content: space-between;
@@ -216,7 +216,7 @@
     background: var(--amber-bright);
 }
 
-/* A smaller, secondary panel under the two choices. */
+/* Small panel below the choices. */
 .planner-pro {
     display: flex;
     flex-wrap: wrap;
@@ -231,7 +231,7 @@
     background: var(--panel-alt);
 }
 
-/* Text takes the spare width; the buttons stay beside it on wide screens and wrap below on narrow ones. */
+/* Wrap buttons below the text on small screens. */
 .planner-pro > div:first-child {
     flex: 1 1 420px;
 }
@@ -526,7 +526,7 @@
     margin-top: 18px;
 }
 
-/* Dropdowns hold longer text than number boxes, so they get wider columns (one per row on a phone). */
+/* Give dropdowns more room; use one column on phones. */
 .field-row-wide {
     grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
 }
@@ -917,7 +917,7 @@
     .plan-table tr { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px 16px; padding: 16px; border: 1px solid var(--plan-border); background: var(--plan-surface); }
     .plan-table tr.plan-row-unmatched { background: var(--surface-faint); }
     .plan-table th, .plan-table td, .plan-table tbody th { display: block; width: auto; padding: 0; border: 0; }
-    /* Keep the material name first and the product and button below the amounts. */
+    /* Put product details and buttons below the amounts. */
     .plan-table tbody th, .plan-table td[data-label="Store product"] { grid-column: 1 / -1; }
     .plan-table td[data-label="Store product"] { order: 1; }
     .plan-table td[data-label]::before { content: attr(data-label); display: block; margin-bottom: 3px; color: var(--plan-muted); font-size: 12px; }

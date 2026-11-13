@@ -5,27 +5,27 @@ from services.crews import estimate_crew_cost, parse_crew
 from utils.database import database_cursor
 
 def get_cart(user_id):
-    # TODO: Get the user's cart items with current prices, totals
+    # TODO: Get cart items with current prices and totals.
     pass
 
 
 def add_item(user_id, product_id, quantity):
-    # TODO: Add the product, checking the total quantity if it's already in the cart.
+    # TODO: Add the product and check the combined quantity.
     pass
 
 
 def change_quantity(user_id, product_id, quantity):
-    # TODO: Update an item in the user's cart after checking the quantity and stock.
+    # TODO: Check quantity and stock, then update the cart item.
     pass
 
 
 def remove_item(user_id, product_id):
-    # TODO: Remove this product from the user's cart
+    # TODO: Remove the product from this user's cart.
     pass
 
 
 def add_materials_to_cart(user_id, materials):
-    # TODO: Add matching planner materials to the cart and report what was added, skipped, or failed.
+    # TODO: Add matched materials; report added, skipped, and failed items.
     pass
 
 
@@ -46,7 +46,12 @@ def get_cart_crews(user_id):
     with database_cursor() as cursor:
         cursor.execute("SELECT id, crew FROM crew_cart WHERE owner = %s ORDER BY id DESC", (user_id,))
         rows = cursor.fetchall()
-    return [{"id": row["id"], "estimate": estimate_crew_cost(json.loads(row["crew"]))} for row in rows]
+    crews = []
+    for row in rows:
+        crew = json.loads(row["crew"])
+        estimate = estimate_crew_cost(crew)
+        crews.append({"id": row["id"], "estimate": estimate})
+    return crews
 
 
 def remove_crew(user_id, crew_id):

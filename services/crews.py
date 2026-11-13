@@ -60,7 +60,7 @@ def check_crew(data):
             raise ValueError("Each specialty can only appear once.")
         roles.add(member["role"])
         workers = member.get("workers")
-        # Reject True and False, which Python otherwise treats as integers.
+        # Booleans aren't valid worker counts.
         if type(workers) != int or workers < 1 or workers > MAX_WORKERS:
             raise ValueError(f"Each specialty needs between 1 and {MAX_WORKERS} workers.")
         member_days = read_days(member.get("days"))

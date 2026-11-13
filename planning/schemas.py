@@ -1,8 +1,11 @@
 
+import logging
+
 from pydantic import BaseModel, ConfigDict, Field
 
+logger = logging.getLogger(__name__)
 
-# The page shows this error to the user.
+
 class PlanningError(Exception):
     pass
 
@@ -85,8 +88,14 @@ class CatalogMatches(Record):
 def merge_catalog_matches(estimate, matching, material_candidates, machinery_catalog):
     material_ids = {}
     for group in material_candidates:
-        material_ids[group["material_index"]] = {product["product_id"] for product in group["candidates"]}
-    machinery_ids = {product["product_id"] for product in machinery_catalog}
+        allowed_ids = set()
+        for product in group["candidates"]:
+            allowed_ids.add(product["product_id"])
+        material_ids[group["material_index"]] = allowed_ids
+
+    machinery_ids = set()
+    for product in machinery_catalog:
+        machinery_ids.add(product["product_id"])
     material_count = len(estimate["materials"])
     if len(matching["matches"]) != material_count:
         raise ValueError("The Matcher must return one match or null for every material")
@@ -96,8 +105,13 @@ def merge_catalog_matches(estimate, matching, material_candidates, machinery_cat
         if index < 0 or index >= material_count or index in seen:
             raise ValueError("The Matcher returned an invalid or repeated material index")
         seen.add(index)
-        if match["product_id"] is not None and match["product_id"] not in material_ids[index]:
-            raise ValueError(f"The Matcher returned a product ID outside the candidates for material {index}")
+        allowed_ids = material_ids.get(index, set())
+        chosen_id = match["product_id"]
+        # Leave invalid product picks unmatched.
+        if chosen_id is not None and chosen_id not in allowed_ids:
+            logger.warning("Matcher picked product %s outside the candidates for material %s; leaving it unmatched.",
+                           chosen_id, index)
+            match["product_id"] = None
     seen = set()
     for machine in matching["machinery"]:
         product_id = machine["product_id"]
@@ -107,9 +121,11 @@ def merge_catalog_matches(estimate, matching, material_candidates, machinery_cat
             raise ValueError("The Matcher recommended the same machine more than once")
         seen.add(product_id)
 
-    # Copy the estimate so matching can change only product IDs and add machinery.
+    # Copy materials before adding product IDs and machinery.
     result = dict(estimate)
-    result["materials"] = [dict(material) for material in estimate["materials"]]
+    result["materials"] = []
+    for material in estimate["materials"]:
+        result["materials"].append(dict(material))
     for match in matching["matches"]:
         result["materials"][match["material_index"]]["product_id"] = match["product_id"]
     result["machinery"] = matching["machinery"]

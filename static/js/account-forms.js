@@ -58,7 +58,7 @@ export async function submitAccountForm(form, message, data) {
     } finally {
         for (const input of form.querySelectorAll('input[type="password"]')) {
             input.value = "";
-            // Let the password checklist know the field was cleared.
+        // Update the checklist after clearing the password.
             input.dispatchEvent(new Event("input"));
         }
         form.removeAttribute("aria-busy");
@@ -98,7 +98,7 @@ export function setupPasswordToggles(form) {
     });
 }
 
-// Google calls handleGoogleSignIn by name after the user picks an account.
+// Google calls handleGoogleSignIn after account selection.
 export function setupGoogleSignIn(message) {
     window.handleGoogleSignIn = async function (googleResponse) {
         message.textContent = "";

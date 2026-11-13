@@ -154,7 +154,7 @@
     margin-top: 4px;
 }
 
-/* Hold the button's height so the form doesn't jump while Google loads it. */
+/* Reserve space while Google's button loads. */
 .g_id_signin {
     justify-self: center;
     min-height: 44px;

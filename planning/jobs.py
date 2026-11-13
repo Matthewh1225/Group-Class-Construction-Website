@@ -9,7 +9,7 @@ from utils.database import database_cursor
 
 from .ai_config import WORKFLOW_TIERS
 
-LEASE_SECONDS = 15 * 60  # Worker lease duration; renewed when progress is saved.
+LEASE_SECONDS = 15 * 60  # Saving progress renews this time limit.
 MAX_RUNNING_JOBS = 2
 MAX_QUEUED_JOBS = 100
 MAX_REQUEST_BYTES = 20000
@@ -61,7 +61,7 @@ def mark_processing_stages(job, new_state):
             job["stages"][stage] = new_state
 
 
-# The hash catches a submission key reused with different inputs.
+# Check that a reused submission key has the same inputs.
 def check_submission(owner, submission_key, project, tier, answers):
     if tier not in WORKFLOW_TIERS:
         raise ValueError("This planning tier is unavailable.")
@@ -90,8 +90,8 @@ def check_queue_capacity(cursor, owner):
         raise ValueError("The planner queue is full. Please try again later.")
 
 
-# Reusing a submission key returns the first job.
-def submit_job(owner, submission_key, project, tier="fast", answers=None):
+# The same submission key returns the same job.
+def submit_job(owner, submission_key, project, tier="fast", answers=None, resume=None):
     if answers is None:
         answers = []
     request_hash = check_submission(owner, submission_key, project, tier, answers)
@@ -100,6 +100,11 @@ def submit_job(owner, submission_key, project, tier="fast", answers=None):
     data = {"project": project, "questions": [], "answers": answers,
             "specification": None, "result": None, "error": None,
             "stages": pending_stages(tier)}
+    # Reuse finished steps when restarting.
+    if resume is not None:
+        data["specification"] = resume["specification"]
+        data["checkpoints"] = resume["checkpoints"]
+        data["stages"] = resume["stages"]
     with database_cursor(lock_name="planner_queue") as cursor:
         cursor.execute(
             "SELECT * FROM planner_jobs WHERE owner = %s AND submission_key = %s",
@@ -161,8 +166,7 @@ def list_jobs(owner, limit=20, offset=0):
     return jobs
 
 
-# Wait for the time limit: another worker may still be running the job.
-# Interrupted jobs fail so the user can restart them.
+# Mark jobs as failed after their worker's time limit runs out.
 def fail_interrupted_jobs(cursor, now):
     cursor.execute(
         "SELECT * FROM planner_jobs WHERE status = 'running' AND lease_until < %s FOR UPDATE", (now,)
@@ -181,7 +185,7 @@ def fail_interrupted_jobs(cursor, now):
 def claim_job(worker):
     now = time.time()
     with database_cursor(lock_name="planner_queue") as cursor:
-        # Serialize claims and the running-job count across all workers.
+        # Lock the queue while counting and claiming jobs.
         fail_interrupted_jobs(cursor, now)
         cursor.execute("SELECT COUNT(*) AS total FROM planner_jobs WHERE status = 'running'")
         running = cursor.fetchone()["total"]
@@ -206,7 +210,7 @@ def claim_job(worker):
 def save_job(job, worker):
     now = time.time()
     with database_cursor() as cursor:
-        # Only the worker still assigned to the running job can save it.
+        # Only the current worker can save a running job.
         cursor.execute(
             "UPDATE planner_jobs SET data = %s, status = %s, updated = %s, lease_until = %s WHERE id = %s AND worker = %s AND status = 'running'",
             (encode(job), job["status"], now, now + LEASE_SECONDS, job["id"], worker),
@@ -238,12 +242,22 @@ def answer_job(job_id, owner, answers):
         )
 
 
-# A fixed key stops repeated clicks from creating extra jobs.
+# Reuse the key so repeated restart clicks don't create extra jobs.
 def restart_job(job_id, owner):
     job = get_job(job_id, owner)
     if job is None or job["status"] != "failed":
         raise ValueError("Only failed plans can be started again.")
-    return submit_job(owner, "restart-" + job_id, job["project"], job["tier"], job["answers"])
+    # Keep finished steps and reset the rest.
+    checkpoints = job.get("checkpoints", {})
+    stages = {}
+    for stage, state in job["stages"].items():
+        finished = stage == "interpreter" or stage in checkpoints
+        if state == "done" and finished:
+            stages[stage] = "done"
+        else:
+            stages[stage] = "pending"
+    progress = {"specification": job["specification"], "checkpoints": checkpoints, "stages": stages}
+    return submit_job(owner, "restart-" + job_id, job["project"], job["tier"], job["answers"], progress)
 
 
 def cancel_job(job_id, owner):

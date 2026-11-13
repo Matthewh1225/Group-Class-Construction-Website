@@ -12,7 +12,7 @@ from utils.users import create_user, delete_user_completely, get_all_users, set_
 dashboard_bp = Blueprint("dashboard", __name__)
 
 
-# Roles are refreshed from the database before each request.
+# Refresh roles before handling form submissions.
 @dashboard_bp.route("/dashboard", methods=["GET", "POST"])
 @login_required
 def dashboard():
@@ -34,7 +34,7 @@ def dashboard():
         except Error:
             current_app.logger.exception("Unable to create an admin user")
             flash("User creation is temporarily unavailable. Nothing was changed.", "error")
-        # Redirect so refreshing does not create another user.
+        # Redirect to avoid resubmitting the form on refresh.
         return redirect(url_for("dashboard.dashboard", add_user="error"))
 
     if role == "admin":
@@ -216,7 +216,7 @@ def delete_user(user_id):
     if user_id == session.get("user_id"):
         flash("You cannot delete your own account.", "error")
         return redirect(url_for("dashboard.dashboard"))
-    # Check the typed confirmation here too; the dialog alone is not enough.
+    # Check DELETE on the server too.
     if request.form.get("confirm_text") != "DELETE":
         flash("Type DELETE to confirm. Nothing was deleted.", "error")
         return redirect(url_for("dashboard.dashboard"))
