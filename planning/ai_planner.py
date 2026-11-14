@@ -47,7 +47,7 @@ def call_gemini(model, prompt, thinking_level, system_instruction, response_sche
         "system_instruction": system_instruction,
         "thinking_config": {"thinking_level": thinking_level},
         "max_output_tokens": output_tokens,
-        "http_options": {"timeout": AI_TIMEOUT * 1000, "retry_options": {"attempts": 1}},
+        "http_options": {"timeout": AI_TIMEOUT * 1000, "retry_options": {"attempts": 5}},
         "automatic_function_calling": {"disable": True},
         "response_mime_type": "application/json",
         "response_json_schema": response_schema,

@@ -28,7 +28,7 @@ def subscribe():
             status = 400
     elif request.method == "POST":
         checkout_error = "We couldn't complete your subscription request. No payment was taken."
-status = 503        
+        status = 503
 
     plans = {}
     for key, configuration in PRO_PLANS.items():

@@ -50,10 +50,10 @@
 
     {% if job.status == 'failed' %}
         <div class="plan-alert plan-alert-error" role="alert">
-            <p>{{ job.error or 'Planning failed.' }} Start again to rerun the whole plan with the same details{% if job.answers %} and answers{% endif %}.</p>
+            <p>{{ job.error or 'Planning failed.' }} Start again to retry stage.{% if job.answers %} and answers{% endif %}.</p>
             <form method="post" action="{{ url_for('planner.planning_job_restart', job_id=job.id) }}">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button class="plan-button" type="submit">Start again</button>
+                <button class="plan-button" type="submit">Retry plan</button>
             </form>
         </div>
     {% endif %}
