@@ -108,7 +108,7 @@ def add_preorder_item(user_id, preorder):
     with database_cursor() as cursor:
         # Same name, unit and product already in the cart? Then just add to it
         cursor.execute(
-            """v 
+            """
             SELECT id FROM Preorder_item
             WHERE userId = %s AND orderId IS NULL AND name = %s AND unit = %s
               AND productId <=> %s
