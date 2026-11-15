@@ -503,3 +503,11 @@
         width: 100%;
     }
 }
+
+.product-reviews-link {
+    display: inline-block;
+    margin-bottom: 12px;
+    color: var(--measure);
+    font-size: .78rem;
+    text-underline-offset: 3px;
+}

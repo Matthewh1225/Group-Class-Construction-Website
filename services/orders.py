@@ -91,6 +91,13 @@ def create_order(user_id, checkout_data):
                 (item["itemQty"], item["product_id"]),
             )
 
+        # Save each crew with the order so the receipt and order history can show it
+        for crew in crews:
+            cursor.execute(
+                "INSERT INTO Order_crew (orderId, label, workers, days, priceCents) VALUES (%s, %s, %s, %s, %s)",
+                (order_id, crew["label"], crew["workers"], crew["days"], crew["price_cents"]),
+            )
+
         cursor.execute("DELETE FROM Cart_item WHERE userId = %s", (user_id,))
         # Crews are paid for in the order total, so take them out of the cart
         cursor.execute("DELETE FROM crew_cart WHERE owner = %s", (user_id,))
@@ -111,16 +118,106 @@ def create_order(user_id, checkout_data):
     return order_id
 
 
+def make_order_dict(row):
+    """Turn an Order row into the dictionary the order pages use."""
+    total_cents = int(round(row["totalCost"] * 100))
+    return {
+        "id": row["id"],
+        "number": "#" + str(row["id"]),
+        "date": row["dateCreated"],
+        "placed_at": row["dateCreated"],
+        "status": row["orderStatus"],
+        "total_cents": total_cents,
+        "total": "${:,.2f}".format(total_cents / 100),
+        "shipping": row["shippingAddress"],
+    }
+
+
+def add_receipt_totals(order, items):
+    """Add subtotal, shipping and tax to an order so the receipt can list them."""
+    subtotal_cents = sum(item["total_cents"] for item in items)
+    totals = add_shipping_and_tax(subtotal_cents)
+    order["subtotal_cents"] = totals["subtotal_cents"]
+    order["shipping_cents"] = totals["shipping_cents"]
+    order["tax_cents"] = totals["tax_cents"]
+
+
 def get_user_orders(user_id):
-  # TODO: Get this user's orders with dates, statuses, and totals.
-  pass
+    """Get this user's orders, newest first."""
+    with database_cursor() as cursor:
+        cursor.execute(
+            "SELECT id, dateCreated, totalCost, orderStatus, shippingAddress "
+            "FROM `Order` WHERE userId = %s ORDER BY id DESC",
+            (user_id,),
+        )
+        return [make_order_dict(row) for row in cursor.fetchall()]
 
 
 def get_order(order_id, user_id):
-   # TODO: Get order details after checking the owner.
-   pass
+    """Get one order, or None if it doesn't exist or belongs to someone else."""
+    with database_cursor() as cursor:
+        cursor.execute(
+            "SELECT id, dateCreated, totalCost, orderStatus, shippingAddress "
+            "FROM `Order` WHERE id = %s AND userId = %s",
+            (order_id, user_id),
+        )
+        row = cursor.fetchone()
+    if row is None:
+        return None
+    return make_order_dict(row)
 
 
 def get_order_items(order_id, user_id):
-   # TODO: Get this user's order items, quantities, and prices paid.
-   pass
+    """Get the store products and pre-order materials on one of this user's orders."""
+    items = []
+    with database_cursor() as cursor:
+        cursor.execute(
+            """
+            SELECT p.name, oi.itemQty, oi.unitPrice
+            FROM Order_item oi
+            JOIN `Order` o ON o.id = oi.orderId
+            JOIN Product p ON p.id = oi.productId
+            WHERE oi.orderId = %s AND o.userId = %s
+            """,
+            (order_id, user_id),
+        )
+        product_rows = cursor.fetchall()
+
+        cursor.execute(
+            "SELECT name, quantity, unitPrice FROM Preorder_item WHERE orderId = %s AND userId = %s",
+            (order_id, user_id),
+        )
+        preorder_rows = cursor.fetchall()
+
+    for row in product_rows:
+        unit_cents = int(round(row["unitPrice"] * 100))
+        items.append(make_item_dict(row["name"], row["itemQty"], unit_cents, unit_cents * row["itemQty"]))
+    for row in preorder_rows:
+        unit_cents = int(round(row["unitPrice"] * 100))
+        total_cents = int(round(row["unitPrice"] * row["quantity"] * 100))
+        items.append(make_item_dict(row["name"], row["quantity"], unit_cents, total_cents))
+
+    with database_cursor() as cursor:
+        cursor.execute(
+            "SELECT oc.label, oc.workers, oc.days, oc.priceCents FROM Order_crew oc "
+            "JOIN `Order` o ON o.id = oc.orderId WHERE oc.orderId = %s AND o.userId = %s",
+            (order_id, user_id),
+        )
+        crew_rows = cursor.fetchall()
+    for row in crew_rows:
+        item = make_item_dict(row["label"] + " (crew, " + str(row["workers"]) + " workers, " + row["days"] + ")",
+                              1, row["priceCents"], row["priceCents"])
+        items.append(item)
+    return items
+
+
+def make_item_dict(name, quantity, unit_cents, total_cents):
+    """One line on an order page. Has both cents and display text for the two templates."""
+    return {
+        "name": name,
+        "quantity": quantity,
+        "unit_price_cents": unit_cents,
+        "total_cents": total_cents,
+        "unit_price": "${:,.2f}".format(unit_cents / 100),
+        "total": "${:,.2f}".format(total_cents / 100),
+    }

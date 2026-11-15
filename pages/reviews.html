@@ -1,11 +1,148 @@
 {% extends "base.html" %}
+{% block title %}Customer Reviews - BuildBetter{% endblock %}
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='reviews.css') }}">
+{% endblock %}
 
-{% block title %}
-    Reviews - BuildBetter
-{% endblock %}
+{% macro stars(value) %}
+<span class="review-stars" role="img" aria-label="{{ value }} out of 5 stars">{% for star in range(1, 6) %}<span class="{{ 'is-filled' if star <= value else '' }}" aria-hidden="true">★</span>{% endfor %}</span>
+{% endmacro %}
+
 {% block content %}
-<section class="wrap unavailable-page">
-    <h1>Reviews</h1>
-    <p>No reviews.</p>
-</section>
+<div class="wrap reviews-page">
+    <header class="reviews-hero">
+        <h1>Reviews</h1>
+        <a class="btn btn-primary" href="#write-review">Write a review</a>
+    </header>
+
+    {% if load_error %}
+    <div class="review-notice review-notice-error" role="alert">
+        <strong>Reviews are temporarily unavailable.</strong> Please try again in a moment.
+        <a href="{{ url_for('reviews') }}">Reload reviews</a>
+    </div>
+    {% else %}
+    <div class="review-summary">
+        {% if review_data.total %}
+        {{ stars(review_data.average|round|int) }}
+        <strong>{{ '%.1f'|format(review_data.average) }} / 5</strong>
+        <span>{{ review_data.total }} review{{ '' if review_data.total == 1 else 's' }}</span>
+        {% else %}<span>No ratings yet</span>{% endif %}
+    </div>
+    {% endif %}
+
+    <div class="reviews-layout">
+        <section id="community-reviews" class="community-reviews" aria-labelledby="community-title">
+            <h2 id="community-title" class="sr-only">Customer reviews</h2>
+            {% if product_id %}
+            <p class="product-review-scope">Reviews for <strong>{{ selected_product.name if selected_product else 'this product' }}</strong> <a href="{{ url_for('reviews', _anchor='community-reviews') }}">View all reviews</a></p>
+            {% endif %}
+            <nav class="review-tabs" aria-label="Review type">
+                {% for value, label in [('all', 'All reviews'), ('product', 'Products'), ('general', 'General')] %}
+                <a href="{{ url_for('reviews', type=value, q=search or none, rating=rating or none, sort=sort, product=product_id, _anchor='community-reviews') }}" {% if kind == value %}aria-current="page"{% endif %}>{{ label }}</a>
+                {% endfor %}
+            </nav>
+
+            {% if not load_error %}
+            <div class="review-result-info" role="status">
+                <p>{% if review_data.matching %}Showing {{ review_data.start }}–{{ review_data.end }} of {{ review_data.matching }} review{{ '' if review_data.matching == 1 else 's' }}{% else %}No reviews to show{% endif %}</p>
+                {% if search or rating or kind != 'all' %}<a href="{{ url_for('reviews', product=product_id, _anchor='community-reviews') }}">Clear filters</a>{% endif %}
+            </div>
+            <div class="review-list">
+                {% for review in review_data['items'] %}
+                <article class="review-card" id="review-{{ review.id }}" aria-labelledby="review-title-{{ review.id }}">
+                    <header class="review-card-header">
+                        <div class="review-author"><strong>{{ review.author }}</strong><time datetime="{{ review.createdAt.strftime('%Y-%m-%dT%H:%M:%SZ') }}">{{ review.createdAt.strftime('%b %d, %Y') }}</time></div>
+                        {% if review.userId == session.get('user_id') %}<span class="review-own">Your review</span>{% endif %}
+                    </header>
+                    <div class="review-card-rating">{{ stars(review.rating) }}<span class="review-kind">{{ 'Product review' if review.reviewType == 'product' else 'General' }}</span></div>
+                    {% if review.reviewType == 'product' %}<p class="review-product-name">{{ review.productName or 'Product no longer available' }}</p>{% endif %}
+                    <h3 id="review-title-{{ review.id }}">{{ review.title }}</h3>
+                    <p class="review-body">{{ review.body }}</p>
+                </article>
+                {% else %}
+                <div class="reviews-empty">
+
+                    {% if search or rating or kind != 'all' or product_id %}
+                    <h3>No reviews found</h3><p>No reviews match these filters.</p>
+                    <a class="btn btn-ghost" href="{{ url_for('reviews', _anchor='community-reviews') }}">View all reviews</a>
+                    {% else %}
+                    <h3>No reviews yet</h3><p>Be the first to leave a review.</p>
+                    <a class="btn btn-ghost" href="#write-review">Write a review</a>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% if review_data.total_pages > 1 %}
+            <nav class="review-pagination" aria-label="Review pages">
+                {% if review_data.page > 1 %}<a class="btn btn-ghost" href="{{ page_url(review_data.page - 1) }}">Previous</a>{% else %}<span></span>{% endif %}
+                <span>Page {{ review_data.page }} of {{ review_data.total_pages }}</span>
+                {% if review_data.page < review_data.total_pages %}<a class="btn btn-ghost" href="{{ page_url(review_data.page + 1) }}">Next</a>{% else %}<span></span>{% endif %}
+            </nav>
+            {% endif %}
+            {% endif %}
+        </section>
+
+        <aside class="review-composer" id="write-review" aria-labelledby="write-review-title">
+            <h2 id="write-review-title">Write a review</h2>
+            {% if error %}<div class="review-notice review-notice-error" role="alert" tabindex="-1" id="review-error">{{ error }}</div>{% endif %}
+            {% if session.get('user_id') or form_data %}
+            <form id="review-form" method="post" action="{{ url_for('reviews', _anchor='write-review') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <fieldset class="review-type-picker">
+                    <legend>What are you reviewing?</legend>
+                    <label><input type="radio" name="review_type" value="general" {% if form_data.get('review_type', 'general') != 'product' %}checked{% endif %} required><span>General</span></label>
+                    <label><input type="radio" name="review_type" value="product" {% if form_data.get('review_type') == 'product' %}checked{% endif %} required><span>A product</span></label>
+                </fieldset>
+                <div class="review-field" id="review-product-field">
+                    <label for="review-product">Choose a product</label>
+                    <div id="product-search-field" hidden>
+                        <label class="sr-only" for="product-search">Find a product by name or SKU</label>
+                        <input id="product-search" type="search" placeholder="Search by product name or SKU…" aria-describedby="product-search-status" autocomplete="off">
+                        <small id="product-search-status" role="status"></small>
+                    </div>
+                    <select id="review-product" name="product_id" aria-describedby="review-product-help">
+                        <option value="">Select a product</option>
+                        {% for product in products %}<option value="{{ product.id }}" {% if form_data.get('product_id') == product.id|string %}selected{% endif %}>{{ product.name }}{% if product.sku %} · {{ product.sku }}{% endif %}</option>{% endfor %}
+                    </select>
+                    <small id="review-product-help">Required for a product review only.</small>
+                </div>
+                <fieldset class="review-rating-picker">
+                    <legend>Your rating </legend>
+                    <div class="rating-choices">
+                        {% for star, label in [(1, 'Poor'), (2, 'Fair'), (3, 'Good'), (4, 'Very good'), (5, 'Excellent')] %}
+                        <label title="{{ star }} star{{ '' if star == 1 else 's' }} — {{ label }}">
+                            <input type="radio" name="rating" value="{{ star }}" data-description="{{ label }}" {% if form_data.get('rating') == star|string %}checked{% endif %} required>
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 2.78 5.63 6.22.9-4.5 4.39 1.06 6.2L12 17.2l-5.56 2.92 1.06-6.2L3 9.53l6.22-.9Z"/></svg><span class="sr-only">{{ star }} star{{ '' if star == 1 else 's' }} — {{ label }}</span>
+                        </label>
+                        {% endfor %}
+                    </div>
+                    <small id="rating-description" aria-live="polite">Choose 1 to 5 stars</small>
+                </fieldset>
+                <div class="review-field">
+                    <label for="review-title">Review title </label>
+                    <input id="review-title" name="title" placeholder="Sum up your experience" maxlength="100" value="{{ form_data.get('title', '') }}" required>
+                </div>
+                <div class="review-field">
+                    <label for="review-body">Your review </label>
+                    <textarea id="review-body" name="body" rows="5" minlength="10" maxlength="2000" placeholder="How was your experience?" aria-describedby="review-body-help review-character-count" required>{{ form_data.get('body', '') }}</textarea>
+                    <div class="review-field-help"><small id="review-body-help">10–2,000 characters</small><small id="review-character-count" hidden></small></div>
+                </div>
+                <p class="review-posting-note">Your first name and last initial will be shown.</p>
+                {% if session.get('user_id') %}
+                <button class="btn btn-primary review-submit" type="submit" {% if load_error %}disabled{% endif %}>Publish review </button>
+                {% else %}<a class="btn btn-primary review-submit" href="{{ url_for('auth.login') }}">Log in to publish</a>{% endif %}
+            </form>
+            {% else %}
+            <div class="review-signin">
+
+                <p>Log in to rate and review your experience.</p>
+                <a class="btn btn-primary" href="{{ url_for('auth.login') }}">Log in to write a review </a>
+                <p>New here? <a href="{{ url_for('auth.register') }}">Create an account</a></p>
+            </div>
+            {% endif %}
+        </aside>
+    </div>
+</div>
+<script src="{{ url_for('static', filename='js/reviews.js') }}" defer></script>
 {% endblock %}
+{% block footer %}{% include "site_footer.html" %}{% endblock %}

@@ -12,6 +12,7 @@ from routes.crews import crews_bp
 from routes.dashboard import dashboard_bp
 from routes.planner import planner_bp
 from routes.products import products_bp
+from routes.reviews import reviews
 from routes.shopping import shopping_bp
 from routes.subscription import subscription_bp
 from planning.presentation import format_amount
@@ -65,9 +66,7 @@ def home():
     return render_template("home.html")
 
 
-@app.route("/reviews")
-def reviews():
-    return render_template("reviews.html")
+app.add_url_rule("/reviews", view_func=reviews, methods=["GET", "POST"])
 
 
 @app.route("/manufacturers")

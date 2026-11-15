@@ -7,7 +7,7 @@ from services.cart import (get_cart, add_item, change_quantity, remove_item,
                            add_crew, get_cart_crews, remove_crew,
                            get_cart_preorders, remove_preorder)
 from services.checkout import calculate_totals, check_checkout_form
-from services.orders import create_order, get_order, get_order_items
+from services.orders import add_receipt_totals, create_order, get_order, get_order_items
 
 shopping_bp = Blueprint("shopping", __name__)
 
@@ -121,4 +121,5 @@ def order_confirmation(order_id):
         order = get_order(order_id, session["user_id"])
     if order is not None:
         order["items"] = get_order_items(order_id, session["user_id"])
+        add_receipt_totals(order, order["items"])
     return render_template("cart/confirmation.html", verified_order=order)

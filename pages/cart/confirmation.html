@@ -9,8 +9,8 @@
     {% if verified_order %}
         <header class="shopping-heading">
             <div>
-                <h1>Order confirmed</h1>
-                <p>Order {{ verified_order.number }}</p>
+                <h1>Order succeeded</h1>
+                <p>Thank you! Your order {{ verified_order.number }} was placed. Here is your receipt.</p>
             </div>
         </header>
         <section class="shopping-panel shopping-confirmation-details">
@@ -24,18 +24,30 @@
                     <dd>{{ verified_order.status }}</dd>
                 </div>
                 <div>
+                    <dt>Subtotal</dt>
+                    <dd>{{ format_money_cents(verified_order.subtotal_cents) }}</dd>
+                </div>
+                <div>
+                    <dt>Shipping</dt>
+                    <dd>{{ format_money_cents(verified_order.shipping_cents) }}</dd>
+                </div>
+                <div>
+                    <dt>Estimated tax</dt>
+                    <dd>{{ format_money_cents(verified_order.tax_cents) }}</dd>
+                </div>
+                <div>
                     <dt>Final total</dt>
                     <dd>{{ format_money_cents(verified_order.total_cents) }}</dd>
                 </div>
             </dl>
-            <h2>Purchased materials</h2>
+            <h2>Receipt</h2>
             <ul class="shopping-summary-products">
                 {% for item in verified_order['items'] %}
                     <li>
                         {{ product_image(item) }}
                         <div>
                             {{ product_name(item) }}
-                            <small>Qty {{ item.quantity }}</small>
+                            <small>Qty {{ item.quantity }} &middot; {{ format_money_cents(item.unit_price_cents) }} each</small>
                         </div>
                         <strong>{{ format_money_cents(item.total_cents) }}</strong>
                     </li>

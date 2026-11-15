@@ -17,6 +17,7 @@
                             </div>
 
                             <footer class="product-footer">
+                                <a class="product-reviews-link" href="{{ url_for('reviews', product=product.product_id, _anchor='community-reviews') }}">Read or write a review <span aria-hidden="true">↗</span></a>
                                 <div class="product-price-row">
                                     {% if product.unit_price is not none %}
                                         <p class="product-price">${{ '{:,.2f}'.format(product.unit_price) }} <span>/ {{ product.unit }}</span></p>

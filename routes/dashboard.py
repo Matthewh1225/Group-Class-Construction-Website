@@ -3,7 +3,7 @@ from mysql.connector import Error, IntegrityError
 
 from planning.ai_config import WORKFLOW_TIERS
 from routes.auth import login_required
-from services.orders import get_order, get_order_items, get_user_orders
+from services.orders import add_receipt_totals, get_order, get_order_items, get_user_orders
 from services.crews import parse_crew
 from services.projects import (PROJECT_STATUS_LABELS, delete_project, get_project_details, count_projects, get_project_list,
                                rename_project, save_project_crew, set_project_completed)
@@ -170,6 +170,7 @@ def order_detail(order_id):
     if order is None:
         abort(404)
     items = get_order_items(order_id, session["user_id"])
+    add_receipt_totals(order, items)
     return render_template("dashboard/order_detail.html", order=order, items=items)
 
 
