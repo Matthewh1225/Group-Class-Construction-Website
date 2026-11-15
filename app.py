@@ -18,7 +18,7 @@ from routes.subscription import subscription_bp
 from planning.presentation import format_amount
 from utils.csrf import check_csrf, csrf_token
 from utils.database import close_database
-from utils.rate_limits import limiter
+from utils.rate_limits import check_request_limits, limiter
 from utils.passwords import MAX_PASSWORD_LENGTH
 from services.products import get_all_manufacturers
 from services.vector_search import load_vector_search
@@ -30,6 +30,13 @@ app.config["SESSION_COOKIE_NAME"] = "buildbetter_session"
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 # Set SESSION_COOKIE_SECURE=true when using HTTPS.
 app.config["SESSION_COOKIE_SECURE"] = os.getenv("SESSION_COOKIE_SECURE", "").lower() == "true"
+# Reject oversized submissions before form parsing and database queries.
+app.config["MAX_CONTENT_LENGTH"] = 256 * 1024
+app.config["MAX_FORM_MEMORY_SIZE"] = 64 * 1024
+app.config["MAX_FORM_PARTS"] = 100
+# Register rate limiting before CSRF parsing and account refresh/database access.
+limiter.init_app(app)
+app.before_request(check_request_limits)
 # Check CSRF and login; close database connections after requests.
 app.before_request(check_csrf)
 app.before_request(refresh_logged_in_user)
@@ -39,8 +46,6 @@ app.teardown_request(close_database)
 app.jinja_env.globals["csrf_token"] = csrf_token
 app.jinja_env.globals["password_max_length"] = MAX_PASSWORD_LENGTH
 app.jinja_env.filters["amount"] = format_amount
-
-limiter.init_app(app)
 
 app.register_blueprint(auth_bp)
 app.register_blueprint(planner_bp)
@@ -52,6 +57,16 @@ app.register_blueprint(crews_bp)
 
 # Load product vectors once; use keyword search if loading fails.
 load_vector_search()
+
+
+@app.errorhandler(429)
+def too_many_requests(error):
+    return {"error": "Too many requests. Please wait before trying again."}, 429
+
+
+@app.errorhandler(413)
+def request_too_large(error):
+    return {"error": "This request is too large. Please shorten your submission."}, 413
 
 
 @app.errorhandler(DatabaseError)

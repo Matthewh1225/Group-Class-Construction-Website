@@ -9,7 +9,6 @@ from planning.presentation import (STAGE_STATUS_LABELS, add_machinery_details, a
 from services.cart import add_materials_to_cart
 from services.crews import CREW_RATES, HOURS_PER_DAY, estimate_crew_cost
 from services.projects import (can_save_project, default_project_name, get_project_saved_from_job, save_job_as_project)
-from utils.rate_limits import limiter
 
 planner_bp = Blueprint("planner", __name__)
 
@@ -46,7 +45,6 @@ def planner():
 
 
 @planner_bp.post("/planner/jobs")
-@limiter.limit("4 per minute; 30 per hour", methods=["POST"])
 def submit_planning_job():
     if "user_id" not in session:
         return redirect(url_for("auth.login"))
@@ -100,7 +98,6 @@ def planning_job(job_id):
 
 
 @planner_bp.post("/planner/jobs/<job_id>/cart")
-@limiter.limit("30 per minute", methods=["POST"])
 def planning_job_add_to_cart(job_id):
     job = get_user_job(job_id)
     materials = get_plan_materials(job)
@@ -158,7 +155,6 @@ def planning_job_status(job_id):
 
 
 @planner_bp.post("/planner/jobs/<job_id>/answers")
-@limiter.limit("4 per minute; 30 per hour", methods=["POST"])
 def planning_job_answers(job_id):
     get_user_job(job_id)
     try:
@@ -176,7 +172,6 @@ def planning_job_cancel(job_id):
 
 
 @planner_bp.post("/planner/jobs/<job_id>/restart")
-@limiter.limit("4 per minute; 30 per hour", methods=["POST"])
 def planning_job_restart(job_id):
     get_user_job(job_id)
     try:

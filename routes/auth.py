@@ -10,7 +10,6 @@ from flask import Blueprint, current_app, redirect, render_template, request, se
 from mysql.connector import Error, IntegrityError
 
 from utils.passwords import MAX_PASSWORD_LENGTH
-from utils.rate_limits import limiter
 from utils.users import check_login, create_user, find_or_create_google_user, full_name, get_account
 
 auth_bp = Blueprint("auth", __name__)
@@ -67,7 +66,6 @@ def refresh_logged_in_user():
 
 
 @auth_bp.route("/login", methods=["GET", "POST"])
-@limiter.limit("10 per minute; 50 per hour", methods=["POST"])
 def login():
     if request.method == "GET":
         return render_template("login.html", google_client_id=os.getenv("GOOGLE_CLIENT_ID"))
@@ -101,7 +99,6 @@ def login():
 
 
 @auth_bp.route("/register", methods=["GET", "POST"])
-@limiter.limit("5 per minute; 20 per hour", methods=["POST"])
 def register():
     if request.method == "GET":
         return render_template("register.html", google_client_id=os.getenv("GOOGLE_CLIENT_ID"))
@@ -142,7 +139,6 @@ def read_google_token(token):
 
 
 @auth_bp.route("/google-login", methods=["POST"])
-@limiter.limit("10 per minute; 50 per hour")
 def google_login():
     data = request.get_json(silent=True)
     token = data.get("credential") if isinstance(data, dict) else None

@@ -2,10 +2,8 @@ from flask import current_app, flash, redirect, render_template, request, sessio
 from mysql.connector import Error
 
 from services.reviews import SORT_ORDERS, create_review, get_review_products, get_reviews
-from utils.rate_limits import limiter
 
 
-@limiter.limit("5 per minute; 20 per hour", methods=["POST"])
 def reviews():
     form_data = {}
     error = None
