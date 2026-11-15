@@ -63,10 +63,10 @@
                 <div class="reviews-empty">
 
                     {% if search or rating or kind != 'all' or product_id %}
-                    <h3>No reviews found</h3><p>No reviews match these filters.</p>
+                    <h3>No reviews found</h3>
                     <a class="btn btn-ghost" href="{{ url_for('reviews', _anchor='community-reviews') }}">View all reviews</a>
                     {% else %}
-                    <h3>No reviews yet</h3><p>Be the first to leave a review.</p>
+                    <h3>No reviews yet</h3>
                     <a class="btn btn-ghost" href="#write-review">Write a review</a>
                     {% endif %}
                 </div>

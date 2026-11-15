@@ -10,7 +10,7 @@
         <header class="shopping-heading">
             <div>
                 <h1>Order succeeded</h1>
-                <p>Thank you! Your order {{ verified_order.number }} was placed. Here is your receipt.</p>
+                <p>Order {{ verified_order.number }} was placed.</p>
             </div>
         </header>
         <section class="shopping-panel shopping-confirmation-details">
@@ -59,7 +59,6 @@
     {% else %}
         <section class="shopping-panel shopping-empty shopping-confirmation" aria-labelledby="confirmation-title">
             <span class="shopping-empty-icon">{{ icon('box') }}</span>
-            <p class="shopping-eyebrow">ORDER DETAILS</p>
             <h1 id="confirmation-title">No order to display</h1>
         </section>
     {% endif %}

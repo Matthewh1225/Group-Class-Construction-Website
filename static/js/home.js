@@ -19,8 +19,6 @@ for (const item of document.querySelectorAll('[data-reveal]')) {
 const sheet = document.querySelector('.hero-sheet');
 
 if (sheet) {
-    const readout = sheet.querySelector('.readout');
-
     sheet.addEventListener('pointermove', (event) => {
         // Only show the crosshair for a mouse.
         if (event.pointerType !== 'mouse') return;
@@ -31,7 +29,6 @@ if (sheet) {
 
         sheet.style.setProperty('--x', x + 'px');
         sheet.style.setProperty('--y', y + 'px');
-        readout.textContent = 'X ' + String(x).padStart(4, '0') + '  Y ' + String(y).padStart(4, '0');
         sheet.classList.add('is-tracking');
     });
 

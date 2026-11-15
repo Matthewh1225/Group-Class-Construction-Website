@@ -80,7 +80,6 @@
                     </svg>
                 </button>
             </div>
-            <p class="dashboard-nav-label">{{ 'ADMINISTRATION' if admin_nav else 'WORKSPACE' }}</p>
             <nav class="dashboard-side-nav" aria-label="Dashboard navigation">
                 {% if admin_nav %}
                     <a href="{{ url_for('dashboard.dashboard') }}" {% if is_admin %}aria-current="page"{% endif %}>

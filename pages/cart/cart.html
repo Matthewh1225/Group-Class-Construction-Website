@@ -3,7 +3,7 @@
 {% block title %}Shopping Cart - BuildBetter{% endblock %}
 {% block shopping_content %}
 <header class="shopping-heading">
-    <div><p class="sheet-tag"><span>C-02</span>Cart</p><h1>Your cart</h1></div>
+    <div><h1>Your cart</h1></div>
     <a class="shopping-link" href="{{ url_for('products.products') }}">Continue shopping <span aria-hidden="true">&rarr;</span></a>
 </header>
 {% if cart_items or preorder_items or crew_items %}

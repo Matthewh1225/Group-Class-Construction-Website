@@ -7,9 +7,7 @@
 {% block content %}
 <section class="crews wrap" aria-labelledby="crew-title">
     <header class="crews-header">
-        <p class="sheet-tag"><span>C-01</span>Crews</p>
         <h1 id="crew-title">Build your crew</h1>
-        <p class="crews-lede">Choose workers and a project duration.</p>
         {% if project %}
             <p class="crews-project">Saving to <strong>{{ project.name }}</strong> &middot; <a href="{{ url_for('dashboard.project_detail', project_id=project.id, _anchor='crew') }}">Back to project</a></p>
         {% endif %}
@@ -23,9 +21,6 @@
             <label><span>Project days (min)</span><input id="project-days-min" type="number" min="1" max="{{ max_days }}" step="1" required value="1"></label>
             <label><span>Project days (max)</span><input id="project-days-max" type="number" min="1" max="{{ max_days }}" step="1" required value="1"></label>
         </div>
-        {% if crew_data.savedCrew %}
-            <p class="crews-note">Saved trade days stay unchanged when you edit the project duration. New trades use the project duration.</p>
-        {% endif %}
         <div class="crew-table-wrap" tabindex="0" role="region" aria-label="Crew workers by role">
             <table class="crew-table">
                 <caption class="sr-only">Workers and estimated labor costs by role</caption>

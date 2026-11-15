@@ -10,9 +10,7 @@
 <div class="planner-page" id="plan-project">
     <header class="planner-heading">
         <div>
-            <p class="sheet-tag"><span>B-01</span>Project workspace</p>
             <h1>What are you building?</h1>
-            <p class="planner-lede">Start from a template or describe your own project. The AI turns it into a materials list matched to products in our store.</p>
         </div>
         <div class="planner-heading-links">
             {# The route checks the account's Pro expiry date. #}
@@ -150,13 +148,7 @@
                 <input id="project-size" name="projectSize" type="hidden" value="{{ project_size or '' }}">
                 <div class="form-field">
                     <label for="user-input">Project description</label>
-                    <textarea id="user-input" name="userInput" class="planner-input" aria-describedby="description-tips" placeholder="Example: A 10 x 12 ft backyard workshop with a concrete slab, one window and a metal roof." required>{{ form_data.get('userInput', '') }}</textarea>
-                    <ul class="description-tips" id="description-tips">
-                        <li>Dimensions</li>
-                        <li>Preferred materials</li>
-                        <li>Location or climate</li>
-                        <li>Anything to leave out</li>
-                    </ul>
+                    <textarea id="user-input" name="userInput" class="planner-input" placeholder="Example: A 10 x 12 ft backyard workshop with a concrete slab, one window and a metal roof." required>{{ form_data.get('userInput', '') }}</textarea>
                 </div>
                 {% include "project_forms/plan_buttons.html" %}
             </form>

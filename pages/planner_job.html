@@ -13,7 +13,6 @@
 
     <header class="plan-header">
         <div class="plan-heading-row">
-            <p class="sheet-tag"><span>B-02</span>Materials list</p>
             <span class="plan-status-badge plan-status-{{ status_tone }}" id="job-progress" role="status" aria-live="polite">{{ status_label }}</span>
         </div>
         <h1>{{ title }} plan</h1>
@@ -50,7 +49,7 @@
 
     {% if job.status == 'failed' %}
         <div class="plan-alert plan-alert-error" role="alert">
-            <p>{{ job.error or 'Planning failed.' }} Retry the plan to continue from the failed stage{% if job.answers %} with your answers preserved{% endif %}.</p>
+            <p>{{ job.error or 'Planning failed.' }}</p>
             <form method="post" action="{{ url_for('planner.planning_job_restart', job_id=job.id) }}">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button class="plan-button" type="submit">Retry plan</button>
@@ -61,14 +60,13 @@
     {% if job.status == 'needs_input' %}
         <section class="plan-questions" aria-labelledby="questions-title">
             <h2 id="questions-title">Complete your project details</h2>
-            <p class="plan-muted">This is the only round of questions. The planner uses reasonable assumptions for missing details and estimates a quantity for every material.</p>
             <form method="post" action="{{ url_for('planner.planning_job_answers', job_id=job.id) }}">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 {% for question in job.questions %}
                     <label for="answer-{{ loop.index }}">{{ question }}</label>
                     <textarea id="answer-{{ loop.index }}" name="answers" class="planner-input question-answer" aria-describedby="answer-help" maxlength="2000"></textarea>
                 {% endfor %}
-                <p id="answer-help" class="plan-muted">Include units where you can. Leave a detail blank to let the planner estimate it.</p>
+                <p id="answer-help" class="plan-muted">Include units. Leave unknown details blank.</p>
                 <button class="plan-button" type="submit">Continue planning</button>
             </form>
         </section>
@@ -80,7 +78,6 @@
             <div class="plan-materials-heading">
                 <div>
                     <h2 id="materials-title">Materials</h2>
-                    <p class="plan-muted">Estimated materials for your project. Review quantities and product matches.</p>
                 </div>
                 <div class="plan-cart-box">
                     {% if materials %}
@@ -194,7 +191,6 @@
     {% if job.result and 'machinery' in job.result %}
         <section class="plan-crew" id="plan-machinery" aria-labelledby="machinery-title">
             <h2 id="machinery-title">Suggested machinery</h2>
-            <p class="plan-muted">Listed separately from the materials and crew estimates.</p>
             {% for item in machinery %}
                 <article class="plan-machine">
                     <h3>{{ item.product.product_name if item.product else 'Catalog machine #' ~ item.product_id }}</h3>
