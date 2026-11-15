@@ -5,21 +5,18 @@ def check_checkout_form(checkout_data):
     """Clean the checkout form. Raises ValueError with a message if something is wrong."""
     cleaned = {}
     cleaned["email_receipt"] = checkout_data.get("email_receipt") == "1"
-    for name in ["first_name", "last_name", "email", "phone", "street_address",
+    for name in ["first_name", "last_name", "phone", "street_address",
                  "apartment", "city", "state", "zip_code"]:
         cleaned[name] = (checkout_data.get(name) or "").strip()
 
     required = {
-        "first_name": "first name", "last_name": "last name", "email": "email",
+        "first_name": "first name", "last_name": "last name",
         "street_address": "street address", "city": "city",
         "state": "state", "zip_code": "ZIP code",
     }
     for name, label in required.items():
         if cleaned[name] == "":
             raise ValueError("Please enter your " + label + ".")
-
-    if "@" not in cleaned["email"] or "." not in cleaned["email"]:
-        raise ValueError("Please enter a valid email address.")
 
     cleaned["state"] = cleaned["state"].upper()
     if len(cleaned["state"]) != 2 or not cleaned["state"].isalpha():
