@@ -111,7 +111,12 @@ def create_order(user_id, checkout_data):
     # The order is already saved, so an email problem must not undo it.
     if checkout_data.get("email_receipt") is True:
         try:
-            send_order_email(checkout_data["email"], checkout_data["first_name"], order_id,
+            with database_cursor() as cursor:
+                cursor.execute("SELECT email FROM User WHERE id = %s", (user_id,))
+                account = cursor.fetchone()
+            if not account or not account.get("email"):
+                raise ValueError("The ordering account has no receipt email address.")
+            send_order_email(account["email"], checkout_data["first_name"], order_id,
                              items, preorders, crews, totals, address)
         except Exception as error:
             print("Could not send order email:", error)
