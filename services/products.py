@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from services import vector_search
 from utils.database import database_cursor
 
@@ -21,6 +23,25 @@ UNIT_ALIASES = {"linear_ft": "ft", "linear feet": "ft", "each": "piece", "feet":
 def normalize_unit(unit):
     text = unit.strip().lower()
     return UNIT_ALIASES.get(text, text)
+
+
+# Rough US prices for one unit, close to what similar store products cost.
+# Only used when there is no store price and no AI estimate (for example, plans
+# made before the AI started estimating prices), so every item still has a price.
+ROUGH_UNIT_PRICES = {
+    "piece": 25, "unit": 25, "item": 25, "ft": 3, "board_ft": 6, "sq_ft": 5,
+    "sheet": 40, "tile": 5, "gallon": 45, "quart": 20, "bottle": 15, "tube": 10,
+    "bag": 15, "box": 30, "bundle": 30, "pack": 20, "roll": 50, "set": 60, "kit": 60,
+    "pail": 60, "panel": 50, "lb": 3, "ton": 2200, "cu_yd": 150, "cubic_yard": 150,
+    "cu_ft": 6,
+}
+DEFAULT_ROUGH_PRICE = 25
+
+
+def guess_unit_price(unit):
+    """Return a rough price (a Decimal) for one unit of a material."""
+    price = ROUGH_UNIT_PRICES.get(normalize_unit(unit), DEFAULT_ROUGH_PRICE)
+    return Decimal(price).quantize(Decimal("0.01"))
 
 
 def get_all_manufacturers():

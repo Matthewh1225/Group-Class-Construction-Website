@@ -1,3 +1,4 @@
+from decimal import Decimal, ROUND_HALF_UP
 
 
 def check_checkout_form(checkout_data):
@@ -29,15 +30,25 @@ def check_checkout_form(checkout_data):
     return cleaned
 
 
+SHIPPING_CENTS = 1999          # flat $19.99 shipping on every order
+TAX_RATE = Decimal("0.085")    # 8.5% estimated sales tax
+
+
+def add_shipping_and_tax(subtotal_cents):
+    """Turn a subtotal (in cents) into the full order totals (all in cents)."""
+    # Tax is on the items only, rounded to the nearest cent
+    tax_cents = int((subtotal_cents * TAX_RATE).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
+    total_cents = subtotal_cents + SHIPPING_CENTS + tax_cents
+    return {"subtotal_cents": subtotal_cents, "shipping_cents": SHIPPING_CENTS,
+            "tax_cents": tax_cents, "total_cents": total_cents}
+
+
 def calculate_totals(cart_items):
     if not cart_items:
         return None
     subtotal = 0
     for item in cart_items:
-        # A pre-order with no price yet (price TBD) is left out of the subtotal
-        if item.get("preorder") and item["total_cents"] is None:
-            continue
         if item.get("error") or item.get("total_cents") is None:
             return None
         subtotal += item["total_cents"]
-    return {"subtotal_cents": subtotal, "shipping_cents": None, "tax_cents": None, "total_cents": None}
+    return add_shipping_and_tax(subtotal)

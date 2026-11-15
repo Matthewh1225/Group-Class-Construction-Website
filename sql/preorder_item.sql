@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS Preorder_item (
     name VARCHAR(255) NOT NULL,
     unit VARCHAR(50) NOT NULL,
     quantity DECIMAL(12,2) NOT NULL,
-    unitPrice DECIMAL(12,2) DEFAULT NULL, -- store price, or the AI estimate; NULL = price TBD
+    unitPrice DECIMAL(12,2) DEFAULT NULL, -- store price or estimate; old NULL rows get a rough guess in code
     PRIMARY KEY (id),
     KEY userId (userId),
     KEY orderId (orderId),

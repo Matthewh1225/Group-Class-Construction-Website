@@ -1,7 +1,7 @@
 
 from decimal import Decimal, ROUND_CEILING
 
-from services.products import get_products_by_ids, normalize_unit
+from services.products import get_products_by_ids, guess_unit_price, normalize_unit
 from planning.jobs import pending_stages
 # AI planner status labels
 STATUS_LABELS = {
@@ -87,7 +87,7 @@ def make_preorder(material, product, units_match, buy_quantity):
             "unit": product["unit"],
             "quantity": buy_quantity,
             "unit_price": product["unit_price"],
-            "price_is_estimate": False,
+            "price_note": None,
         }
 
     # Otherwise use the planner's own amount and the AI's price estimate
@@ -95,8 +95,13 @@ def make_preorder(material, product, units_match, buy_quantity):
     if material.get("specification"):
         name += " (" + material["specification"] + ")"
     unit_price = material.get("estimated_unit_price")
-    if unit_price is not None:
+    if unit_price is not None and unit_price > 0:
         unit_price = Decimal(str(unit_price)).quantize(Decimal("0.01"))
+        price_note = "AI estimate"
+    else:
+        # Older plans have no AI price, so make a rough guess from the unit
+        unit_price = guess_unit_price(material["unit"])
+        price_note = "rough estimate"
     product_id = None
     if product is not None:
         product_id = product["product_id"]
@@ -106,7 +111,7 @@ def make_preorder(material, product, units_match, buy_quantity):
         "unit": material["unit"][:50],
         "quantity": Decimal(str(material["quantity"])).quantize(Decimal("0.01")),
         "unit_price": unit_price,
-        "price_is_estimate": True,
+        "price_note": price_note,
     }
 
 
@@ -153,8 +158,7 @@ def add_store_details(materials):
         else:
             # Everything else can still be added as a pre-order
             row["preorder"] = make_preorder(material, product, units_match, row["buy_quantity"])
-            if row["preorder"]["unit_price"] is not None:
-                row["line_total"] = row["preorder"]["quantity"] * row["preorder"]["unit_price"]
+            row["line_total"] = row["preorder"]["quantity"] * row["preorder"]["unit_price"]
         rows.append(row)
     return rows
 

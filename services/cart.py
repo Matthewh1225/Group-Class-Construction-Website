@@ -2,6 +2,7 @@ import hashlib
 import json
 
 from services.crews import estimate_crew_cost, parse_crew
+from services.products import guess_unit_price
 from utils.database import database_cursor
 
 
@@ -156,12 +157,11 @@ def get_cart_preorders(user_id):
 
     for item in items:
         item["preorder"] = True
+        # Older pre-orders were saved without a price, so guess one from the unit
         if item["unit_price"] is None:
-            item["unit_price_cents"] = None
-            item["total_cents"] = None
-        else:
-            item["unit_price_cents"] = int(round(item["unit_price"] * 100))
-            item["total_cents"] = int(round(item["unit_price"] * item["quantity"] * 100))
+            item["unit_price"] = guess_unit_price(item["unit"])
+        item["unit_price_cents"] = int(round(item["unit_price"] * 100))
+        item["total_cents"] = int(round(item["unit_price"] * item["quantity"] * 100))
         item["quantity"] = tidy_quantity(item["quantity"])
     return items
 

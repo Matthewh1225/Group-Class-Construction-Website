@@ -161,12 +161,8 @@
                                         {% set pre = item.preorder %}
                                         <span class="plan-number">{{ pre.quantity|amount }}</span> {{ pre.unit }}
                                         <small>
-                                            {% if pre.unit_price is not none %}
-                                                {{ format_money_dollars(item.line_total) }}
-                                                ({{ format_money_dollars(pre.unit_price) }} per {{ pre.unit }}{% if pre.price_is_estimate %}, AI estimate{% endif %})
-                                            {% else %}
-                                                Price TBD
-                                            {% endif %}
+                                            {{ format_money_dollars(item.line_total) }}
+                                            ({{ format_money_dollars(pre.unit_price) }} per {{ pre.unit }}{% if pre.price_note %}, {{ pre.price_note }}{% endif %})
                                         </small>
                                         <small class="plan-warning">Pre-order</small>
                                         {% if item.show_store_link %}

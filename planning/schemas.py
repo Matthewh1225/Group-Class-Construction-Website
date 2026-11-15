@@ -46,9 +46,9 @@ class DraftEstimate(Record):
 class AuditedMaterial(Material):
     category: str | None = Field(description="A category from classifications, or null if uncertain.")
     subcategory: str | None = Field(description="A subcategory belonging to that category, or null if uncertain.")
-    estimated_unit_price: float | None = Field(
+    estimated_unit_price: float = Field(
         ge=0, description="Estimated typical US retail price in US dollars for ONE unit of this "
-        "material's unit (not the line total). Use null only if no reasonable estimate is possible."
+        "material's unit (not the line total). Always give your best guess; never null."
     )
 
 

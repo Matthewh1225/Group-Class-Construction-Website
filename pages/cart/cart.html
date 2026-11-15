@@ -48,20 +48,14 @@
             {{ product_image(item) }}
             <div class="shopping-cart-product">
                 <span class="shopping-product-name">{{ item.name }}</span>
-                <p>
-                    {% if item.unit_price_cents is not none %}
-                        {{ format_money_cents(item.unit_price_cents) }} / {{ item.unit }} (estimate)
-                    {% else %}
-                        Price TBD
-                    {% endif %}
-                </p>
+                <p>{{ format_money_cents(item.unit_price_cents) }} / {{ item.unit }} (estimate)</p>
                 <p class="shopping-notice" role="status">Pre-order</p>
             </div>
             <div class="shopping-cart-controls">
                 <span>Quantity: {{ item.quantity }} {{ item.unit }}</span>
             </div>
             <div class="shopping-cart-line-total">
-                <strong>{% if item.total_cents is not none %}{{ format_money_cents(item.total_cents) }}{% else %}Price TBD{% endif %}</strong>
+                <strong>{{ format_money_cents(item.total_cents) }}</strong>
                 <form method="post" action="{{ url_for('shopping.remove_preorder_from_cart', preorder_id=item.id) }}">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <button class="shopping-remove" type="submit" aria-label="Remove {{ item.name }}">Remove</button>

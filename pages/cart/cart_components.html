@@ -43,11 +43,7 @@
                             {{ product_name(item) }}
                             <small>Qty {{ item.quantity }}{% if item.preorder %} {{ item.unit }} &middot; Pre-order{% endif %}</small>
                         </div>
-                        {% if item.preorder and item.total_cents is none %}
-                            <strong>Price TBD</strong>
-                        {% else %}
-                            <strong>{{ format_money_cents(item.total_cents) }}</strong>
-                        {% endif %}
+                        <strong>{{ format_money_cents(item.total_cents) }}</strong>
                     </li>
                 {% else %}
                     <li class="shopping-summary-empty">
