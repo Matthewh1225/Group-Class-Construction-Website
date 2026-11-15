@@ -1,7 +1,7 @@
 import os
 
 from dotenv import load_dotenv
-from flask import Flask, redirect, render_template, url_for
+from flask import Flask, render_template, url_for
 from mysql.connector import Error as DatabaseError
 
 # Load .env before routes create their AI clients.
@@ -60,10 +60,6 @@ def database_unavailable(error):
 
 
 @app.route("/")
-def landing_page():
-    return redirect(url_for("auth.login"))
-
-
 @app.route("/home")
 def home():
     return render_template("home.html")
