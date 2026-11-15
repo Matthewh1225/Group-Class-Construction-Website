@@ -77,6 +77,39 @@ def round_up_quantity(needed):
     return needed.to_integral_value(rounding=ROUND_CEILING)
 
 
+def make_preorder(material, product, units_match, buy_quantity):
+    """Describe how a material goes into the cart as a pre-order."""
+    # Matched product with the same unit: use the store's name, amount and price
+    if product is not None and units_match:
+        return {
+            "product_id": product["product_id"],
+            "name": product["product_name"],
+            "unit": product["unit"],
+            "quantity": buy_quantity,
+            "unit_price": product["unit_price"],
+            "price_is_estimate": False,
+        }
+
+    # Otherwise use the planner's own amount and the AI's price estimate
+    name = material["material_name"]
+    if material.get("specification"):
+        name += " (" + material["specification"] + ")"
+    unit_price = material.get("estimated_unit_price")
+    if unit_price is not None:
+        unit_price = Decimal(str(unit_price)).quantize(Decimal("0.01"))
+    product_id = None
+    if product is not None:
+        product_id = product["product_id"]
+    return {
+        "product_id": product_id,
+        "name": name[:255],
+        "unit": material["unit"][:50],
+        "quantity": Decimal(str(material["quantity"])).quantize(Decimal("0.01")),
+        "unit_price": unit_price,
+        "price_is_estimate": True,
+    }
+
+
 def add_store_details(materials):
     product_ids = []
     for material in materials:
@@ -94,40 +127,34 @@ def add_store_details(materials):
             "can_add": False,
             "match_status": "unmatched",
             "stock_status": "unknown",
-            "insufficient_stock": False,
             "show_store_link": False,
             "line_total": None,
+            "preorder": None,
         })
-        if product is None:
-            if material.get("product_id") is not None:
-                row["match_status"] = "missing"
-            rows.append(row)
-            continue
 
-        row["match_status"] = "matched"
-        material_unit = normalize_unit(material["unit"])
-        product_unit = normalize_unit(product["unit"])
-        units_match = material_unit == product_unit
-        if units_match:
-            needed = Decimal(str(material["quantity"]))
-            row["buy_quantity"] = round_up_quantity(needed)
+        units_match = False
+        if product is not None:
+            if product["available_quantity"] > 0:
+                row["stock_status"] = "available"
+            else:
+                row["stock_status"] = "out_of_stock"
+            row["match_status"] = "matched"
+            units_match = normalize_unit(material["unit"]) == normalize_unit(product["unit"])
+            if units_match:
+                row["buy_quantity"] = round_up_quantity(Decimal(str(material["quantity"])))
+            row["show_store_link"] = not units_match and product["available_quantity"] > 0
+        elif material.get("product_id") is not None:
+            row["match_status"] = "missing"
 
-        stock = product["available_quantity"]
-        in_stock = stock > 0
-        if in_stock:
-            row["stock_status"] = "available"
-        else:
-            row["stock_status"] = "out_of_stock"
-
-        if units_match:
-            has_enough_stock = stock >= row["buy_quantity"]
-            row["insufficient_stock"] = not has_enough_stock
-
-        # Allow adding if any stock remains; show shortages separately.
-        row["can_add"] = units_match and in_stock
-        row["show_store_link"] = not units_match and in_stock
-        if row["can_add"]:
+        # A normal cart item needs a matched product, the same unit, and enough stock
+        if units_match and product["available_quantity"] >= row["buy_quantity"]:
+            row["can_add"] = True
             row["line_total"] = row["buy_quantity"] * product["unit_price"]
+        else:
+            # Everything else can still be added as a pre-order
+            row["preorder"] = make_preorder(material, product, units_match, row["buy_quantity"])
+            if row["preorder"]["unit_price"] is not None:
+                row["line_total"] = row["preorder"]["quantity"] * row["preorder"]["unit_price"]
         rows.append(row)
     return rows
 

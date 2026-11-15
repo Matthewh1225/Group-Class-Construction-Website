@@ -34,6 +34,9 @@ def calculate_totals(cart_items):
         return None
     subtotal = 0
     for item in cart_items:
+        # A pre-order with no price yet (price TBD) is left out of the subtotal
+        if item.get("preorder") and item["total_cents"] is None:
+            continue
         if item.get("error") or item.get("total_cents") is None:
             return None
         subtotal += item["total_cents"]

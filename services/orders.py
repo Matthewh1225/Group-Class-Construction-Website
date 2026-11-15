@@ -27,7 +27,15 @@ def create_order(user_id, checkout_data):
         )
         items = cursor.fetchall()
 
-        if not items:
+        # Pre-orders don't use store stock, so there is nothing to check or subtract
+        cursor.execute(
+            "SELECT name, unit, quantity, unitPrice FROM Preorder_item "
+            "WHERE userId = %s AND orderId IS NULL FOR UPDATE",
+            (user_id,),
+        )
+        preorders = cursor.fetchall()
+
+        if not items and not preorders:
             raise ValueError("Your cart is empty.")
 
         total = 0
@@ -35,6 +43,11 @@ def create_order(user_id, checkout_data):
             if item["itemQty"] > item["stockQty"]:
                 raise ValueError("Not enough stock of " + item["name"] + ".")
             total += item["price"] * item["itemQty"]
+        for preorder in preorders:
+            # Price TBD pre-orders are not part of the total yet
+            if preorder["unitPrice"] is not None:
+                total += preorder["unitPrice"] * preorder["quantity"]
+        total = round(total, 2)
 
         cursor.execute(
             "INSERT INTO `Order` (userId, dateCreated, totalCost, orderStatus, shippingAddress) "
@@ -55,9 +68,16 @@ def create_order(user_id, checkout_data):
 
         cursor.execute("DELETE FROM Cart_item WHERE userId = %s", (user_id,))
 
+        # Attach the pre-orders to this order, which takes them out of the cart
+        cursor.execute(
+            "UPDATE Preorder_item SET orderId = %s WHERE userId = %s AND orderId IS NULL",
+            (order_id, user_id),
+        )
+
     # The order is already saved, so an email problem must not undo it
     try:
-        send_order_email(checkout_data["email"], checkout_data["first_name"], order_id, items, total, address)
+        send_order_email(checkout_data["email"], checkout_data["first_name"], order_id,
+                         items, preorders, total, address)
     except Exception as error:
         print("Could not send order email:", error)
 

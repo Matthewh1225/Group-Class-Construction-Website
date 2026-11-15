@@ -153,6 +153,11 @@ with subcategory=null when only the category is clear. A non-null subcategory mu
 to the selected category. These labels guide a later search; never change material names,
 specifications, quantities, units or calculations to fit the classification labels.
 
+Add estimated_unit_price to every material: a typical current US retail price in US dollars
+for one unit of that material's unit (for example, per sheet, per bag or per ft), not the line
+total. The store uses it to price pre-orders for items it may not stock. Use null only when no
+reasonable estimate is possible. Do not mention prices in notes or the summary.
+
 Write one final summary and a notes list for the whole project. Project notes hold useful
 assumptions, staffing explanations and uncertainty, without repeating material notes or each
 other. For example, an assumed ceiling height belongs with that material; weather-dependent

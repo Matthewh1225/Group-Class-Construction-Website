@@ -4,7 +4,8 @@ from flask import Blueprint, flash, redirect, render_template, request, session,
 
 from routes.auth import login_required
 from services.cart import (get_cart, add_item, change_quantity, remove_item,
-                           add_crew, get_cart_crews, remove_crew)
+                           add_crew, get_cart_crews, remove_crew,
+                           get_cart_preorders, remove_preorder)
 from services.checkout import calculate_totals, check_checkout_form
 from services.orders import create_order, get_order, get_order_items
 
@@ -15,7 +16,10 @@ shopping_bp = Blueprint("shopping", __name__)
 @login_required
 def show_cart():
     items = get_cart(session["user_id"])
-    return render_template("cart/cart.html", cart_items=items, totals=calculate_totals(items),
+    preorders = get_cart_preorders(session["user_id"])
+    # The order summary lists store items and pre-orders together
+    return render_template("cart/cart.html", cart_items=items, preorder_items=preorders,
+                           summary_items=items + preorders, totals=calculate_totals(items + preorders),
                            crew_items=get_cart_crews(session["user_id"]))
 
 
@@ -49,6 +53,13 @@ def update_cart():
 @login_required
 def remove_from_cart():
     remove_item(session["user_id"], request.form.get("product_id", type=int))
+    return redirect(url_for("shopping.show_cart"), code=303)
+
+
+@shopping_bp.post("/cart/preorders/<int:preorder_id>/remove")
+@login_required
+def remove_preorder_from_cart(preorder_id):
+    remove_preorder(session["user_id"], preorder_id)
     return redirect(url_for("shopping.show_cart"), code=303)
 
 
@@ -90,7 +101,7 @@ def checkout():
                 return redirect(url_for("shopping.order_confirmation", order_id=order_id), code=303)
             error = "We couldn't place your order. Please try again."
 
-    items = get_cart(user_id)
+    items = get_cart(user_id) + get_cart_preorders(user_id)
     checkout_key = form_data.get("checkout_key") or secrets.token_urlsafe(24)
     page = render_template("cart/checkout.html", cart_items=items, totals=calculate_totals(items),
                            form_data=form_data, error=error, checkout_key=checkout_key)

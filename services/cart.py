@@ -102,28 +102,97 @@ def remove_item(user_id, product_id):
         )
 
 
-def add_materials_to_cart(user_id, materials):
-    """Add planner materials to the cart.
+def add_preorder_item(user_id, preorder):
+    """Put a pre-order item in the cart. Adding the same item again adds to its quantity."""
+    with database_cursor() as cursor:
+        # Same name, unit and product already in the cart? Then just add to it
+        cursor.execute(
+            """
+            SELECT id FROM Preorder_item
+            WHERE userId = %s AND orderId IS NULL AND name = %s AND unit = %s
+              AND productId <=> %s
+            """,
+            (user_id, preorder["name"], preorder["unit"], preorder["product_id"]),
+        )
+        existing = cursor.fetchone()
 
-    Returns {"added": [product names], "skipped": count, "failed": [messages]}.
+        if existing:
+            cursor.execute(
+                "UPDATE Preorder_item SET quantity = quantity + %s, unitPrice = %s WHERE id = %s",
+                (preorder["quantity"], preorder["unit_price"], existing["id"]),
+            )
+        else:
+            cursor.execute(
+                """
+                INSERT INTO Preorder_item (userId, productId, name, unit, quantity, unitPrice)
+                VALUES (%s, %s, %s, %s, %s, %s)
+                """,
+                (user_id, preorder["product_id"], preorder["name"], preorder["unit"],
+                 preorder["quantity"], preorder["unit_price"]),
+            )
+    return preorder["name"]
+
+
+def tidy_quantity(quantity):
+    """Show 3.00 as 3 and 2.50 as 2.5."""
+    if quantity == int(quantity):
+        return int(quantity)
+    return quantity.normalize()
+
+
+def get_cart_preorders(user_id):
+    """Return the pre-order items in the user's cart (not yet ordered)."""
+    with database_cursor() as cursor:
+        cursor.execute(
+            """
+            SELECT id, productId AS product_id, name, unit, quantity, unitPrice AS unit_price
+            FROM Preorder_item
+            WHERE userId = %s AND orderId IS NULL
+            ORDER BY name
+            """,
+            (user_id,),
+        )
+        items = cursor.fetchall()
+
+    for item in items:
+        item["preorder"] = True
+        if item["unit_price"] is None:
+            item["unit_price_cents"] = None
+            item["total_cents"] = None
+        else:
+            item["unit_price_cents"] = int(round(item["unit_price"] * 100))
+            item["total_cents"] = int(round(item["unit_price"] * item["quantity"] * 100))
+        item["quantity"] = tidy_quantity(item["quantity"])
+    return items
+
+
+def remove_preorder(user_id, preorder_id):
+    with database_cursor() as cursor:
+        cursor.execute(
+            "DELETE FROM Preorder_item WHERE id = %s AND userId = %s AND orderId IS NULL",
+            (preorder_id, user_id),
+        )
+
+
+def add_materials_to_cart(user_id, materials):
+    """Add planner materials to the cart. Anything we can't sell right now becomes a pre-order.
+
+    Returns {"added": [names], "preordered": [names], "failed": [messages]}.
     """
     added = []
-    skipped = 0
+    preordered = []
     failed = []
 
     for material in materials:
-        # Skip materials we do not sell, cannot match by unit, or have no stock for
-        if not material.get("can_add"):
-            skipped += 1
-            continue
         try:
-            name = add_item(user_id, material["product"]["product_id"], material["buy_quantity"])
+            if material["can_add"]:
+                added.append(add_item(user_id, material["product"]["product_id"], material["buy_quantity"]))
+            else:
+                preordered.append(add_preorder_item(user_id, material["preorder"]))
         except ValueError as error:
             failed.append(str(error).rstrip("."))
-        else:
-            added.append(name)
 
-    return {"added": added, "skipped": skipped, "failed": failed}
+    return {"added": added, "preordered": preordered, "failed": failed}
 
 
 def add_crew(user_id, crew_json):

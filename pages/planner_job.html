@@ -83,14 +83,16 @@
                     <p class="plan-muted">Estimated materials for your project. Review quantities and product matches.</p>
                 </div>
                 <div class="plan-cart-box">
-                    {% if suggested_items %}
-                        <p><strong>{{ suggested_items|length }}</strong> product{{ '' if suggested_items|length == 1 else 's' }} ready to add{% if matched_materials_total > 0 %} &middot; Matched materials subtotal: <strong>{{ format_money_dollars(matched_materials_total) }}</strong>{% endif %}</p>
+                    {% if materials %}
+                        {% set preorder_count = materials|selectattr('preorder')|list|length %}
+                        <p><strong>{{ suggested_items|length }}</strong> product{{ '' if suggested_items|length == 1 else 's' }} in stock{% if matched_materials_total > 0 %} &middot; Matched materials subtotal: <strong>{{ format_money_dollars(matched_materials_total) }}</strong>{% endif %}</p>
+                        {% if preorder_count %}
+                            <p><strong>{{ preorder_count }}</strong> item{{ '' if preorder_count == 1 else 's' }} available as pre-order{{ '' if preorder_count == 1 else 's' }}</p>
+                        {% endif %}
                         <form method="post" action="{{ url_for('planner.planning_job_add_to_cart', job_id=job.id) }}" data-submit-once>
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <button class="plan-button" type="submit">Add all available to cart</button>
+                            <button class="plan-button" type="submit">Add all to cart</button>
                         </form>
-                    {% else %}
-                        <p>None of these materials can be added to your cart.</p>
                     {% endif %}
                     <a href="{{ url_for('shopping.show_cart') }}">View cart</a>
                 </div>
@@ -155,25 +157,33 @@
                                         {% if item.line_total is not none %}
                                             <small>{{ format_money_dollars(item.line_total) }}</small>
                                         {% endif %}
-                                        {% if item.insufficient_stock %}
-                                            <small class="plan-warning">Only {{ product.available_quantity|amount }} in stock</small>
-                                        {% endif %}
-                                    {% elif item.show_store_link %}
-                                        <small>Sold per {{ product.unit }}: choose the amount in the store</small>
                                     {% else %}
-                                        <span class="plan-muted">&mdash;</span>
+                                        {% set pre = item.preorder %}
+                                        <span class="plan-number">{{ pre.quantity|amount }}</span> {{ pre.unit }}
+                                        <small>
+                                            {% if pre.unit_price is not none %}
+                                                {{ format_money_dollars(item.line_total) }}
+                                                ({{ format_money_dollars(pre.unit_price) }} per {{ pre.unit }}{% if pre.price_is_estimate %}, AI estimate{% endif %})
+                                            {% else %}
+                                                Price TBD
+                                            {% endif %}
+                                        </small>
+                                        <small class="plan-warning">Pre-order</small>
+                                        {% if item.show_store_link %}
+                                            <small>Store sells it per {{ product.unit }}: <a href="{{ url_for('products.products', query=product.product_name) }}">view in store</a></small>
+                                        {% endif %}
                                     {% endif %}
                                 </td>
                                 <td class="plan-row-action">
-                                    {% if item.can_add %}
-                                        <form method="post" action="{{ url_for('planner.planning_job_add_to_cart', job_id=job.id) }}" data-submit-once>
-                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                            <input type="hidden" name="material" value="{{ loop.index0 }}">
+                                    <form method="post" action="{{ url_for('planner.planning_job_add_to_cart', job_id=job.id) }}" data-submit-once>
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <input type="hidden" name="material" value="{{ loop.index0 }}">
+                                        {% if item.can_add %}
                                             <button class="plan-button-secondary" type="submit" aria-label="Add {{ product.product_name }} to cart">Add to cart</button>
-                                        </form>
-                                    {% elif item.show_store_link %}
-                                        <a href="{{ url_for('products.products', query=product.product_name) }}">View in store</a>
-                                    {% endif %}
+                                        {% else %}
+                                            <button class="plan-button-secondary" type="submit" aria-label="Pre-order {{ item.material_name }}">Pre-order</button>
+                                        {% endif %}
+                                    </form>
                                 </td>
                             </tr>
                         {% endfor %}

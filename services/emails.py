@@ -10,7 +10,7 @@ def send_order_email(to_address, first_name, order_id, items, total, address):
         print("SMTP_HOST is not set, so no order email was sent.")
         return
 
-    lines = ["Hi " + first_name + ",", "", "Thanks for your order! Order number: " + str(order_id), ""]
+    lines = ["Hi " + first_name + ",", "", "hanks for your order! Order number: " + str(order_id), ""]
     for item in items:
         line_total = item["price"] * item["itemQty"]
         lines.append(str(item["itemQty"]) + " x " + item["name"] + " - $" + format(line_total, ",.2f"))

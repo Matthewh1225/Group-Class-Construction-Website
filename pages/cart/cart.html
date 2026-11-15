@@ -6,7 +6,7 @@
     <div><p class="sheet-tag"><span>C-02</span>Cart</p><h1>Your cart</h1></div>
     <a class="shopping-link" href="{{ url_for('products.products') }}">Continue shopping <span aria-hidden="true">&rarr;</span></a>
 </header>
-{% if cart_items %}
+{% if cart_items or preorder_items %}
 <div class="shopping-columns">
     <section class="shopping-panel" aria-label="Cart items">
         {% for item in cart_items %}
@@ -39,8 +39,39 @@
             </div>
         </article>
         {% endfor %}
+
+        {% if preorder_items %}
+        <h2 class="shopping-preorder-title">Pre-orders</h2>
+        <p class="shopping-muted">These items from your project plan are not in stock or not sold in our store yet. We'll order them for you. Estimated prices may change.</p>
+        {% for item in preorder_items %}
+        <article class="shopping-cart-row">
+            {{ product_image(item) }}
+            <div class="shopping-cart-product">
+                <span class="shopping-product-name">{{ item.name }}</span>
+                <p>
+                    {% if item.unit_price_cents is not none %}
+                        {{ format_money_cents(item.unit_price_cents) }} / {{ item.unit }} (estimate)
+                    {% else %}
+                        Price TBD
+                    {% endif %}
+                </p>
+                <p class="shopping-notice" role="status">Pre-order</p>
+            </div>
+            <div class="shopping-cart-controls">
+                <span>Quantity: {{ item.quantity }} {{ item.unit }}</span>
+            </div>
+            <div class="shopping-cart-line-total">
+                <strong>{% if item.total_cents is not none %}{{ format_money_cents(item.total_cents) }}{% else %}Price TBD{% endif %}</strong>
+                <form method="post" action="{{ url_for('shopping.remove_preorder_from_cart', preorder_id=item.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button class="shopping-remove" type="submit" aria-label="Remove {{ item.name }}">Remove</button>
+                </form>
+            </div>
+        </article>
+        {% endfor %}
+        {% endif %}
     </section>
-    {{ order_summary(cart_items, totals=totals) }}
+    {{ order_summary(summary_items, totals=totals) }}
 </div>
 {% elif not crew_items %}
 <section class="shopping-panel shopping-empty">

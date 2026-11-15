@@ -114,17 +114,19 @@ def planning_job_add_to_cart(job_id):
 
     result = add_materials_to_cart(session["user_id"], chosen)
     added = result["added"]
+    preordered = result["preordered"]
     failed = result["failed"]
-    skipped = result["skipped"]
 
     if len(added) == 1:
         flash(f"Added {added[0]} to your cart.", "success")
     elif len(added) > 1:
         flash(f"Added {len(added)} products to your cart.", "success")
+    if len(preordered) == 1:
+        flash(f"Added {preordered[0]} to your cart as a pre-order.", "info")
+    elif len(preordered) > 1:
+        flash(f"Added {len(preordered)} items to your cart as pre-orders.", "info")
     if failed:
         flash("Could not add to your cart: " + "; ".join(failed) + ".", "error")
-    if skipped >= 1:
-        flash(" material was not added: we do not sell it or it is out of stock.", "info")
     if not chosen:
         flash("There was nothing to add to your cart.", "error")
     return redirect(url_for("planner.planning_job", job_id=job_id, _anchor="plan-messages"), code=303)

@@ -41,9 +41,13 @@
                         {{ product_image(item) }}
                         <div>
                             {{ product_name(item) }}
-                            <small>Qty {{ item.quantity }}</small>
+                            <small>Qty {{ item.quantity }}{% if item.preorder %} {{ item.unit }} &middot; Pre-order{% endif %}</small>
                         </div>
-                        <strong>{{ format_money_cents(item.total_cents) }}</strong>
+                        {% if item.preorder and item.total_cents is none %}
+                            <strong>Price TBD</strong>
+                        {% else %}
+                            <strong>{{ format_money_cents(item.total_cents) }}</strong>
+                        {% endif %}
                     </li>
                 {% else %}
                     <li class="shopping-summary-empty">
