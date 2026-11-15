@@ -32,7 +32,7 @@
 {% macro order_summary(items, checkout=False, totals=none) %}
     {% set totals = totals or {} %}
     <aside class="shopping-panel shopping-summary" aria-labelledby="order-summary-title">
-        <p class="shopping-eyebrow">YOUR MATERIALS</p>
+        <p class="shopping-eyebrow">YOUR ORDER</p>
         <h2 id="order-summary-title">Order summary</h2>
         {% if checkout %}
             <ul class="shopping-summary-products">
@@ -41,7 +41,11 @@
                         {{ product_image(item) }}
                         <div>
                             {{ product_name(item) }}
-                            <small>Qty {{ item.quantity }}{% if item.preorder %} {{ item.unit }} &middot; Pre-order{% endif %}</small>
+                            {% if item.crew %}
+                                <small>Crew labor &middot; {{ item.estimate.workers }} workers &middot; {{ item.estimate.days }}</small>
+                            {% else %}
+                                <small>Qty {{ item.quantity }}{% if item.preorder %} {{ item.unit }} &middot; Pre-order{% endif %}</small>
+                            {% endif %}
                         </div>
                         <strong>{{ format_money_cents(item.total_cents) }}</strong>
                     </li>

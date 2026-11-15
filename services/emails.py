@@ -3,7 +3,7 @@ import smtplib
 from email.message import EmailMessage
 
 
-def send_order_email(to_address, first_name, order_id, items, preorders, totals, address):
+def send_order_email(to_address, first_name, order_id, items, preorders, crews, totals, address):
     """Email an order receipt. Does nothing if mail settings are missing from .env."""
     host = os.getenv("SMTP_HOST")
     if not host:
@@ -18,6 +18,9 @@ def send_order_email(to_address, first_name, order_id, items, preorders, totals,
         line_total = preorder["unitPrice"] * preorder["quantity"]
         lines.append(format(preorder["quantity"].normalize(), "f") + " " + preorder["unit"] + " x "
                      + preorder["name"] + " - $" + format(line_total, ",.2f") + " (pre-order, estimated price)")
+    for crew in crews:
+        lines.append("Crew: " + crew["label"] + " (" + str(crew["workers"]) + " workers, " + crew["days"]
+                     + ") - $" + format(crew["price_cents"] / 100, ",.2f"))
     lines.append("")
     # totals is in cents, so divide by 100 to show dollars
     lines.append("Subtotal: $" + format(totals["subtotal_cents"] / 100, ",.2f"))

@@ -216,7 +216,9 @@ def get_cart_crews(user_id):
     for row in rows:
         crew = json.loads(row["crew"])
         estimate = estimate_crew_cost(crew)
-        crews.append({"id": row["id"], "estimate": estimate})
+        # name and total_cents let crews sit in the order summary next to products
+        crews.append({"id": row["id"], "crew": True, "name": estimate["label"],
+                      "estimate": estimate, "total_cents": estimate["price_cents"]})
     return crews
 
 

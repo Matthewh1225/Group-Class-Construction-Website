@@ -1,6 +1,8 @@
+import json
 from decimal import Decimal
 
 from services.checkout import add_shipping_and_tax
+from services.crews import estimate_crew_cost
 from services.emails import send_order_email
 from services.products import guess_unit_price
 from utils.database import database_cursor
@@ -48,7 +50,13 @@ def create_order(user_id, checkout_data):
                     (preorder["unitPrice"], preorder["id"]),
                 )
 
-        if not items and not preorders:
+        # Crews in the cart: price each one the same way the cart page does
+        cursor.execute("SELECT crew FROM crew_cart WHERE owner = %s FOR UPDATE", (user_id,))
+        crews = []
+        for row in cursor.fetchall():
+            crews.append(estimate_crew_cost(json.loads(row["crew"])))
+
+        if not items and not preorders and not crews:
             raise ValueError("Your cart is empty.")
 
         # Add up line totals in cents, rounded the same way as the cart page
@@ -59,6 +67,8 @@ def create_order(user_id, checkout_data):
             subtotal_cents += int(round(item["price"] * 100)) * item["itemQty"]
         for preorder in preorders:
             subtotal_cents += int(round(preorder["unitPrice"] * preorder["quantity"] * 100))
+        for crew in crews:
+            subtotal_cents += crew["price_cents"]
 
         # Same shipping and tax as the cart page, so the order total matches
         totals = add_shipping_and_tax(subtotal_cents)
@@ -82,6 +92,8 @@ def create_order(user_id, checkout_data):
             )
 
         cursor.execute("DELETE FROM Cart_item WHERE userId = %s", (user_id,))
+        # Crews are paid for in the order total, so take them out of the cart
+        cursor.execute("DELETE FROM crew_cart WHERE owner = %s", (user_id,))
 
         # Attach the pre-orders to this order, which takes them out of the cart
         cursor.execute(
@@ -92,7 +104,7 @@ def create_order(user_id, checkout_data):
     # The order is already saved, so an email problem must not undo it
     try:
         send_order_email(checkout_data["email"], checkout_data["first_name"], order_id,
-                         items, preorders, totals, address)
+                         items, preorders, crews, totals, address)
     except Exception as error:
         print("Could not send order email:", error)
 

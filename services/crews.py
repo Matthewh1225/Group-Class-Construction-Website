@@ -116,4 +116,6 @@ def estimate_crew_cost(crew):
         "hourly": format_money(total_hourly),
         "days": format_range(f"{shortest:,}", f"{longest:,}") + " working days",
         "cost": format_range(format_money(total_low), format_money(total_high)),
+        # The cart charges the high end (longest days), so the real job can only cost less
+        "price_cents": total_high * 100,
     }

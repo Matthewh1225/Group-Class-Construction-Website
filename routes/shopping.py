@@ -17,10 +17,12 @@ shopping_bp = Blueprint("shopping", __name__)
 def show_cart():
     items = get_cart(session["user_id"])
     preorders = get_cart_preorders(session["user_id"])
-    # The order summary lists store items and pre-orders together
+    crews = get_cart_crews(session["user_id"])
+    # The order summary lists store items, pre-orders and crews together
+    everything = items + preorders + crews
     return render_template("cart/cart.html", cart_items=items, preorder_items=preorders,
-                           summary_items=items + preorders, totals=calculate_totals(items + preorders),
-                           crew_items=get_cart_crews(session["user_id"]))
+                           crew_items=crews, summary_items=everything,
+                           totals=calculate_totals(everything))
 
 
 @shopping_bp.post("/cart/add")
@@ -101,7 +103,7 @@ def checkout():
                 return redirect(url_for("shopping.order_confirmation", order_id=order_id), code=303)
             error = "We couldn't place your order. Please try again."
 
-    items = get_cart(user_id) + get_cart_preorders(user_id)
+    items = get_cart(user_id) + get_cart_preorders(user_id) + get_cart_crews(user_id)
     checkout_key = form_data.get("checkout_key") or secrets.token_urlsafe(24)
     page = render_template("cart/checkout.html", cart_items=items, totals=calculate_totals(items),
                            form_data=form_data, error=error, checkout_key=checkout_key)

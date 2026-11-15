@@ -6,7 +6,7 @@
     <div><p class="sheet-tag"><span>C-02</span>Cart</p><h1>Your cart</h1></div>
     <a class="shopping-link" href="{{ url_for('products.products') }}">Continue shopping <span aria-hidden="true">&rarr;</span></a>
 </header>
-{% if cart_items or preorder_items %}
+{% if cart_items or preorder_items or crew_items %}
 <div class="shopping-columns">
     <section class="shopping-panel" aria-label="Cart items">
         {% for item in cart_items %}
@@ -64,10 +64,34 @@
         </article>
         {% endfor %}
         {% endif %}
+
+        {% if crew_items %}
+        <div class="shopping-crew-cart">
+            <h2 id="crew-cart-title">Crew labor</h2>
+            <p class="shopping-muted">Crews are priced at the high end of the estimate (the longest number of days), so the real job should cost the same or less.</p>
+            {% for item in crew_items %}
+                <article class="shopping-crew-selection">
+                    <h3>{{ item.estimate.label }}</h3>
+                    <p>{{ item.estimate.workers }} workers &middot; {{ item.estimate.days }} &middot; {{ item.estimate.hourly }} per hour</p>
+                    <ul>
+                        {% for member in item.estimate.rows %}
+                            <li>{{ member.name }}: {{ member.workers }} workers at {{ member.rate }}/hour, {{ member.days }} &mdash; {{ member.cost }}</li>
+                        {% endfor %}
+                    </ul>
+                    <p>Estimated range: {{ item.estimate.cost }}</p>
+                    <p><strong>Crew price: {{ format_money_cents(item.total_cents) }}</strong></p>
+                    <form method="post" action="{{ url_for('shopping.remove_crew_from_cart', crew_id=item.id) }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button class="shopping-button shopping-secondary" type="submit">Remove crew</button>
+                    </form>
+                </article>
+            {% endfor %}
+        </div>
+        {% endif %}
     </section>
     {{ order_summary(summary_items, totals=totals) }}
 </div>
-{% elif not crew_items %}
+{% else %}
 <section class="shopping-panel shopping-empty">
     <svg class="shopping-empty-art" viewBox="0 0 160 100" aria-hidden="true" focusable="false">
         <path class="shopping-art-marks" d="M8 88H152M24 18H136M24 14V22M136 14V22"/>
@@ -78,27 +102,6 @@
         <a class="shopping-button shopping-primary" href="{{ url_for('products.products') }}">Browse products</a>
         <a class="shopping-button shopping-secondary" href="{{ url_for('planner.planner') }}">Plan a project</a>
     </div>
-</section>
-{% endif %}
-{% if crew_items %}
-<section class="shopping-panel shopping-crew-cart" aria-labelledby="crew-cart-title">
-    <h2 id="crew-cart-title">Crew estimates</h2>
-    {% for item in crew_items %}
-        <article class="shopping-crew-selection">
-            <h3>{{ item.estimate.label }}</h3>
-            <p>{{ item.estimate.workers }} workers &middot; {{ item.estimate.days }} &middot; {{ item.estimate.hourly }} per hour</p>
-            <ul>
-                {% for member in item.estimate.rows %}
-                    <li>{{ member.name }}: {{ member.workers }} workers at {{ member.rate }}/hour, {{ member.days }} &mdash; {{ member.cost }}</li>
-                {% endfor %}
-            </ul>
-            <p><strong>Estimated labor total: {{ item.estimate.cost }}</strong></p>
-            <form method="post" action="{{ url_for('shopping.remove_crew_from_cart', crew_id=item.id) }}">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button class="shopping-button shopping-secondary" type="submit">Remove crew</button>
-            </form>
-        </article>
-    {% endfor %}
 </section>
 {% endif %}
 {% endblock %}
