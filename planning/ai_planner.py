@@ -13,8 +13,8 @@ from .schemas import PlanningError
 logger = logging.getLogger(__name__)
 
 
-def make_client(provider, key_name):
-    api_key = os.getenv(key_name)
+def make_client(provider, key_name, fallback_key_name=None):
+    api_key = os.getenv(key_name) or (os.getenv(fallback_key_name) if fallback_key_name else None)
     if not api_key:
         return None
     if provider == "gemini":
@@ -30,7 +30,7 @@ AI_MODELS = {}
 for model_name, settings in MODELS.items():
     AI_MODELS[model_name] = {
         "provider": settings["provider"],
-        "client": make_client(settings["provider"], settings["api_key"]),
+        "client": make_client(settings["provider"], settings["api_key"], settings.get("fallback_api_key")),
         "model": os.getenv(settings["model_env"]) or settings["default"],
     }
 

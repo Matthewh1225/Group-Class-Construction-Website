@@ -26,6 +26,31 @@ PRO_PLANS = {
 }
 
 
+def sign_up_for_pro(user_id, plan_key, payment_method_id):
+    # TODO: Validate the plan, take the first payment, then save and activate Pro.
+    pass
+
+
+def save_subscription(user_id, plan_key, payment_reference):
+    # TODO: Save the user's plan, payment reference, and membership dates in the database.
+    pass
+
+
+def activate_pro(user_id, plan_key):
+    # TODO: Set pro_expires_on for one month, one year, or lifetime after confirmed payment.
+    pass
+
+
+def setup_recurring_billing(user_id, plan_key, payment_method_id):
+    # TODO: Set up recurring monthly or yearly charges; skip the lifetime plan.
+    pass
+
+
+def renew_subscription(user_id, payment_reference):
+    # TODO: Verify a successful recurring payment, save it once, and extend Pro for the paid period.
+    pass
+
+
 # pro_expires_on is the last Pro day; NULL means no access.
 def has_active_pro(user_id):
     with database_cursor() as cursor:

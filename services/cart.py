@@ -18,7 +18,7 @@ def get_cart(user_id):
     with database_cursor() as cursor:
             cursor.execute(sql, (user_id,))
             items =  cursor.fetchall()
-    return {"items": items}
+    return {items}
 
 
 def add_item(user_id, product_id, quantity):

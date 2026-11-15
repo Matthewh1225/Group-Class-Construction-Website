@@ -72,9 +72,10 @@ Small DIY projects should still include the practical sizes needed for their mat
 AI_TIMEOUT = 300  # seconds for one AI request
 
 # Each .env model name overrides its default.
-# Keys 1-3 belong to Fast, Standard and Pro. Key 4 belongs to the Matcher in every tier.
+# Keys 1-3 belong to Fast, Standard and Pro. The Matcher prefers key 4 and uses
+# key 1 if key 4 is not configured.
 MODELS = {
-    "gemini_matcher": {"provider": "gemini", "api_key": "GEMINI_API_KEY4", "model_env": "GEMINI_MODEL_MATCHER", "default": "gemini-3.5-flash-lite"},
+    "gemini_matcher": {"provider": "gemini", "api_key": "GEMINI_API_KEY4", "fallback_api_key": "GEMINI_API_KEY", "model_env": "GEMINI_MODEL_MATCHER", "default": "gemini-3.5-flash-lite"},
     "gemini_fast": {"provider": "gemini", "api_key": "GEMINI_API_KEY", "model_env": "GEMINI_MODEL_FAST", "default": "gemini-3.5-flash-lite"},
     "gemini_standard": {"provider": "gemini", "api_key": "GEMINI_API_KEY2", "model_env": "GEMINI_MODEL_FAST", "default": "gemini-3.5-flash-lite"},
     "gemini_standard_strong": {"provider": "gemini", "api_key": "GEMINI_API_KEY2", "model_env": "GEMINI_MODEL_STRONG", "default": "gemini-3.5-flash-lite"},
@@ -107,7 +108,7 @@ WORKFLOW_TIERS = {
         "interpreter": {"model": "gemini_strong", "reasoning": "high", "output_tokens": 16384},
         "planner": {"model": "gemini_strong", "reasoning": "high", "output_tokens": 16384},
         "second_planner": {"model": "gpt_oss", "reasoning": "high", "output_tokens": 32768},
-        "auditor": {"model": "nemotron", "reasoning": "high", "output_tokens": 16384},
+        "auditor": {"model": "glm", "reasoning": True, "output_tokens": 16384},
         "matcher": {"model": "gemini_matcher", "reasoning": "medium", "output_tokens": 16384},
         "max_jobs_per_24h": 10,
     },
