@@ -47,6 +47,16 @@ def check_request_limits():
     # Flask-Limiter skips unresolved routes; don't let those reach account queries.
     if request.routing_exception is not None:
         raise request.routing_exception
+    if request.endpoint == "static":
+        return
+    if session.get("user_id") is not None:
+        with limiter.shared_limit("10 per second; 90 per minute", key_func=account_rate_limit_key,
+                                  scope="account-traffic"):
+            pass
+    if request.endpoint in {"products.products", "products.heavy_machinery", "manufacturers", "reviews"} and request.method in {"GET", "HEAD"}:
+        # Page changes and search terms share one catalog budget.
+        with limiter.shared_limit("3 per second; 30 per minute", scope="catalog-traffic"):
+            pass
     # Context limits run here, before account refresh, rather than in the views.
     policy = POST_LIMITS.get(request.endpoint)
     if request.method != "POST" or policy is None:
