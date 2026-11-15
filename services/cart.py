@@ -6,19 +6,27 @@ from utils.database import database_cursor
 
 
 def get_cart(user_id):
-    # TODO: Get cart items with current prices and totals.
+    """Return the user's cart items with current prices (in cents) and line totals."""
     sql = """
-        SELECT p.id as product_Id, p.name as name, p.unit_price_cents as price, oi.itemQty as qty, oi.itemQty * p.unti_price_cents as total_cents
-        FROM cart c
-        JOIN order_item oi ON oi.orderId = c.id
-        JOIN product p ON p.id = oi.productId
-        WHERE c.userId = %s AND c.orderStatus = 'open'
+        SELECT p.id AS product_id, p.name AS name, p.unit AS unit,
+               ci.itemQty AS quantity, p.stockQty AS stock,
+               ROUND(p.price * 100) AS unit_price_cents,
+               ROUND(p.price * 100) * ci.itemQty AS total_cents
+        FROM Cart_item ci
+        JOIN Product p ON p.id = ci.productId
+        WHERE ci.userId = %s
         ORDER BY p.name
     """
     with database_cursor() as cursor:
-            cursor.execute(sql, (user_id,))
-            items =  cursor.fetchall()
-    return {items}
+        cursor.execute(sql, (user_id,))
+        items = cursor.fetchall()
+
+    for item in items:
+        item["unit_price_cents"] = int(item["unit_price_cents"])
+        item["total_cents"] = int(item["total_cents"])
+        if item["quantity"] > item["stock"]:
+            item["error"] = "Only " + str(item["stock"]) + " in stock. Lower the quantity."
+    return items
 
 
 def add_item(user_id, product_id, quantity):
@@ -66,13 +74,32 @@ def add_item(user_id, product_id, quantity):
 
 
 def change_quantity(user_id, product_id, quantity):
-    # TODO: Check quantity and stock, then update the cart item.
-    pass
+    try:
+        quantity = int(quantity)
+    except (TypeError, ValueError):
+        raise ValueError("Enter a whole number for the quantity.")
+    if quantity < 1:
+        raise ValueError("Quantity must be at least 1.")
+
+    with database_cursor() as cursor:
+        cursor.execute("SELECT stockQty FROM Product WHERE id = %s", (product_id,))
+        product = cursor.fetchone()
+        if product is None:
+            raise ValueError("That product does not exist.")
+        if quantity > product["stockQty"]:
+            raise ValueError("Not enough stock for that quantity.")
+        cursor.execute(
+            "UPDATE Cart_item SET itemQty = %s WHERE userId = %s AND productId = %s",
+            (quantity, user_id, product_id),
+        )
 
 
 def remove_item(user_id, product_id):
-    # TODO: Remove the product from this user's cart.
-    pass
+    with database_cursor() as cursor:
+        cursor.execute(
+            "DELETE FROM Cart_item WHERE userId = %s AND productId = %s",
+            (user_id, product_id),
+        )
 
 
 def add_materials_to_cart(user_id, materials):
