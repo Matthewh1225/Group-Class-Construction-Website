@@ -32,7 +32,6 @@
 {% macro order_summary(items, checkout=False, totals=none) %}
     {% set totals = totals or {} %}
     <aside class="shopping-panel shopping-summary" aria-labelledby="order-summary-title">
-        <p class="shopping-eyebrow">YOUR ORDER</p>
         <h2 id="order-summary-title">Order summary</h2>
         {% if checkout %}
             <ul class="shopping-summary-products">
@@ -42,7 +41,7 @@
                         <div>
                             {{ product_name(item) }}
                             {% if item.crew %}
-                                <small>Crew labor &middot; {{ item.estimate.workers }} workers &middot; {{ item.estimate.days }}</small>
+                                <small>Crew &middot; {{ item.estimate.workers }} workers</small>
                             {% else %}
                                 <small>Qty {{ item.quantity }}{% if item.preorder %} {{ item.unit }} &middot; Pre-order{% endif %}</small>
                             {% endif %}
@@ -84,9 +83,8 @@
             {% if totals %}
                 <a class="shopping-button shopping-primary" href="{{ url_for('shopping.checkout') }}">Proceed to Checkout {{ icon('arrow') }}</a>
             {% else %}
-                <button class="shopping-button shopping-primary" type="button" disabled>Resolve cart items to continue</button>
+                <button class="shopping-button shopping-primary" type="button" disabled>Fix cart to continue</button>
             {% endif %}
-            <a class="shopping-button shopping-secondary" href="{{ url_for('products.products') }}">Continue Shopping</a>
         {% endif %}
     </aside>
 {% endmacro %}

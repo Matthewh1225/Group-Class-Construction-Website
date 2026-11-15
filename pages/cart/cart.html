@@ -42,17 +42,15 @@
 
         {% if preorder_items %}
         <h2 class="shopping-preorder-title">Pre-orders</h2>
-        <p class="shopping-muted">These items from your project plan are not in stock or not sold in our store yet. We'll order them for you. Estimated prices may change.</p>
         {% for item in preorder_items %}
         <article class="shopping-cart-row">
             {{ product_image(item) }}
             <div class="shopping-cart-product">
                 <span class="shopping-product-name">{{ item.name }}</span>
-                <p>{{ format_money_cents(item.unit_price_cents) }} / {{ item.unit }} (estimate)</p>
-                <p class="shopping-notice" role="status">Pre-order</p>
+                <p>{{ format_money_cents(item.unit_price_cents) }} / {{ item.unit }} (est.)</p>
             </div>
             <div class="shopping-cart-controls">
-                <span>Quantity: {{ item.quantity }} {{ item.unit }}</span>
+                <span>Qty {{ item.quantity }} {{ item.unit }}</span>
             </div>
             <div class="shopping-cart-line-total">
                 <strong>{{ format_money_cents(item.total_cents) }}</strong>
@@ -67,22 +65,20 @@
 
         {% if crew_items %}
         <div class="shopping-crew-cart">
-            <h2 id="crew-cart-title">Crew labor</h2>
-            <p class="shopping-muted">Crews are priced at the high end of the estimate (the longest number of days), so the real job should cost the same or less.</p>
+            <h2 id="crew-cart-title">Crew</h2>
             {% for item in crew_items %}
                 <article class="shopping-crew-selection">
                     <h3>{{ item.estimate.label }}</h3>
-                    <p>{{ item.estimate.workers }} workers &middot; {{ item.estimate.days }} &middot; {{ item.estimate.hourly }} per hour</p>
+                    <p>{{ item.estimate.workers }} workers &middot; {{ item.estimate.days }}</p>
                     <ul>
                         {% for member in item.estimate.rows %}
-                            <li>{{ member.name }}: {{ member.workers }} workers at {{ member.rate }}/hour, {{ member.days }} &mdash; {{ member.cost }}</li>
+                            <li>{{ member.name }}: {{ member.workers }}</li>
                         {% endfor %}
                     </ul>
-                    <p>Estimated range: {{ item.estimate.cost }}</p>
-                    <p><strong>Crew price: {{ format_money_cents(item.total_cents) }}</strong></p>
+                    <p><strong>{{ format_money_cents(item.total_cents) }}</strong></p>
                     <form method="post" action="{{ url_for('shopping.remove_crew_from_cart', crew_id=item.id) }}">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <button class="shopping-button shopping-secondary" type="submit">Remove crew</button>
+                        <button class="shopping-remove" type="submit" aria-label="Remove {{ item.estimate.label }}">Remove</button>
                     </form>
                 </article>
             {% endfor %}
