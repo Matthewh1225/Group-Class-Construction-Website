@@ -12,7 +12,7 @@ limiter = Limiter(
     storage_options={"socket_connect_timeout": 2, "socket_timeout": 2}
         if storage_uri.startswith(("redis://", "rediss://")) else {},
     # Shared across dynamic endpoints so changing URLs does not reset the budget.
-    application_limits=["20 per second", "120 per minute"],
+    application_limits=["20 per second", "200 per minute"],
     headers_enabled=True,
     # Count recent requests instead of resetting at fixed times.
     strategy="moving-window",
@@ -50,12 +50,12 @@ def check_request_limits():
     if request.endpoint == "static":
         return
     if session.get("user_id") is not None:
-        with limiter.shared_limit("10 per second; 90 per minute", key_func=account_rate_limit_key,
+        with limiter.shared_limit("10 per second; 200 per minute", key_func=account_rate_limit_key,
                                   scope="account-traffic"):
             pass
     if request.endpoint in {"products.products", "products.heavy_machinery", "manufacturers", "reviews"} and request.method in {"GET", "HEAD"}:
         # Page changes and search terms share one catalog budget.
-        with limiter.shared_limit("3 per second; 30 per minute", scope="catalog-traffic"):
+        with limiter.shared_limit("10 per second; 200 per minute", scope="catalog-traffic"):
             pass
     # Context limits run here, before account refresh, rather than in the views.
     policy = POST_LIMITS.get(request.endpoint)

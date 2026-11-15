@@ -1,4 +1,5 @@
 import json
+import logging
 from decimal import Decimal
 
 from services.checkout import add_shipping_and_tax
@@ -6,6 +7,11 @@ from services.crews import estimate_crew_cost
 from services.emails import send_order_email
 from services.products import guess_unit_price
 from utils.database import database_cursor
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+if not logger.hasHandlers():
+    logger.addHandler(logging.StreamHandler())
 
 
 def create_order(user_id, checkout_data):
@@ -110,16 +116,20 @@ def create_order(user_id, checkout_data):
 
     # The order is already saved, so an email problem must not undo it.
     if checkout_data.get("email_receipt") is True:
+        logger.info("Receipt requested for order %s; preparing Resend request", order_id)
         try:
             with database_cursor() as cursor:
                 cursor.execute("SELECT email FROM User WHERE id = %s", (user_id,))
                 account = cursor.fetchone()
             if not account or not account.get("email"):
                 raise ValueError("The ordering account has no receipt email address.")
-            send_order_email(account["email"], checkout_data["first_name"], order_id,
+            email_id = send_order_email(account["email"], checkout_data["first_name"], order_id,
                              items, preorders, crews, totals, address)
+            logger.info("Resend accepted receipt for order %s; email_id=%s", order_id, email_id)
         except Exception as error:
-            print("Could not send order email:", error)
+            logger.error("Receipt failed for order %s (%s): %s", order_id, type(error).__name__, error)
+    else:
+        logger.info("Receipt skipped for order %s: checkbox not selected", order_id)
 
     return order_id
 
