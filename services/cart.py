@@ -22,54 +22,47 @@ def get_cart(user_id):
 
 
 def add_item(user_id, product_id, quantity):
-    # TODO: Add the product and check the combined quantity.
-    with database_cursor() as cursor:
+    """Add a product to the user's cart and return the product name."""
+    # The form sends quantity as text, and the planner sends a Decimal
+    try:
+        quantity = int(quantity)
+    except (TypeError, ValueError):
+        raise ValueError("Enter a whole number for the quantity.")
+    if quantity < 1:
+        raise ValueError("Quantity must be at least 1.")
 
-        # Make sure the product is in stock
-        cursor.execute("SELECT stockQuantity FROM product WHERE id = %s", (product_id,))
+    with database_cursor() as cursor:
+        cursor.execute(
+            "SELECT name, stockQty FROM Product WHERE id = %s AND isActive = 1",
+            (product_id,),
+        )
         product = cursor.fetchone()
         if product is None:
             raise ValueError("That product does not exist.")
 
-        # Open cart or create one 
+        # What the user already has in the cart counts toward the stock limit
         cursor.execute(
-            "SELECT id FROM cart WHERE userId = %s AND orderStatus = 'open' LIMIT 1",
-            (user_id,),
-        )
-        cart = cursor.fetchone()
-        if cart is None:
-            cursor.execute(
-                "INSERT INTO cart (dateCreated, totalCost, orderStatus, userId) "
-                "VALUES (CURDATE(), 0, 'open', %s)",
-                (user_id,),
-            )
-            cart_id = cursor.lastrowid
-        else:
-            cart_id = cart["id"]
-
-        # Combined quantity = what's already in the cart + the new amount/ if qty exceeds stock raise error
-        cursor.execute(
-            "SELECT itemQty FROM order_item WHERE orderId = %s AND productId = %s",
-            (cart_id, product_id),
+            "SELECT itemQty FROM Cart_item WHERE userId = %s AND productId = %s",
+            (user_id, product_id),
         )
         existing = cursor.fetchone()
-        combined = (existing["itemQty"] if existing else 0) + quantity
+        combined = quantity
+        if existing:
+            combined += existing["itemQty"]
 
-        if combined > product["stockQuantity"]:
-            raise ValueError("Not enough stock for that quantity.")
+        if combined > product["stockQty"]:
+            raise ValueError("Not enough stock of " + product["name"] + " for that quantity.")
 
-        # Add the item, or update the quantity if it's already in the cart
         cursor.execute(
             """
-            INSERT INTO order_item (orderId, productId, itemQty)
+            INSERT INTO Cart_item (userId, productId, itemQty)
             VALUES (%s, %s, %s)
             ON DUPLICATE KEY UPDATE itemQty = %s
             """,
-            (cart_id, product_id, quantity, combined),
+            (user_id, product_id, quantity, combined),
         )
 
-    return combined
-    
+    return product["name"]
 
 
 def change_quantity(user_id, product_id, quantity):
@@ -83,8 +76,27 @@ def remove_item(user_id, product_id):
 
 
 def add_materials_to_cart(user_id, materials):
-    # TODO: Add matched materials; report added, skipped, and failed items.
-    pass
+    """Add planner materials to the cart.
+
+    Returns {"added": [product names], "skipped": count, "failed": [messages]}.
+    """
+    added = []
+    skipped = 0
+    failed = []
+
+    for material in materials:
+        # Skip materials we do not sell, cannot match by unit, or have no stock for
+        if not material.get("can_add"):
+            skipped += 1
+            continue
+        try:
+            name = add_item(user_id, material["product"]["product_id"], material["buy_quantity"])
+        except ValueError as error:
+            failed.append(str(error).rstrip("."))
+        else:
+            added.append(name)
+
+    return {"added": added, "skipped": skipped, "failed": failed}
 
 
 def add_crew(user_id, crew_json):
