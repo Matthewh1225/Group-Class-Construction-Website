@@ -9,7 +9,7 @@ from utils.database import database_cursor
 
 
 def create_order(user_id, checkout_data):
-    """Save the order, take items out of stock, empty the cart, and email the customer.
+    """Save the order, update the cart and stock, and email a receipt if requested.
 
     Returns the new order id. Raises ValueError if the cart can't be ordered.
     """
@@ -108,12 +108,13 @@ def create_order(user_id, checkout_data):
             (order_id, user_id),
         )
 
-    # The order is already saved, so an email problem must not undo it
-    try:
-        send_order_email(checkout_data["email"], checkout_data["first_name"], order_id,
-                         items, preorders, crews, totals, address)
-    except Exception as error:
-        print("Could not send order email:", error)
+    # The order is already saved, so an email problem must not undo it.
+    if checkout_data.get("email_receipt") is True:
+        try:
+            send_order_email(checkout_data["email"], checkout_data["first_name"], order_id,
+                             items, preorders, crews, totals, address)
+        except Exception as error:
+            print("Could not send order email:", error)
 
     return order_id
 

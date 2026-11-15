@@ -45,6 +45,10 @@
                     </select>
                 </div>
             </div>
+            <label class="shopping-receipt-option" for="email-receipt">
+                <input id="email-receipt" name="email_receipt" type="checkbox" value="1" {% if form_data.get('email_receipt') == '1' %}checked{% endif %}>
+                <span>Email me a receipt</span>
+            </label>
         </section>
     </form>
     {{ order_summary(cart_items, checkout=True, totals=totals) }}

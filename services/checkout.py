@@ -4,6 +4,7 @@ from decimal import Decimal, ROUND_HALF_UP
 def check_checkout_form(checkout_data):
     """Clean the checkout form. Raises ValueError with a message if something is wrong."""
     cleaned = {}
+    cleaned["email_receipt"] = checkout_data.get("email_receipt") == "1"
     for name in ["first_name", "last_name", "email", "phone", "street_address",
                  "apartment", "city", "state", "zip_code"]:
         cleaned[name] = (checkout_data.get(name) or "").strip()
