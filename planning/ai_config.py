@@ -73,7 +73,7 @@ WORKFLOW_TIERS = {
     "fast": {
         "label": "Fast",
         "max_jobs_per_24h": 99,
-        "interpreter": stage("@cf/google/gemma-4-26b-a4b-it", reasoning=True, output_tokens=8192,
+        "interpreter": stage("@cf/google/gemma-4-26b-a4b-it", reasoning=False, output_tokens=8192,
                              fallback=fallback_model("openai/gpt-oss-120b", reasoning="low", output_tokens=8192)),
         "planner": stage("openai/gpt-oss-120b", reasoning="low", output_tokens=8192,
                          fallback=fallback_model("gemini-3.5-flash-lite_fast", reasoning="low", output_tokens=8192)),
