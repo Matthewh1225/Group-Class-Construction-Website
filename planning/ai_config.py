@@ -58,11 +58,12 @@ MODELS = {
 
 # Reasoning: low/medium/high for Gemini and Groq, True/False for Cloudflare, a token budget or True for OpenRouter.
 # Free limits: Groq gpt-oss 8K tokens/min (Planner only), OpenRouter about 50 requests/day, Gemini 3.8 Flash 20/day.
-# Pro's two planners never share a model, so the Auditor gets two independent drafts.
+# Fast has two fallbacks per stage, the other tiers one. Pro's two planners never share a model.
 
 
-def stage(model, reasoning, output_tokens, fallback):
-    return {"model": model, "reasoning": reasoning, "output_tokens": output_tokens, "fallback": fallback}
+def stage(model, reasoning, output_tokens, fallback, second_fallback=None):
+    fallbacks = [fallback] + ([second_fallback] if second_fallback else [])
+    return {"model": model, "reasoning": reasoning, "output_tokens": output_tokens, "fallbacks": fallbacks}
 
 
 def fallback_model(model, reasoning, output_tokens):
@@ -73,14 +74,18 @@ WORKFLOW_TIERS = {
     "fast": {
         "label": "Fast",
         "max_jobs_per_24h": 99,
-        "interpreter": stage("@cf/google/gemma-4-26b-a4b-it", reasoning=False, output_tokens=8192,
-                             fallback=fallback_model("openai/gpt-oss-120b", reasoning="low", output_tokens=8192)),
+        "interpreter": stage("@cf/google/gemma-4-26b-a4b-it", reasoning=True, output_tokens=8192,
+                             fallback=fallback_model("openai/gpt-oss-120b", reasoning="low", output_tokens=8192),
+                             second_fallback=fallback_model("gemini-3.5-flash-lite_fast", reasoning="low", output_tokens=8192)),
         "planner": stage("openai/gpt-oss-120b", reasoning="low", output_tokens=8192,
-                         fallback=fallback_model("gemini-3.5-flash-lite_fast", reasoning="low", output_tokens=8192)),
+                         fallback=fallback_model("gemini-3.5-flash-lite_fast", reasoning="low", output_tokens=8192),
+                         second_fallback=fallback_model("@cf/google/gemma-4-26b-a4b-it", reasoning=True, output_tokens=16384)),
         "auditor": stage("gemini-3.5-flash-lite_fast", reasoning="low", output_tokens=8192,
-                         fallback=fallback_model("nvidia/nemotron-3.5-super-vl:free", reasoning=4096, output_tokens=16384)),
+                         fallback=fallback_model("@cf/google/gemma-4-26b-a4b-it", reasoning=True, output_tokens=16384),
+                         second_fallback=fallback_model("nvidia/nemotron-3.5-super-vl:free", reasoning=4096, output_tokens=16384)),
         "matcher": stage("gemini-3.5-flash-lite_matcher", reasoning="low", output_tokens=16384,
-                         fallback=fallback_model("nvidia/nemotron-3.5-super-vl:free", reasoning=4096, output_tokens=24576)),
+                         fallback=fallback_model("nvidia/nemotron-3.5-super-vl:free", reasoning=4096, output_tokens=24576),
+                         second_fallback=fallback_model("@cf/google/gemma-4-26b-a4b-it", reasoning=True, output_tokens=16384)),
     },
     "standard": {
         "label": "Standard",

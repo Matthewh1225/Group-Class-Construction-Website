@@ -9,11 +9,11 @@ from groq import BadRequestError, Groq
 from .ai_config import AI_TIMEOUT, MODELS
 from .schemas import AnswerFormatError, PlanningError
 
-# Gemini and Groq retry temporary failures in their SDKs; the workflow retries a bad answer once, then uses the fallback.
-# Gemini 429s are not retried: resending a big request only fails again, so the fallback runs right away.
-GEMINI_RETRY_OPTIONS = {"attempts": 3, "initial_delay": 5, "max_delay": 30,  # 3 tries in total
+# Gemini and Groq retry a temporary failure once in their SDKs; the workflow retries a bad answer once.
+# Gemini 429s are not retried: resending a big request only fails again, so the next fallback runs right away.
+GEMINI_RETRY_OPTIONS = {"attempts": 2, "initial_delay": 5, "max_delay": 30,  # 2 tries in total
                         "http_status_codes": [408, 500, 502, 503, 504]}
-GROQ_MAX_RETRIES = 2  # 3 tries in total
+GROQ_MAX_RETRIES = 1  # 2 tries in total
 
 logger = logging.getLogger(__name__)
 

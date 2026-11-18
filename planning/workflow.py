@@ -17,7 +17,7 @@ from .schemas import (AnswerFormatError, AuditedEstimate, CatalogMatches, DraftE
                       PlanningError, Specification, merge_catalog_matches)
 
 MAX_QUESTIONS = 3
-# Retry malformed answers once; provider failures go straight to the fallback model.
+# Retry a malformed answer once; provider errors go straight to the next fallback.
 MAX_STAGE_ATTEMPTS = 2
 ANSWER_ERRORS = (ValidationError, json.JSONDecodeError, AnswerFormatError)
 logger = logging.getLogger(__name__)
@@ -182,29 +182,27 @@ def run_stage_with_model(stage_name, model_settings, record_type, inputs, instru
 
 
 def run_stage(tier, role, record_type, inputs, instructions, renew_lease):
-    """Run a stage, trying its fallback model if the primary fails.
+    """Run a stage, trying each fallback model in order if the one before it fails.
 
     renew_lease() saves progress and extends the lease; it raises LeaseLost if the job was cancelled or taken.
     """
     settings = ai_config.WORKFLOW_TIERS[tier][role]
     stage_name = role.replace("_", " ")
-    primary = AI_MODELS[settings["model"]]
-    fallback = AI_MODELS[settings["fallback"]["model"]]
+    problems = []
 
-    try:
-        return run_stage_with_model(stage_name, settings, record_type, inputs, instructions, renew_lease)
-    except StageModelFailed as error:
-        primary_problem = str(error)
-        logger.warning("%s failed on its primary model: %s. Trying the fallback. (provider=%s model=%s)",
-                       stage_name.capitalize(), primary_problem, primary["provider"], primary["model"])
+    for model_settings in [settings] + settings["fallbacks"]:
+        model = AI_MODELS[model_settings["model"]]
+        try:
+            return run_stage_with_model(stage_name, model_settings, record_type, inputs, instructions, renew_lease)
+        except StageModelFailed as error:
+            problems.append(str(error))
+            logger.warning("%s failed on %s: %s. (provider=%s)",
+                           stage_name.capitalize(), model["model"], error, model["provider"])
 
-    try:
-        return run_stage_with_model(stage_name, settings["fallback"], record_type, inputs, instructions, renew_lease)
-    except StageModelFailed as error:
-        message = (f"{stage_name.capitalize()} failed: {primary_problem}. "
-                   f"The backup model also failed: {error}.")
-        logger.warning("%s (fallback provider=%s model=%s)", message, fallback["provider"], fallback["model"])
-        raise PlanningError(message) from error
+    backups = "; ".join(problems[1:])
+    message = (f"{stage_name.capitalize()} failed: {problems[0]}. "
+               f"The backup {'model' if len(problems) == 2 else 'models'} also failed: {backups}.")
+    raise PlanningError(message)
 
 
 def run_workflow(job, save_progress):
