@@ -47,7 +47,6 @@ def pooled_connection():
     with _pool_lock:
         pid = os.getpid()
         if _pool is None or _pool_pid != pid:
-            # Open pool connections as needed.
             pool = MySQLConnectionPool(
                 pool_name="buildbetter",
                 pool_size=int(os.getenv("DB_POOL_SIZE", "5")),

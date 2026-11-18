@@ -38,7 +38,6 @@ def check_name(name):
 
 def save_job_as_project(user_id, job, name):
     with database_cursor() as cursor:
-        # Check the saved plan and its owner.
         job = find_job(cursor, job["id"], user_id, for_update=True)
         if job is None or not can_save_project(job):
             raise ValueError("Only a finished plan with materials can be saved.")
@@ -111,7 +110,6 @@ def get_project_list(user_id, search="", status="", limit=None):
 
 
 def count_projects(user_id):
-    """Count saved projects without loading their plans."""
     with database_cursor() as cursor:
         # Same join as PROJECT_QUERY, so the count always matches the list.
         cursor.execute("""SELECT COUNT(*) AS total

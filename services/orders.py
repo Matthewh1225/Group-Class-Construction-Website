@@ -72,8 +72,7 @@ def create_order(user_id, checkout_data):
 
         subtotal_cents = 0
         for item in items:
-            # Checked again here, under the row lock, in case the product was deactivated after
-            # the cart page loaded. Raising rolls back the whole order and leaves the cart as it was.
+            # Re-checked under the row lock in case the product was deactivated; raising rolls back the order.
             if not item["isActive"]:
                 raise ValueError(item["name"] + " is no longer available. Remove it from your cart.")
             if item["itemQty"] > item["stockQty"]:
@@ -152,7 +151,6 @@ def create_order(user_id, checkout_data):
 
 
 def make_order_dict(row):
-    """Turn an Order row into the dictionary the order pages use."""
     total_cents = int(round(row["totalCost"] * 100))
     return {
         "id": row["id"],
@@ -197,7 +195,6 @@ def add_receipt_totals(order, items):
 
 
 def get_user_orders(user_id):
-    """Get this user's orders, newest first."""
     with database_cursor() as cursor:
         cursor.execute(
             "SELECT id, dateCreated, totalCost, orderStatus, shippingAddress, mockPaymentBrand, mockPaymentLast4 "

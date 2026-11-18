@@ -52,8 +52,7 @@ class DraftEstimate(Record):
     materials: list[Material] = Field(min_length=1)
 
 
-# Plans saved before 2026-11-18 also have required_specs on each material; they still load
-# because saved plans are plain JSON and are not validated again.
+# Old saved plans also have required_specs; they still load because saved JSON isn't validated again.
 class AuditedMaterial(Material):
     category: str | None = Field(description="A category from classifications, or null if uncertain.")
     subcategory: str | None = Field(description="A subcategory belonging to that category, or null if uncertain.")

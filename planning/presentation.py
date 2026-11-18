@@ -102,7 +102,6 @@ def size_text(text):
 
 
 def package_size_stated(material, product):
-    """Check whether the estimate states a package size listed for this product."""
     estimate = size_text(" ".join([material.get("material_name") or "", material.get("specification") or "",
                                    material.get("notes") or ""]))
     sizes = []
@@ -125,8 +124,8 @@ def package_size_stated(material, product):
 def store_units_needed(material, product):
     """Convert to sale units before rounding, or return None for an unconfirmed pre-order.
 
-    Use catalog sizes only; the estimate already includes waste.
-    Only older saved plans have required_specs (and so a min_length_ft).
+    Only catalog sizes are used, since the estimate already includes waste.
+    Old saved plans may carry min_length_ft inside required_specs.
     """
     material_unit = normalize_unit(material["unit"])
     sale_unit = normalize_unit(product["unit"])
@@ -151,8 +150,7 @@ def store_units_needed(material, product):
         return quantity * Decimal(str(min_length))
 
     if material_unit in COUNT_UNITS and sale_unit == "system" and quantity == 1:
-        # "1 freight elevator" bought as one "Configurable freight elevator system".
-        # Larger counts could be parts of a system, so the customer picks the quantity.
+        # "1 freight elevator" is one system; larger counts could be parts, so the customer picks.
         return quantity
 
     if material_unit in COUNT_UNITS and sale_unit in CONTAINER_SALE_UNITS:

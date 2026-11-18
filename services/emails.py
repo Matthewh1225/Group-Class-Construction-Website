@@ -8,7 +8,6 @@ import certifi
 
 
 def send_order_email(to_address, first_name, order_id, items, preorders, crews, totals, address):
-    """Email an order receipt through Resend."""
     api_key = os.getenv("RESEND_API_KEY", "").strip()
     if not api_key:
         raise ValueError("Set RESEND_API_KEY to send receipt emails through Resend.")

@@ -31,8 +31,7 @@ SPEC_PHRASES = {
 }
 
 
-# Search text skips restriction clauses: ones that start like this or mention an excluded item,
-# such as "not premixed drying compound", "no fire rating", "hidden clips sold separately".
+# Restriction clauses ("not premixed", "no fire rating", "sold separately") stay out of search text.
 RESTRICTION_STARTS = ("not ", "no ", "do not ", "never ")
 EXCLUSION_PHRASES = ("sold separately", "not included", "excluded", " excludes ", "separate purchase")
 
@@ -42,7 +41,7 @@ def is_number(value):
 
 
 def number_text(value):
-    """Plain number text, such as 2.50 -> "2.5". Going through str() keeps 0.1 as 0.1, not a float artifact."""
+    """Plain number text, such as 2.50 -> "2.5". Going through str() keeps 0.1 as 0.1."""
     return format(Decimal(str(value)).normalize(), "f")
 
 
@@ -264,8 +263,7 @@ def embedding_segments_for(product):
     specs = product.get("specs") or {}
     name = product.get('product_name') or product.get('name')
     vector_specs = {key: value for key, value in specs.items() if key != 'catalog_part_number'}
-    # ZR retains the speed designation in the listing; the common radial size is
-    # already recorded explicitly. Use that size once in semantic input.
+    # Names keep the ZR speed rating; use the radial size already in specs so it shows up once.
     nominal = specs.get('nominal_size', '')
     if product.get('subcategory') == 'Tires' and re.fullmatch(r'\d{3}/\d{2}R\d{2}', nominal, re.I):
         name = re.sub(r'\d{3}/\d{2}\s*Z?R\s*\d{2}', nominal, name, flags=re.I)

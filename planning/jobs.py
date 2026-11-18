@@ -8,8 +8,7 @@ from utils.database import database_cursor
 
 from .ai_config import WORKFLOW_TIERS
 
-# Saving progress renews the lease, and the workflow saves before every AI call, so it only has
-# to outlast one call (3 tries x 5 minutes plus retry delays is about 16 minutes), with extra margin.
+# The lease must outlast one AI call (3 tries x 5 minutes plus delays is about 16 minutes); saving progress renews it.
 LEASE_SECONDS = 40 * 60
 MAX_RUNNING_JOBS = 2
 MAX_QUEUED_JOBS = 100

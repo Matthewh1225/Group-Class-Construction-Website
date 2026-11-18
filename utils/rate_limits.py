@@ -46,10 +46,8 @@ POST_LIMITS = {
     "dashboard.payments": "10 per minute; 50 per hour",
 }
 
-# Flask-Limiter stores each "with limiter.limit(...)" limit under the line that opened it, and
-# every POST policy shares one line below, so two threads could swap policies mid-request.
-# The lock makes each request register and check its limit alone. A thread lock is enough
-# because limits are kept per process.
+# Flask-Limiter files each limit under the line that opened it, and every POST policy shares one line below,
+# so two threads could swap policies. The lock lets each request register and check its limit alone (limits are per process).
 POST_LIMIT_LOCK = Lock()
 
 

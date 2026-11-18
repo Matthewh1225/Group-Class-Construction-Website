@@ -76,11 +76,9 @@ def whole_quantity(value):
 def reconcile_stock(cursor, user_id):
     """Split catalog requests using current stock while holding product row locks.
 
-    The caller holds this user's cart lock. Catalog preorders use the product's
-    ID and sale unit. Custom requests retain their separate quantities/prices.
+    The caller holds this user's cart lock. Custom requests keep their own quantities and prices.
     """
-    # Resolve this cart's IDs first. OR-ed subqueries made MySQL scan and lock
-    # the Product index, holding up other carts and catalog updates.
+    # Look up this cart's IDs first: OR-ed subqueries made MySQL scan and lock the whole Product index.
     cursor.execute("""
         SELECT productId FROM Cart_item WHERE userId = %s
         UNION
@@ -195,7 +193,6 @@ def remove_item(user_id, product_id):
 
 
 def clear_cart(user_id):
-    """Remove this user's cart items, unplaced preorders, and crews."""
     with database_cursor(lock_name=f"cart_{user_id}") as cursor:
         cursor.execute("DELETE FROM Cart_item WHERE userId = %s", (user_id,))
         cursor.execute("DELETE FROM Preorder_item WHERE userId = %s AND orderId IS NULL", (user_id,))
@@ -241,7 +238,6 @@ def add_preorder_item(user_id, preorder):
 
 
 def get_cart_preorders(user_id, cursor=None):
-    """Return the pre-order items in the user's cart (not yet ordered)."""
     if cursor is None:
         with database_cursor(lock_name=f"cart_{user_id}") as cursor:
             reconcile_stock(cursor, user_id)

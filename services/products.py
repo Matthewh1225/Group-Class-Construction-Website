@@ -54,7 +54,6 @@ DEFAULT_ROUGH_PRICE = 25
 
 
 def guess_unit_price(unit):
-    """Return a rough price (a Decimal) for one unit of a material."""
     price = ROUGH_UNIT_PRICES.get(normalize_unit(unit), DEFAULT_ROUGH_PRICE)
     return Decimal(price).quantize(Decimal("0.01"))
 
@@ -164,20 +163,18 @@ def get_catalog_classifications():
     return classifications
 
 
-# Give the matcher product facts and purchase sizes.
 PLANNER_PRODUCT_FIELDS = """
     p.id AS product_id, p.name AS product_name, p.category, p.subCategory AS subcategory,
     p.details, p.description, p.specs, p.sale_unit, p.content_quantity, p.content_unit
 """
 
 
-# Catalog bookkeeping the matcher doesn't need. Leaving it out keeps the matcher's
-# request under the AI providers' tokens-per-minute limits.
+# Bookkeeping the matcher doesn't need; skipping it keeps requests under the token limits.
 BOOKKEEPING_SPECS = ("source_url", "source_price", "catalog_origin", "price_basis")
 
 
 def candidate_from_row(row):
-    """Prepare a candidate for the matcher: convert Decimals and leave out empty or bookkeeping fields."""
+    """Prepare a candidate for the matcher: Decimals to floats, minus empty and bookkeeping fields."""
     product = product_specs.product_from_row(row)
     if product["content_quantity"] is not None:
         product["content_quantity"] = float(product["content_quantity"])
@@ -243,8 +240,7 @@ def load_candidates(cursor, product_ids, automotive):
 def material_query(material):
     """Search context: name, specification and a stated purchase unit."""
     query = material["material_name"] + ". " + material["specification"]
-    # Units help distinguish products like bagged mix and ready-mix, without filtering out
-    # other sale units that could be converted.
+    # The unit helps tell bagged mix from ready-mix, without filtering out other sale units.
     unit = normalize_unit(material.get("unit") or "")
     if unit in product_specs.PACKAGE_UNITS or unit in {"gallon", "quart", "lb", "cu_yd", "sq_ft"}:
         query += ". " + unit.replace("_", " ")
@@ -266,8 +262,7 @@ def find_candidates(cursor, ranked_ids, automotive=None):
 def get_material_candidates(materials):
     """Build a shortlist of candidates for each material.
 
-    Run vector searches before opening the shared SQL connection, since they use the CPU.
-    Reusing one connection keeps large plans faster.
+    Vector searches run first, before the SQL connection opens, because they use the CPU.
     """
     if not materials:
         return []

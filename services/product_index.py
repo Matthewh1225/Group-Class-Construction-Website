@@ -1,8 +1,7 @@
-"""Keep product search text and vectors in sync with catalog facts.
+"""Keeps product search text and vectors in sync with the catalog.
 
-After editing products, run python -m services.product_index to refresh search_text,
-search_hash and the vector cache. Use --check to report stale text without changes,
-or --rebuild to re-embed everything.
+After editing products, run python -m services.product_index. Use --check to only report
+stale text, or --rebuild to re-embed everything.
 """
 import argparse
 from pathlib import Path

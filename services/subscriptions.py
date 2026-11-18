@@ -42,9 +42,8 @@ LIFETIME_END = "2099-12-31"
 def activate_pro(user_id, plan_key):
     """Set pro_expires_on for one month, one year or lifetime (until 2099).
 
-    Payments aren't connected, so this runs as soon as the user continues from checkout.
-    Buying while Pro is still active adds time after the current end date, and Pro never
-    runs past the lifetime date.
+    Payments aren't connected, so this runs as soon as the user clicks Subscribe. Time is added
+    after the current end date if Pro is still active, and never goes past the lifetime date.
     """
     interval = PRO_PLANS[plan_key]["interval"]
     if interval == "once":

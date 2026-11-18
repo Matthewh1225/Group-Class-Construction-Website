@@ -2,10 +2,10 @@
 
 AI_TIMEOUT = 300  # seconds for one AI request
 
-# api_key and model_env name .env settings. Models using the same key share rate limits.
-# With enforces_schema=False, send the schema in the prompt and validate the reply.
+# api_key and model_env are .env names; models sharing a key share its rate limit.
+# enforces_schema=False means the schema goes in the prompt and the reply is checked.
 MODELS = {
-    # Gemini: one key per tier, so one busy tier does not use up another tier's limits.
+    # One Gemini key per tier. Google counts limits per project, so keys only help if their projects differ.
     "gemini-3.5-flash-lite_fast": {
         "provider": "gemini", "api_key": "GEMINI_API_KEY",
         "model_env": "GEMINI_3_5_FLASH_LITE_MODEL", "default": "gemini-3.5-flash-lite",
@@ -39,7 +39,7 @@ MODELS = {
         "provider": "cloudflare", "api_key": "CLOUDFLARE_API_TOKEN",
         "model_env": "CLOUDFLARE_ZAI_ORG_GLM_4_7_FLASH_MODEL", "default": "@cf/zai-org/glm-4.7-flash",
     },
-    # Gemma gives empty, heading-only details with thinking off, so always run it with reasoning=True.
+    # With thinking off Gemma returns empty details, so always use reasoning=True.
     "@cf/google/gemma-4-26b-a4b-it": {
         "provider": "cloudflare", "api_key": "CLOUDFLARE_API_TOKEN",
         "model_env": "CLOUDFLARE_GOOGLE_GEMMA_4_26B_A4B_IT_MODEL", "default": "@cf/google/gemma-4-26b-a4b-it",
@@ -56,20 +56,9 @@ MODELS = {
     },
 }
 
-# Reasoning uses levels for Gemini/Groq, a boolean for Cloudflare, and a token budget
-# or True (model default) for OpenRouter. Leave room in output_tokens for the answer.
-# Each stage gets one fallback after retries, on a different provider where possible.
-#
-# Tiers differ mainly in reasoning strength: Fast reasons lightly, Standard moderately and Pro
-# deeply. Each stage uses a different model in each tier where the limits allow it.
-# Free-tier limits that shape the choices:
-# - Groq gpt-oss-120b: 8,000 tokens per minute, so only the Planner (small input) and only at
-#   low or medium reasoning. The Auditor and Matcher send 10K-90K tokens.
-# - OpenRouter (Nemotron): about 50 free requests a day for the whole site, so Nemotron is a
-#   main model only in the lower-volume Standard and Pro tiers.
-# - Gemini 3.8 Flash: 20 requests a day per Google project.
-# - Pro's two planners use separate models even on fallback, so the Auditor gets two
-#   independent drafts.
+# Reasoning: low/medium/high for Gemini and Groq, True/False for Cloudflare, a token budget or True for OpenRouter.
+# Free limits: Groq gpt-oss 8K tokens/min (Planner only), OpenRouter about 50 requests/day, Gemini 3.8 Flash 20/day.
+# Pro's two planners never share a model, so the Auditor gets two independent drafts.
 
 
 def stage(model, reasoning, output_tokens, fallback):
@@ -81,10 +70,9 @@ def fallback_model(model, reasoning, output_tokens):
 
 
 WORKFLOW_TIERS = {
-    # Light reasoning: quick, cheap models.
     "fast": {
         "label": "Fast",
-        "max_jobs_per_24h": 30,
+        "max_jobs_per_24h": 99,
         "interpreter": stage("@cf/google/gemma-4-26b-a4b-it", reasoning=True, output_tokens=8192,
                              fallback=fallback_model("openai/gpt-oss-120b", reasoning="low", output_tokens=8192)),
         "planner": stage("openai/gpt-oss-120b", reasoning="low", output_tokens=8192,
@@ -94,24 +82,22 @@ WORKFLOW_TIERS = {
         "matcher": stage("gemini-3.5-flash-lite_matcher", reasoning="low", output_tokens=16384,
                          fallback=fallback_model("nvidia/nemotron-3.5-super-vl:free", reasoning=4096, output_tokens=24576)),
     },
-    # Medium reasoning: gpt-oss-120b plans and Nemotron matches.
     "standard": {
         "label": "Standard",
-        "max_jobs_per_24h": 30,
+        "max_jobs_per_24h": 99,
         "interpreter": stage("@cf/zai-org/glm-4.7-flash", reasoning=True, output_tokens=16384,
                              fallback=fallback_model("gemini-3.5-flash-lite_standard", reasoning="medium", output_tokens=16384)),
         "planner": stage("openai/gpt-oss-120b", reasoning="medium", output_tokens=16384,
                          fallback=fallback_model("nvidia/nemotron-3.5-super-vl:free", reasoning=8192, output_tokens=16384)),
         "auditor": stage("gemini-3.8-flash_standard", reasoning="medium", output_tokens=16384,
-                         fallback=fallback_model("nvidia/nemotron-3.5-super-vl:free", reasoning=8192, output_tokens=24576)),
+                         fallback=fallback_model("@cf/google/gemma-4-26b-a4b-it", reasoning=True, output_tokens=8192,)),
         "matcher": stage("nvidia/nemotron-3.5-super-vl:free", reasoning=8192, output_tokens=24576,
                          fallback=fallback_model("gemini-3.5-flash-lite_matcher", reasoning="medium", output_tokens=16384)),
     },
-    # High reasoning on every stage. Gemini thinking tokens count toward output_tokens,
-    # so deeper reasoning gets a larger limit.
+    # Gemini thinking tokens count toward output_tokens, so Pro gets bigger limits.
     "pro": {
         "label": "Quantum Ultra Deep Pro Max+",
-        "max_jobs_per_24h": 10,
+        "max_jobs_per_24h": 99,
         "interpreter": stage("nvidia/nemotron-3.5-super-vl:free", reasoning=16384, output_tokens=32768,
                              fallback=fallback_model("gemini-4-hydrogen_pro", reasoning="high", output_tokens=32768)),
         "planner": stage("gemini-3.8-flash_pro", reasoning="high", output_tokens=65536,

@@ -123,7 +123,6 @@ def parse_stage_answer(record_type, text, inputs):
 
 
 def describe_answer_problem(error):
-    """Describe a rejected answer for the model's retry."""
     if isinstance(error, ValidationError):
         problems = []
         for problem in error.errors()[:3]:
@@ -185,8 +184,7 @@ def run_stage_with_model(stage_name, model_settings, record_type, inputs, instru
 def run_stage(tier, role, record_type, inputs, instructions, renew_lease):
     """Run a stage, trying its fallback model if the primary fails.
 
-    renew_lease() saves progress and extends the job's lease. It raises LeaseLost if the job
-    was cancelled or taken by another worker, which stops the stage before the next AI call.
+    renew_lease() saves progress and extends the lease; it raises LeaseLost if the job was cancelled or taken.
     """
     settings = ai_config.WORKFLOW_TIERS[tier][role]
     stage_name = role.replace("_", " ")

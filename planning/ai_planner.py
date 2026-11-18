@@ -9,10 +9,8 @@ from groq import BadRequestError, Groq
 from .ai_config import AI_TIMEOUT, MODELS
 from .schemas import AnswerFormatError, PlanningError
 
-# Gemini and Groq retry temporary request failures through their SDKs.
-# The workflow retries malformed answers once before switching to the fallback model.
-# 429 (quota used up) is not retried: resending a large request seconds later only fails again,
-# so the stage moves straight to its fallback model.
+# Gemini and Groq retry temporary failures in their SDKs; the workflow retries a bad answer once, then uses the fallback.
+# Gemini 429s are not retried: resending a big request only fails again, so the fallback runs right away.
 GEMINI_RETRY_OPTIONS = {"attempts": 3, "initial_delay": 5, "max_delay": 30,  # 3 tries in total
                         "http_status_codes": [408, 500, 502, 503, 504]}
 GROQ_MAX_RETRIES = 2  # 3 tries in total
@@ -180,7 +178,6 @@ def call_openrouter(model, prompt, thinking_level, system_instruction, response_
     if model["enforces_schema"]:
         options["response_format"] = json_schema_format(response_schema)
     else:
-        # Put the schema in the prompt when response_format is unsupported.
         system_instruction = (system_instruction
                               + "\nReturn only one JSON object, with no other text, that matches this JSON Schema:\n"
                               + json.dumps(response_schema))

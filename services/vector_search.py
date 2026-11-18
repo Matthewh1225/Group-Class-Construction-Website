@@ -18,9 +18,8 @@ load_dotenv(Path(PROJECT_FOLDER) / ".env")
 MODEL_NAME = "sentence-transformers/all-MiniLM-L6-v2"
 MAX_TOKENS = 256  # MiniLM reads at most 256 word pieces per text; the rest is cut off
 BATCH_SIZE = 64
-# Each cached vector is saved with its product's text_hash. A product whose text changed, from a
-# catalog edit or from a change to the text rules, no longer matches and is re-embedded.
-# The cache file is committed so Render doesn't have to embed every product on each deploy.
+# Each cached vector is saved with its product's text_hash; if the text changes it no longer matches and is re-embedded.
+# The cache file is committed so Render doesn't embed every product on each deploy.
 CACHE_FILE = os.path.join(PROJECT_FOLDER, "vector_cache", "product_vectors.npz")
 
 logger = logging.getLogger(__name__)
@@ -33,9 +32,9 @@ load_lock = Lock()         # Stop threads from loading the model at the same tim
 
 
 def load_model():
-    """MiniLM's tokenizer and its ONNX model, downloaded from Hugging Face on first use.
+    """MiniLM's tokenizer and ONNX model, downloaded from Hugging Face on first use.
 
-    onnxruntime only runs finished models, so it needs far less memory than PyTorch.
+    onnxruntime needs far less memory than PyTorch.
     """
     # Import here so a missing package doesn't stop the app.
     from huggingface_hub import hf_hub_download
@@ -50,7 +49,7 @@ def load_model():
 
 
 def embed(embedder, texts):
-    """One vector of length 1 per text, the same way sentence-transformers makes MiniLM vectors."""
+    """One length-1 vector per text, matching what sentence-transformers makes for MiniLM."""
     tokenizer, session = embedder
     vectors = []
     for start in range(0, len(texts), BATCH_SIZE):
@@ -68,7 +67,6 @@ def embed(embedder, texts):
 
 
 def load_products():
-    """Every product with the fields that feed its embedding."""
     with database_cursor() as cursor:
         return product_index.load_facts(cursor)
 
@@ -148,10 +146,7 @@ def build_cache(rebuild_all=False):
 
 
 def update_cache_if_needed():
-    """Build or update the vector cache, returning False on failure so SQL search can take over.
-
-    Read product data without changing database records.
-    """
+    """Build or update the vector cache, returning False on failure so SQL search can take over."""
     try:
         build_cache()
     except Exception:
@@ -161,18 +156,17 @@ def update_cache_if_needed():
 
 
 def stored_hashes():
-    """The search_hash saved on each product, read when the cache file is loaded."""
     with database_cursor() as cursor:
         cursor.execute("SELECT id, search_hash FROM Product")
         return {row["id"]: row["search_hash"] for row in cursor.fetchall()}
 
 
 def load_vector_search():
-    """Reload changed cache files without restarting, returning whether vector search is ready.
+    """Reload the cache file if it changed, returning whether vector search is ready.
 
-    Retry missing or unusable caches only when the file timestamp changes. A vector is only
-    used when its hash matches the product's stored search_hash, so a product edited after
-    the cache was built falls back to FULLTEXT until python -m services.product_index runs.
+    A vector is only used when its hash matches the product's stored search_hash, so edited products
+    fall back to FULLTEXT until python -m services.product_index runs. A failed load is retried only
+    when the file's timestamp changes.
     """
     global model, cache, cache_stamp_seen
 

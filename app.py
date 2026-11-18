@@ -31,7 +31,6 @@ app.config["SESSION_COOKIE_NAME"] = "buildbetter_session"
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 # Set SESSION_COOKIE_SECURE=true when using HTTPS.
 app.config["SESSION_COOKIE_SECURE"] = os.getenv("SESSION_COOKIE_SECURE", "").lower() == "true"
-# Reject oversized submissions before form parsing and database queries.
 app.config["MAX_CONTENT_LENGTH"] = 256 * 1024
 app.config["MAX_FORM_MEMORY_SIZE"] = 64 * 1024
 app.config["MAX_FORM_PARTS"] = 100
@@ -67,7 +66,6 @@ app.register_blueprint(dashboard_bp)
 app.register_blueprint(subscription_bp)
 app.register_blueprint(crews_bp)
 app.register_blueprint(reviews_bp)
-# Vector search is only loaded by the planner worker, so the web process never loads the model.
 
 
 @app.errorhandler(429)

@@ -120,7 +120,6 @@ def create_user(data, role="user"):
 
 
 def get_profile(user_id):
-    """Get the details shown on the account settings page."""
     with database_cursor() as cursor:
         cursor.execute(
             "SELECT firstName, lastName, email, dateCreated FROM `User` WHERE id = %s",
