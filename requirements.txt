@@ -9,7 +9,8 @@ argon2-cffi==25.1.0
 certifi
 httpx
 pydantic>=2.12,<3
---extra-index-url https://download.pytorch.org/whl/cpu
-torch==2.15.0
-sentence-transformers==6.2.0
+# MiniLM runs through onnxruntime (much less memory than PyTorch) for product vector search.
+onnxruntime==1.32.0
+tokenizers==0.23.3
+huggingface_hub==2.4.0
 numpy==2.5.4

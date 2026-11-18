@@ -16,6 +16,7 @@ from utils.database import database_cursor
 PROJECT_FOLDER = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 load_dotenv(Path(PROJECT_FOLDER) / ".env")
 MODEL_NAME = "sentence-transformers/all-MiniLM-L6-v2"
+MAX_TOKENS = 256  # MiniLM reads at most 256 word pieces per text; the rest is cut off
 BATCH_SIZE = 64
 # Each cached vector is saved with its product's text_hash. A product whose text changed, from a
 # catalog edit or from a change to the text rules, no longer matches and is re-embedded.
@@ -32,12 +33,38 @@ load_lock = Lock()         # Stop threads from loading the model at the same tim
 
 
 def load_model():
+    """MiniLM's tokenizer and its ONNX model, downloaded from Hugging Face on first use.
+
+    onnxruntime only runs finished models, so it needs far less memory than PyTorch.
+    """
     # Import here so a missing package doesn't stop the app.
-    from sentence_transformers import SentenceTransformer
-    import torch
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    return SentenceTransformer(MODEL_NAME, device=device,
-                               model_kwargs={"dtype": torch.float16 if device == "cuda" else torch.float32})
+    from huggingface_hub import hf_hub_download
+    from onnxruntime import InferenceSession
+    from tokenizers import Tokenizer
+
+    tokenizer = Tokenizer.from_file(hf_hub_download(MODEL_NAME, "tokenizer.json"))
+    tokenizer.enable_truncation(max_length=MAX_TOKENS)
+    tokenizer.enable_padding()
+    session = InferenceSession(hf_hub_download(MODEL_NAME, "onnx/model.onnx"), providers=["CPUExecutionProvider"])
+    return tokenizer, session
+
+
+def embed(embedder, texts):
+    """One vector of length 1 per text, the same way sentence-transformers makes MiniLM vectors."""
+    tokenizer, session = embedder
+    vectors = []
+    for start in range(0, len(texts), BATCH_SIZE):
+        encodings = tokenizer.encode_batch(texts[start:start + BATCH_SIZE])
+        token_ids = np.array([encoding.ids for encoding in encodings], dtype=np.int64)
+        mask = np.array([encoding.attention_mask for encoding in encodings], dtype=np.int64)
+        # One 384-number vector per word piece: (texts, word pieces, 384).
+        word_vectors = session.run(None, {"input_ids": token_ids, "attention_mask": mask,
+                                          "token_type_ids": np.zeros_like(token_ids)})[0]
+        # Average the real word pieces (mask = 1), skipping the padding.
+        totals = (word_vectors * mask[:, :, None]).sum(axis=1)
+        averages = totals / np.maximum(mask.sum(axis=1, keepdims=True), 1)
+        vectors.append(averages / np.maximum(np.linalg.norm(averages, axis=1, keepdims=True), 1e-12))
+    return np.vstack(vectors).astype(np.float32)
 
 
 def load_products():
@@ -94,8 +121,7 @@ def build_cache(rebuild_all=False):
             if checkpoint.exists() and not rebuild_all:
                 vectors = np.load(checkpoint, allow_pickle=False)
             else:
-                vectors = embedder.encode(batch_texts, batch_size=BATCH_SIZE,
-                                          normalize_embeddings=True, show_progress_bar=False)
+                vectors = embed(embedder, batch_texts)
                 with tempfile.NamedTemporaryFile(dir=checkpoint_folder, delete=False) as saved:
                     np.save(saved, vectors)
                 os.replace(saved.name, checkpoint)
@@ -195,7 +221,7 @@ def search_product_ids(queries, limit):
     ids = loaded["ids"].tolist()
     valid = loaded["valid"]
     try:
-        query_vectors = embedder.encode(queries, batch_size=BATCH_SIZE, normalize_embeddings=True)
+        query_vectors = embed(embedder, queries)
     except Exception:
         logger.exception("Could not embed planner queries. Using FULLTEXT for this search.")
         return [[] for query in queries]
