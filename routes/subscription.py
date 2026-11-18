@@ -1,12 +1,12 @@
 from datetime import date
 
-from flask import Blueprint, render_template, request, session
+from flask import Blueprint, flash, redirect, render_template, request, session, url_for
 
 from planning.ai_config import WORKFLOW_TIERS
 from routes.auth import login_required
 from services.checkout import add_shipping_and_tax, apply_discount, validate_discount_code
 from services.payments import list_cards
-from services.subscriptions import PRO_PLANS, get_user_subscription
+from services.subscriptions import PRO_PLANS, activate_pro, get_user_subscription
 
 subscription_bp = Blueprint("subscription", __name__)
 
@@ -31,9 +31,10 @@ def subscribe():
                 checkout_error = str(problem)
                 status = 400
             else:
-                # Payments aren't connected yet, so even a valid plan can't be bought.
-                checkout_error = "Subscription checkout is unavailable."
-                status = 503
+                # Payments aren't connected yet, so Pro is activated right away.
+                expires_on = activate_pro(session["user_id"], selected_plan)
+                flash(f"{PRO_PLANS[selected_plan]['name']} is active through {expires_on:%B %d, %Y}.", "success")
+                return redirect(url_for("subscription.manage_subscription"), code=303)
         else:
             selected_plan = "yearly"
             checkout_error = "Choose a valid membership plan."
@@ -54,7 +55,7 @@ def subscribe():
             plan["savings_cents"] = PRO_PLANS["monthly"]["price"] * 12 - PRO_PLANS["yearly"]["price"]
         plans[key] = plan
     totals = add_shipping_and_tax(plans[selected_plan]["price"], shipping_cents=0)
-    if not checkout_error or status == 503:
+    if not checkout_error:
         totals = apply_discount(totals, discount_code)
     return render_template(
         "subscription/checkout.html", tiers=WORKFLOW_TIERS, plans=plans,

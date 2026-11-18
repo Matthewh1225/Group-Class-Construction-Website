@@ -39,6 +39,11 @@ MODELS = {
         "provider": "cloudflare", "api_key": "CLOUDFLARE_API_TOKEN",
         "model_env": "CLOUDFLARE_ZAI_ORG_GLM_4_7_FLASH_MODEL", "default": "@cf/zai-org/glm-4.7-flash",
     },
+    # Gemma gives empty, heading-only details with thinking off, so always run it with reasoning=True.
+    "@cf/google/gemma-4-26b-a4b-it": {
+        "provider": "cloudflare", "api_key": "CLOUDFLARE_API_TOKEN",
+        "model_env": "CLOUDFLARE_GOOGLE_GEMMA_4_26B_A4B_IT_MODEL", "default": "@cf/google/gemma-4-26b-a4b-it",
+    },
     "nvidia/nemotron-3.5-super-vl:free": {
         "provider": "openrouter", "api_key": "OPENROUTER_API_KEY",
         "model_env": "OPENROUTER_NVIDIA_NEMOTRON_3_5_SUPER_VL_FREE_MODEL", "default": "nvidia/nemotron-3.5-super-vl:free",
@@ -53,7 +58,18 @@ MODELS = {
 
 # Reasoning uses levels for Gemini/Groq, a boolean for Cloudflare, and a token budget
 # or True (model default) for OpenRouter. Leave room in output_tokens for the answer.
-# Each stage gets one fallback after retries. Pro's two planners use separate models
+# Each stage gets one fallback after retries, on a different provider where possible.
+#
+# Tiers differ mainly in reasoning strength: Fast reasons lightly, Standard moderately and Pro
+# deeply. Each stage uses a different model in each tier where the limits allow it.
+# Free-tier limits that shape the choices:
+# - Groq gpt-oss-120b: 8,000 tokens per minute, so only the Planner (small input) and only at
+#   low or medium reasoning. The Auditor and Matcher send 10K-90K tokens.
+# - OpenRouter (Nemotron): about 50 free requests a day for the whole site, so Nemotron is a
+#   main model only in the lower-volume Standard and Pro tiers.
+# - Gemini 3.8 Flash: 20 requests a day per Google project.
+# - Pro's two planners use separate models even on fallback, so the Auditor gets two
+#   independent drafts.
 
 
 def stage(model, reasoning, output_tokens, fallback):
@@ -65,43 +81,46 @@ def fallback_model(model, reasoning, output_tokens):
 
 
 WORKFLOW_TIERS = {
+    # Light reasoning: quick, cheap models.
     "fast": {
         "label": "Fast",
         "max_jobs_per_24h": 30,
-        "interpreter": stage("@cf/zai-org/glm-4.7-flash", reasoning=False, output_tokens=16384,
-                             fallback=fallback_model("gemini-4-hydrogen_pro", reasoning="low", output_tokens=8192)),
+        "interpreter": stage("@cf/google/gemma-4-26b-a4b-it", reasoning=True, output_tokens=8192,
+                             fallback=fallback_model("openai/gpt-oss-120b", reasoning="low", output_tokens=8192)),
         "planner": stage("openai/gpt-oss-120b", reasoning="low", output_tokens=8192,
                          fallback=fallback_model("gemini-3.5-flash-lite_fast", reasoning="low", output_tokens=8192)),
-        "auditor": stage("gemini-3.5-flash-lite_fast", reasoning="medium", output_tokens=8192,
-                         fallback=fallback_model("nvidia/nemotron-3.5-super-vl:free", reasoning=True, output_tokens=16384)),
-        "matcher": stage("gemini-3.5-flash-lite_matcher", reasoning="medium", output_tokens=16384,
-                         fallback=fallback_model("nvidia/nemotron-3.5-super-vl:free", reasoning=8192, output_tokens=24576)),
+        "auditor": stage("gemini-3.5-flash-lite_fast", reasoning="low", output_tokens=8192,
+                         fallback=fallback_model("nvidia/nemotron-3.5-super-vl:free", reasoning=4096, output_tokens=16384)),
+        "matcher": stage("gemini-3.5-flash-lite_matcher", reasoning="low", output_tokens=16384,
+                         fallback=fallback_model("nvidia/nemotron-3.5-super-vl:free", reasoning=4096, output_tokens=24576)),
     },
+    # Medium reasoning: gpt-oss-120b plans and Nemotron matches.
     "standard": {
         "label": "Standard",
         "max_jobs_per_24h": 30,
-        "interpreter": stage("nvidia/nemotron-3.5-super-vl:free", reasoning=8192, output_tokens=16384,
+        "interpreter": stage("@cf/zai-org/glm-4.7-flash", reasoning=True, output_tokens=16384,
                              fallback=fallback_model("gemini-3.5-flash-lite_standard", reasoning="medium", output_tokens=16384)),
-        "planner": stage("gemini-4-hydrogen_pro", reasoning="medium", output_tokens=16384,
-                         fallback=fallback_model("gemini-3.8-flash_standard", reasoning="medium", output_tokens=16384)),
+        "planner": stage("openai/gpt-oss-120b", reasoning="medium", output_tokens=16384,
+                         fallback=fallback_model("nvidia/nemotron-3.5-super-vl:free", reasoning=8192, output_tokens=16384)),
         "auditor": stage("gemini-3.8-flash_standard", reasoning="medium", output_tokens=16384,
-                         fallback=fallback_model("nvidia/nemotron-3.5-super-vl:free", reasoning=16384, output_tokens=32768)),
-        "matcher": stage("gemini-3.5-flash-lite_matcher", reasoning="medium", output_tokens=16384,
                          fallback=fallback_model("nvidia/nemotron-3.5-super-vl:free", reasoning=8192, output_tokens=24576)),
+        "matcher": stage("nvidia/nemotron-3.5-super-vl:free", reasoning=8192, output_tokens=24576,
+                         fallback=fallback_model("gemini-3.5-flash-lite_matcher", reasoning="medium", output_tokens=16384)),
     },
+    # High reasoning on every stage. Gemini thinking tokens count toward output_tokens,
+    # so deeper reasoning gets a larger limit.
     "pro": {
         "label": "Quantum Ultra Deep Pro Max+",
         "max_jobs_per_24h": 10,
-        # Gemini thinking tokens count toward output_tokens, so deeper reasoning gets a larger limit.
-        "interpreter": stage("gemini-4-hydrogen_pro", reasoning="medium", output_tokens=16384,
-                             fallback=fallback_model("nvidia/nemotron-3.5-super-vl:free", reasoning=16384, output_tokens=32768)),
-        "planner": stage("gemini-4-hydrogen_pro", reasoning="high", output_tokens=65536,
-                         fallback=fallback_model("openai/gpt-oss-120b", reasoning="high", output_tokens=32768)),
+        "interpreter": stage("nvidia/nemotron-3.5-super-vl:free", reasoning=16384, output_tokens=32768,
+                             fallback=fallback_model("gemini-4-hydrogen_pro", reasoning="high", output_tokens=32768)),
+        "planner": stage("gemini-3.8-flash_pro", reasoning="high", output_tokens=65536,
+                         fallback=fallback_model("gemini-4-hydrogen_pro", reasoning="high", output_tokens=65536)),
         "second_planner": stage("nvidia/nemotron-3-ultra-550b-a55b:free", reasoning=True, output_tokens=65536,
                                 fallback=fallback_model("nvidia/nemotron-3.5-super-vl:free", reasoning=32768, output_tokens=65536)),
-        "auditor": stage("gemini-3.8-flash_pro", reasoning="high", output_tokens=32768,
-                         fallback=fallback_model("gemini-3.8-flash_standard", reasoning="high", output_tokens=65536)),
-        "matcher": stage("gemini-4-hydrogen_pro", reasoning="medium", output_tokens=32768,
+        "auditor": stage("gemini-4-hydrogen_pro", reasoning="high", output_tokens=65536,
+                         fallback=fallback_model("nvidia/nemotron-3.5-super-vl:free", reasoning=16384, output_tokens=49152)),
+        "matcher": stage("gemini-4-hydrogen_pro", reasoning="high", output_tokens=49152,
                          fallback=fallback_model("nvidia/nemotron-3.5-super-vl:free", reasoning=16384, output_tokens=32768)),
     },
 }

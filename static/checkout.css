@@ -543,7 +543,8 @@
     margin-bottom: 8px;
 }
 
-.shopping-summary .shopping-more-details .shopping-summary-products {
+.shopping-summary .shopping-more-details .shopping-summary-products,
+.shopping-confirmation-details .shopping-more-details .shopping-summary-products {
     margin-bottom: 0;
 }
 

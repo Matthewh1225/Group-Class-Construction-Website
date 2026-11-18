@@ -48,7 +48,7 @@
             </dl>
             <h2>Receipt</h2>
             <ul class="shopping-summary-products">
-                {% for item in verified_order['items'] %}
+                {% for item in verified_order['items'][:5] %}
                     <li>
                         {{ product_image(item) }}
                         <div>
@@ -59,6 +59,23 @@
                     </li>
                 {% endfor %}
             </ul>
+            {% if verified_order['items']|length > 5 %}
+                <details class="shopping-more-details">
+                    <summary class="shopping-more-summary">Show more ({{ verified_order['items']|length - 5 }})</summary>
+                    <ul class="shopping-summary-products">
+                        {% for item in verified_order['items'][5:] %}
+                            <li>
+                                {{ product_image(item) }}
+                                <div>
+                                    {{ product_name(item) }}
+                                    <small>{{ item.quantity }} {{ item.unit|default('') }} &middot; {{ format_money_cents(item.unit_price_cents) }} each{% if item.preorder %} &middot; Pre-order{% endif %}</small>
+                                </div>
+                                <strong>{{ format_money_cents(item.total_cents) }}</strong>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </details>
+            {% endif %}
             <h2>Shipping address</h2>
             <address>{{ verified_order.shipping or "No shipping address recorded." }}</address>
         </section>

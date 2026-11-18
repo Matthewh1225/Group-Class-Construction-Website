@@ -6,21 +6,21 @@ PRO_PLANS = {
         "name": "Monthly Pro", "price": 1999, "interval": "month",
         "billing": "Monthly",
         "badge": "Stay flexible", "frequency": "per month",
-        "detail": "Monthly plan", "button_label": "Continue",
+        "detail": "Monthly plan", "button_label": "Subscribe",
         "terms": ""
     },
     "yearly": {
         "name": "Yearly Pro", "price": 19200, "interval": "year",
         "billing": "Yearly",
         "badge": "Save about 20%", "frequency": "per year",
-        "button_label": "Continue",
+        "button_label": "Subscribe",
         "terms": "",
     },
     "lifetime": {
         "name": "Lifetime Pro", "price": 100000000, "interval": "once",
         "billing": "One-time",
         "badge": "One payment", "frequency": "One-time purchase",
-        "detail": "Lifetime plan", "button_label": "Continue",
+        "detail": "Lifetime plan", "button_label": "Subscribe",
         "terms": "",
     },
 }
@@ -36,9 +36,29 @@ def save_subscription(user_id, plan_key, payment_reference):
     pass
 
 
+LIFETIME_END = "2099-12-31"
+
+
 def activate_pro(user_id, plan_key):
-    # TODO: Set pro_expires_on for one month, one year, or lifetime after confirmed payment.
-    pass
+    """Set pro_expires_on for one month, one year or lifetime (until 2099).
+
+    Payments aren't connected, so this runs as soon as the user continues from checkout.
+    Buying while Pro is still active adds time after the current end date, and Pro never
+    runs past the lifetime date.
+    """
+    interval = PRO_PLANS[plan_key]["interval"]
+    if interval == "once":
+        new_end = "%s"
+        values = (LIFETIME_END, user_id)
+    else:
+        # Start counting from today, or from the end of Pro that is still running.
+        start = "GREATEST(CURDATE(), COALESCE(pro_expires_on, CURDATE()))"
+        new_end = f"LEAST(DATE_ADD({start}, INTERVAL 1 {interval.upper()}), %s)"
+        values = (LIFETIME_END, user_id)
+    with database_cursor() as cursor:
+        cursor.execute(f"UPDATE `User` SET pro_expires_on = {new_end} WHERE id = %s", values)
+        cursor.execute("SELECT pro_expires_on FROM `User` WHERE id = %s", (user_id,))
+        return cursor.fetchone()["pro_expires_on"]
 
 
 def setup_recurring_billing(user_id, plan_key, payment_method_id):
