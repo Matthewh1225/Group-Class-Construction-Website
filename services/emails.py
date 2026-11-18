@@ -20,13 +20,14 @@ def send_order_email(to_address, first_name, order_id, items, preorders, crews, 
     for preorder in preorders:
         line_total = preorder["unitPrice"] * preorder["quantity"]
         lines.append(format(preorder["quantity"].normalize(), "f") + " " + preorder["unit"] + " x "
-                     + preorder["name"] + " - $" + format(line_total, ",.2f") + " (pre-order, estimated price)")
+                     + preorder["name"] + " - $" + format(line_total, ",.2f") + " (pre-order)")
     for crew in crews:
         lines.append("Crew: " + crew["label"] + " (" + str(crew["workers"]) + " workers, " + crew["days"]
                      + ") - $" + format(crew["price_cents"] / 100, ",.2f"))
     lines.append("")
-    # totals is in cents, so divide by 100 to show dollars
     lines.append("Subtotal: $" + format(totals["subtotal_cents"] / 100, ",.2f"))
+    if totals.get("discount_cents"):
+        lines.append("Discount: -$" + format(totals["discount_cents"] / 100, ",.2f"))
     lines.append("Shipping: $" + format(totals["shipping_cents"] / 100, ",.2f"))
     lines.append("Estimated tax (8.5%): $" + format(totals["tax_cents"] / 100, ",.2f"))
     lines.append("Total: $" + format(totals["total_cents"] / 100, ",.2f"))

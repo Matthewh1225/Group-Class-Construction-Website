@@ -1,0 +1,87 @@
+{% extends "dashboard/layout.html" %}
+{% from "payment_fields.html" import card_fields with context %}
+
+{% block title %}
+    Saved Payments - BuildBetter
+{% endblock %}
+
+{% block dashboard_content %}
+    {% if editing %}
+        <nav class="dashboard-breadcrumb" aria-label="Breadcrumb">
+            <a href="{{ url_for('dashboard.payments') }}">Saved Payments</a>
+            <span aria-hidden="true">/</span>
+            <span>Edit card</span>
+        </nav>
+    {% endif %}
+    <div class="dashboard-page-heading">
+        <div>
+            <h1>{{ 'Edit card' if editing else 'Saved Payments' }}</h1>
+        </div>
+    </div>
+
+    <div class="payments-layout">
+        {% if not editing %}
+            <section aria-labelledby="saved-cards-title">
+                <h2 class="sr-only" id="saved-cards-title">Your saved cards</h2>
+                {% if cards %}
+                    <ul class="payment-card-list">
+                        {% for card in cards %}
+                            <li class="dashboard-card payment-card{% if card.is_default %} is-default{% endif %}">
+                                <div class="payment-card-top">
+                                    <span class="payment-card-brand">
+                                        {{ card.card_type }}
+                                    </span>
+                                    {% if card.is_default %}
+                                        <span class="status-tag status-ready">Default</span>
+                                    {% endif %}
+                                </div>
+                                <p class="payment-card-number">
+                                    <span aria-hidden="true">&bull;&bull;&bull;&bull;</span>
+                                    <span class="sr-only">Card ending in</span>
+                                    {{ card.card_number[-4:] }}
+                                </p>
+                                <p class="payment-card-meta">{{ card.cardholder }} &middot; Expires {{ card.expiration }}</p>
+                                <div class="payment-card-actions">
+                                    <a class="dashboard-button dashboard-button-secondary" href="{{ url_for('dashboard.payment_edit', card_id=card.id) }}">Edit</a>
+                                    {% if not card.is_default %}
+                                        <form method="post" action="{{ url_for('dashboard.payment_default', card_id=card.id) }}">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                            <button class="dashboard-button dashboard-button-secondary" type="submit">Make default</button>
+                                        </form>
+                                    {% endif %}
+                                    <form method="post" action="{{ url_for('dashboard.payment_delete', card_id=card.id) }}"
+                                          data-confirm="Remove the {{ card.card_type }} card ending in {{ card.card_number[-4:] }}?">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button class="dashboard-button dashboard-button-ghost-danger" type="submit">Remove</button>
+                                    </form>
+                                </div>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <div class="dashboard-card dashboard-detail-card payment-empty">
+                        <h3>No saved cards yet</h3>
+                    </div>
+                {% endif %}
+            </section>
+        {% endif %}
+
+        <section class="dashboard-card dashboard-detail-card payment-form-card" aria-labelledby="card-form-title">
+            <h2 id="card-form-title">{{ 'Card details' if editing else 'Add a card' }}</h2>
+            <form class="dashboard-form" method="post">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                {{ card_fields(editing|default({})) }}
+                <label class="dashboard-checkbox">
+                    <input type="checkbox" name="is_default" value="1" {% if editing and editing.is_default %}checked{% endif %}>
+                    Use as my default card
+                </label>
+                <div class="dashboard-form-actions">
+                    <button class="dashboard-button dashboard-button-primary" type="submit">{{ 'Save changes' if editing else 'Save card' }}</button>
+                    {% if editing %}
+                        <a class="dashboard-button dashboard-button-secondary" href="{{ url_for('dashboard.payments') }}">Cancel</a>
+                    {% endif %}
+                </div>
+            </form>
+        </section>
+    </div>
+{% endblock %}

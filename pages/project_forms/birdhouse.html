@@ -4,16 +4,12 @@
         {{ number_field('widthInches', 'Width', unit='in') }}
         {{ number_field('depthInches', 'Depth', unit='in') }}
         {{ number_field('heightInches', 'Height', unit='in') }}
-        {{ number_field('entranceHoleInches', 'Entrance hole diameter', minimum=0.5, default=1.5, unit='in', required=False) }}
     </div>
 </fieldset>
 <fieldset class="field-group">
-    <legend>Finish and extras</legend>
-    <div class="choice-grid">
-        <div class="form-field">
-            <label for="birdhouse-color">Finish or color</label>
-            <input id="birdhouse-color" name="color" type="text" value="{{ form_data.get('color', 'natural wood') }}">
-        </div>
-        {{ checkbox('perch', 'Add a perch') }}
+    <legend>A couple of details</legend>
+    <div class="field-row">
+        {{ number_field('entranceHoleInches', 'Entrance hole diameter', minimum=0.5, default=1.5, unit='in', required=False) }}
+        {{ select_field('finish', 'Finish', ['natural wood', 'painted', 'stained']) }}
     </div>
 </fieldset>

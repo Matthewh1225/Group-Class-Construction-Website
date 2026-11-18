@@ -1,0 +1,43 @@
+{% extends "dashboard/layout.html" %}
+
+{% block title %}
+    Dashboard - BuildBetter
+{% endblock %}
+
+{% block dashboard_content %}
+    <div class="dashboard-page-heading">
+        <div>
+            <h1>Welcome back, {{ session.get('display_name', '').split(' ')[0] or 'builder' }}</h1>
+        </div>
+    </div>
+
+    <div class="overview-tiles">
+        <a class="dashboard-card overview-tile" href="{{ url_for('dashboard.projects') }}">
+            <span class="overview-tile-label">Saved projects</span>
+            <strong>{{ project_count }}</strong>
+        </a>
+        <a class="dashboard-card overview-tile" href="{{ url_for('dashboard.orders') }}">
+            <span class="overview-tile-label">Orders</span>
+            <strong>{{ order_count }}</strong>
+        </a>
+        <a class="dashboard-card overview-tile" href="{{ url_for('subscription.manage_subscription') }}">
+            <span class="overview-tile-label">Membership</span>
+            {% if subscription and subscription.status == 'active' %}
+                <strong>Pro</strong>
+                <span class="overview-tile-note">Active through {{ subscription.current_period_end }}</span>
+            {% else %}
+                <strong>Free</strong>
+                {% if subscription %}
+                    <span class="overview-tile-note">Pro ended {{ subscription.current_period_end }}</span>
+                {% endif %}
+            {% endif %}
+        </a>
+        <a class="dashboard-card overview-tile" href="{{ url_for('dashboard.payments') }}">
+            <span class="overview-tile-label">Saved cards</span>
+            <strong>{{ card_count }}</strong>
+            {% if default_card %}
+                <span class="overview-tile-note">Default: {{ default_card.card_type }} &bull;&bull;&bull;&bull; {{ default_card.card_number[-4:] }}</span>
+            {% endif %}
+        </a>
+    </div>
+{% endblock %}

@@ -27,9 +27,6 @@
     background: var(--panel-alt);
 }
 
-.home .sheet-tag {
-    margin-bottom: 1.4rem;
-}
 
 .home h2 {
     font: 800 clamp(2rem, 4.6vw, 3.5rem) / 1.05 var(--font-display);
@@ -51,7 +48,6 @@
 .section-lede {
     margin-top: 1.25rem;
 }
-
 
 
 .hero {
@@ -120,16 +116,6 @@
     background: linear-gradient(120deg, var(--amber-tint), transparent 70%), var(--panel);
 }
 
-.pro-tag {
-    display: inline-block;
-    margin-bottom: 0.45rem;
-    padding: 0.2rem 0.45rem;
-    background: var(--amber);
-    color: var(--on-accent);
-    font: 700 0.65rem/1 var(--font-mono);
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-}
 
 .pro-name {
     font: 700 clamp(1.25rem, 2.4vw, 1.6rem)/1.15 var(--font-display);
@@ -199,54 +185,11 @@
     border-left: 1px dashed var(--measure);
 }
 
-.readout {
-    position: absolute;
-    top: 12px;
-    left: 14px;
-    opacity: 0;
-    pointer-events: none;
-    color: var(--measure);
-    font: 600 0.72rem/1 var(--font-mono);
-    letter-spacing: 0.12em;
-    white-space: pre;
-    transition: opacity 0.2s;
-}
 
 .hero-sheet.is-tracking .xhair {
     opacity: 0.55;
 }
 
-.hero-sheet.is-tracking .readout {
-    opacity: 1;
-}
-
-.title-block {
-    position: absolute;
-    right: -1px;
-    bottom: -1px;
-    display: flex;
-    border: 1px solid var(--line);
-    background: var(--ink);
-    color: var(--text);
-    font: 600 0.72rem/1.2 var(--font-mono);
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-}
-
-.title-block span {
-    padding: 0.5rem 0.8rem;
-    border-left: 1px solid var(--line);
-}
-
-.title-block span:first-child {
-    border-left: 0;
-}
-
-.title-block small {
-    display: block;
-    color: var(--muted);
-    font-size: 0.68rem;
-}
 
 /* Drawing line styles: o = outline, f = framing, g = ground, m = measurement, c = callout */
 .drawing .o {
@@ -327,17 +270,8 @@
         font-size: 19px;
     }
 
-    .title-block {
-        position: static;
-        width: fit-content;
-        margin: 0 -1px -1px auto;
-    }
 
-    .title-block span {
-        padding: 0.4rem 0.55rem;
-    }
 }
-
 
 
 .services-section {
@@ -387,20 +321,6 @@
     opacity: 0.45;
 }
 
-.home .service-panel .sheet-tag {
-    margin-bottom: 0.9rem;
-    color: var(--service-accent);
-}
-
-.service-panel .sheet-tag span {
-    flex-shrink: 0;
-    background: var(--service-accent);
-}
-
-.service-panel .sheet-tag::after {
-    flex: 0 1 40px;
-    background: var(--service-accent);
-}
 
 .service-panel h2 {
     font-size: clamp(1.6rem, 3vw, 2.3rem);
@@ -436,20 +356,12 @@
         gap: 16px;
     }
 
-    .service-panel .sheet-tag {
-        line-height: 1.4;
-    }
-
-    .service-panel .sheet-tag::after {
-        display: none;
-    }
 
     .service-button {
         width: 100%;
         padding-inline: 12px;
     }
 }
-
 
 
 .planner-grid {
@@ -541,7 +453,6 @@
 }
 
 
-
 /* pathLength="1" lets every shape use the same drawing animation. */
 .draw {
     stroke-dasharray: 1;
@@ -600,7 +511,6 @@
         transform: none;
     }
 }
-
 
 
 .tape {

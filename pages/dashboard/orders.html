@@ -2,35 +2,41 @@
 {% from "dashboard/empty_state.html" import empty_state %}
 
 {% block title %}
-    Order History - BuildBetter
+    Orders - BuildBetter
 {% endblock %}
 
 {% block dashboard_content %}
     <div class="dashboard-page-heading">
         <div>
-            <h1>Order history</h1>
+            <h1>Orders</h1>
         </div>
     </div>
     {% if orders %}
         <div class="dashboard-card dashboard-table-wrap">
-            <table class="dashboard-data-table">
+            <table class="dashboard-data-table dashboard-row-links">
+                <caption class="sr-only">Your orders, newest first</caption>
                 <thead>
                     <tr>
-                        <th scope="col">Order Number</th>
-                        <th scope="col">Date Placed</th>
-                        <th scope="col">Total</th>
+                        <th scope="col">Order</th>
+                        <th scope="col">Date placed</th>
                         <th scope="col">Status</th>
-                        <th scope="col">Details</th>
+                        <th scope="col" class="dashboard-number-cell">Total</th>
+                        <th scope="col"><span class="sr-only">Details</span></th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for order in orders %}
+                        {% set order_url = url_for('dashboard.order_detail', order_id=order.id) %}
                         <tr>
-                            <td>{{ order.number }}</td>
+                            <th scope="row"><a href="{{ order_url }}">Order {{ order.number }}</a></th>
                             <td>{{ order.placed_at or '—' }}</td>
-                            <td>{{ order.total if order.total is defined and order.total is not none and order.total != '' else '—' }}</td>
                             <td><span class="dashboard-tag">{{ order.status or '—' }}</span></td>
-                            <td><a href="{{ url_for('dashboard.order_detail', order_id=order.id) }}">View Details</a></td>
+                            <td class="dashboard-number-cell">{{ order.total or '—' }}</td>
+                            <td class="dashboard-row-arrow">
+                                <a href="{{ order_url }}" aria-label="View details for order {{ order.number }}">
+                                    <span aria-hidden="true">View &rarr;</span>
+                                </a>
+                            </td>
                         </tr>
                     {% endfor %}
                 </tbody>
@@ -38,6 +44,7 @@
         </div>
     {% else %}
         {% call empty_state('No orders yet') %}
+            <a class="dashboard-button dashboard-button-primary" href="{{ url_for('products.products') }}">Browse products</a>
         {% endcall %}
     {% endif %}
 {% endblock %}

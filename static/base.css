@@ -158,30 +158,6 @@ textarea:focus {
     margin-inline: auto;
 }
 
-.sheet-tag {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    margin: 0 0 1.2rem;
-    color: var(--measure);
-    font: 600 0.75rem/1 var(--font-mono);
-    letter-spacing: 0.16em;
-    text-transform: uppercase;
-}
-
-.sheet-tag span {
-    padding: 0.35rem 0.5rem;
-    color: var(--on-accent);
-    background: var(--measure);
-}
-
-.sheet-tag::after {
-    content: "";
-    flex: 0 0 56px;
-    height: 1px;
-    background: var(--measure);
-    opacity: 0.6;
-}
 
 .actions {
     display: flex;
@@ -437,6 +413,18 @@ textarea:focus {
     gap: 8px;
 }
 
+.cart-badge {
+    min-width: 20px;
+    padding: 1px 6px;
+    border-radius: 10px;
+    background: var(--amber);
+    color: var(--on-accent);
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 18px;
+    text-align: center;
+}
+
 .nav-session {
     margin: 0 0 0 6px;
 }
@@ -476,7 +464,7 @@ textarea:focus {
     background: currentColor;
 }
 
-@media (max-width: 1100px) {
+@media (max-width: 1400px) {
     .navbar {
         flex-wrap: wrap;
         gap: 0;

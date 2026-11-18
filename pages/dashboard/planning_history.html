@@ -5,20 +5,15 @@
 {% block title %}Planning History - BuildBetter{% endblock %}
 
 {% block dashboard_content %}
-    <nav class="dashboard-breadcrumb" aria-label="Breadcrumb">
-        <a href="{{ url_for('dashboard.projects') }}">Saved Projects</a>
-        <span aria-hidden="true">/</span>
-        <span>Planning history</span>
-    </nav>
     <div class="dashboard-page-heading">
         <div>
-            <h1>Planning history</h1>
+            <h1>Planning History</h1>
         </div>
     </div>
 
     {% if jobs %}
         {{ project_list(jobs, 'AI plans, newest first', offset) }}
-        <nav class="dashboard-section dashboard-card-actions" aria-label="Planning history pages">
+        <nav class="dashboard-pagination" aria-label="Planning history pages">
             {% if page > 1 %}
                 <a class="dashboard-button dashboard-button-secondary" href="{{ url_for('planner.planning_history', page=page - 1) }}" rel="prev">Previous</a>
             {% endif %}
@@ -29,7 +24,6 @@
         </nav>
     {% else %}
         {% call empty_state('No AI plans yet') %}
-            <a class="dashboard-button dashboard-button-primary" href="{{ url_for('planner.planner') }}">Open the AI Planner</a>
         {% endcall %}
     {% endif %}
 {% endblock %}

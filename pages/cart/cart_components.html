@@ -29,62 +29,114 @@
     {% endif %}
 {%- endmacro %}
 
-{% macro order_summary(items, checkout=False, totals=none) %}
+{% macro summary_product_item(item) -%}
+    <li>
+        {{ product_image(item) }}
+        <div>
+            {{ product_name(item) }}
+            {% if item.crew %}
+                <small>Crew &middot; {{ item.estimate.workers }} workers</small>
+            {% else %}
+                <small>{{ item.quantity }} {{ item.unit }} &middot; {{ 'Pre-order' if item.preorder else 'In stock' }}</small>
+                <small>{{ format_money_cents(item.unit_price_cents) }} per {{ item.unit }}</small>
+            {% endif %}
+        </div>
+        <strong>{{ format_money_cents(item.total_cents) }}</strong>
+    </li>
+{%- endmacro %}
+
+{% macro order_summary(items, checkout=False, totals=none, discount_code='') %}
     {% set totals = totals or {} %}
-    <aside class="shopping-panel shopping-summary" aria-labelledby="order-summary-title">
+    <aside class="shopping-panel shopping-summary" aria-labelledby="order-summary-title"
+           {% if totals %}data-subtotal-cents="{{ totals.get('subtotal_cents') }}"
+           data-shipping-cents="{{ totals.get('shipping_cents', 0) }}"
+           data-discount-code="{{ totals.get('discount_code', '') }}"{% endif %}>
         <h2 id="order-summary-title">Order summary</h2>
-        {% if checkout %}
-            <ul class="shopping-summary-products">
-                {% for item in items %}
-                    <li>
-                        {{ product_image(item) }}
-                        <div>
-                            {{ product_name(item) }}
-                            {% if item.crew %}
-                                <small>Crew &middot; {{ item.estimate.workers }} workers</small>
-                            {% else %}
-                                <small>Qty {{ item.quantity }}{% if item.preorder %} {{ item.unit }} &middot; Pre-order{% endif %}</small>
-                            {% endif %}
-                        </div>
-                        <strong>{{ format_money_cents(item.total_cents) }}</strong>
-                    </li>
-                {% else %}
+        {% if totals %}
+            {% if not items %}
+                <ul class="shopping-summary-products">
                     <li class="shopping-summary-empty">
                         <p>Your cart is empty.</p>
-                        <a class="shopping-link" href="{{ url_for('products.products') }}">Browse Products {{ icon('arrow') }}</a>
+                        <a class="shopping-link" href="{{ url_for('products.products') }}">Browse products {{ icon('arrow') }}</a>
                     </li>
-                {% endfor %}
-            </ul>
+                </ul>
+            {% else %}
+                <ul class="shopping-summary-products">
+                    {% for item in items[:5] %}
+                        {{ summary_product_item(item) }}
+                    {% endfor %}
+                </ul>
+                {% if items|length > 5 %}
+                    <details class="shopping-more-details">
+                        <summary class="shopping-more-summary">Show more ({{ items|length - 5 }})</summary>
+                        <ul class="shopping-summary-products">
+                            {% for item in items[5:] %}
+                                {{ summary_product_item(item) }}
+                            {% endfor %}
+                        </ul>
+                    </details>
+                {% endif %}
+            {% endif %}
         {% endif %}
         {% if items %}
             <dl class="shopping-totals">
+                {% if totals.get('in_stock_cents') %}
+                <div><dt>In-stock items</dt><dd>{{ format_money_cents(totals.in_stock_cents) }}</dd></div>
+                {% endif %}
+                {% if totals.get('preorder_cents') %}
+                <div><dt>Pre-orders</dt><dd>{{ format_money_cents(totals.preorder_cents) }}</dd></div>
+                {% endif %}
+                {% if totals.get('crew_cents') %}
+                <div><dt>Crews</dt><dd>{{ format_money_cents(totals.crew_cents) }}</dd></div>
+                {% endif %}
                 <div>
                     <dt>Subtotal</dt>
                     <dd>{{ format_money_cents(totals.get('subtotal_cents')) }}</dd>
                 </div>
                 <div>
                     <dt>Shipping</dt>
-                    <dd>{{ format_money_cents(totals.get('shipping_cents')) }}</dd>
+                    <dd data-shipping-value>{{ format_money_cents(totals.get('shipping_cents')) }}</dd>
                 </div>
                 <div>
-                    <dt>Estimated tax</dt>
-                    <dd>{{ format_money_cents(totals.get('tax_cents')) }}</dd>
+                    <dt>Estimated tax (8.5%)</dt>
+                    <dd data-tax-value>{{ format_money_cents(totals.get('tax_cents')) }}</dd>
+                </div>
+                <div id="checkout-discount-row" {% if not totals.get('discount_cents') %}hidden{% endif %}>
+                    <dt id="discount-label">Discount{% if totals.get('discount_code') %} ({{ totals.discount_code }}, {{ totals.discount_percent }}%){% endif %}</dt>
+                    <dd id="checkout-discount-value">-{{ format_money_cents(totals.get('discount_cents', 0)) }}</dd>
+                </div>
+                <div id="discounted-subtotal-row" hidden>
+                    <dt>After discount</dt>
+                    <dd id="discounted-subtotal-value">{{ format_money_cents(totals.get('discounted_subtotal_cents', totals.get('subtotal_cents'))) }}</dd>
                 </div>
                 <div class="shopping-total">
                     <dt>Total</dt>
-                    <dd>{{ format_money_cents(totals.get('total_cents')) }}</dd>
+                    <dd data-total-value>{{ format_money_cents(totals.get('total_cents')) }}</dd>
                 </div>
             </dl>
         {% endif %}
         {% if checkout %}
-            {# This button submits the form in checkout.html. #}
-            <button class="shopping-button shopping-primary" type="submit" form="checkout-form" id="place-order" {% if not totals or not items %}disabled{% endif %}>Place Order</button>
+            <button class="shopping-button shopping-primary" type="submit" form="checkout-form" id="place-order" {% if not totals or not items %}disabled{% endif %}>Place order</button>
         {% elif items %}
             {% if totals %}
-                <a class="shopping-button shopping-primary" href="{{ url_for('shopping.checkout') }}">Proceed to Checkout {{ icon('arrow') }}</a>
+                <form id="cart-checkout-form" method="get" action="{{ url_for('shopping.checkout') }}">
+                    <button class="shopping-button shopping-primary" type="submit">Go to checkout {{ icon('arrow') }}</button>
+                </form>
             {% else %}
                 <button class="shopping-button shopping-primary" type="button" disabled>Fix cart to continue</button>
             {% endif %}
+        {% endif %}
+        {% if totals and items %}
+            <div class="shopping-discount-entry">
+                <label for="discount-code">Discount code</label>
+                <div>
+                    <input id="discount-code" name="discount_code" type="text" maxlength="40"
+                           autocomplete="off" form="{{ 'checkout-form' if checkout else 'cart-checkout-form' }}"
+                           value="{{ discount_code }}">
+                    <button class="shopping-button shopping-secondary" id="apply-discount" type="button">Apply</button>
+                </div>
+                <p id="discount-message" role="status" aria-live="polite"></p>
+            </div>
         {% endif %}
     </aside>
 {% endmacro %}

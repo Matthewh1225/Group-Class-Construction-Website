@@ -36,15 +36,17 @@
                     <a href="{{ url_for('products.products') }}" {% if request.endpoint == 'products.products' %}aria-current="page"{% endif %}>Products</a>
                     <a href="{{ url_for('products.heavy_machinery') }}" {% if request.endpoint == 'products.heavy_machinery' %}aria-current="page"{% endif %}>Heavy Machinery</a>
                     <a href="{{ url_for('crews.crews') }}" {% if request.blueprint == 'crews' %}aria-current="page"{% endif %}>Crews</a>
-                    <a href="{{ url_for('reviews') }}" {% if request.endpoint == 'reviews' %}aria-current="page"{% endif %}>Reviews</a>
+                    <a href="{{ url_for('reviews.reviews') }}" {% if request.endpoint == 'reviews.reviews' %}aria-current="page"{% endif %}>Reviews</a>
                     <a href="{{ url_for('manufacturers') }}" {% if request.endpoint == 'manufacturers' %}aria-current="page"{% endif %}>Manufacturers</a>
                     <a class="nav-account" href="{{ url_for('dashboard.dashboard') }}" {% if request.blueprint in ['dashboard', 'subscription'] %}aria-current="page"{% endif %}>Dashboard</a>
+                    <a href="{{ url_for('contact') }}" {% if request.endpoint == 'contact' %}aria-current="page"{% endif %}>Contact</a>
                     <a class="nav-cart" href="{{ url_for('shopping.show_cart') }}" {% if request.blueprint == 'shopping' %}aria-current="page"{% endif %}>
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
                             <path d="M5 7h14l1 14H4L5 7Z"/>
                             <path d="M9 8V6a3 3 0 0 1 6 0v2"/>
                         </svg>
                         <span>Cart</span>
+                        {% if cart_count %}<span class="cart-badge" aria-label="{{ cart_count }} in cart">{{ cart_count }}</span>{% endif %}
                     </a>
                     {% if session.get("user_id") %}
                         <form class="nav-session" method="post" action="{{ url_for('auth.logout') }}">
@@ -58,7 +60,6 @@
             </nav>
         {% endblock %}
         <main>
-            {# Pages can replace this block to show messages elsewhere. #}
             {% block flash_messages %}
                 {% for category, message in get_flashed_messages(with_categories=True) %}
                     <p class="site-message" role="{{ 'alert' if category == 'error' else 'status' }}">{{ message }}</p>

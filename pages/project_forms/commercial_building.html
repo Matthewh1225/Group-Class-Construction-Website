@@ -1,10 +1,14 @@
 <fieldset class="field-group">
-    <legend>Building size and rooms</legend>
+    <legend>Building size</legend>
     <div class="field-row">
         {{ number_field('footprintSqFt', 'Ground-floor area', unit='sq ft') }}
         {{ number_field('floors', 'Floors', default=1, whole=True, required=False) }}
-        {{ number_field('rooms', 'Total rooms', whole=True) }}
     </div>
-    <p class="optional">Ground-floor area is the space the building covers before adding extra floors.</p>
 </fieldset>
-{{ checkbox('elevator', 'Include an elevator') }}
+<fieldset class="field-group">
+    <legend>Building use</legend>
+    <div class="field-row">
+        {{ select_field('buildingUse', 'Main use', ['office', 'retail', 'warehouse', 'other']) }}
+        {{ number_field('rooms', 'Total rooms (optional)', whole=True, required=False) }}
+    </div>
+</fieldset>

@@ -1,10 +1,14 @@
 {% extends "dashboard/layout.html" %}
 
-{% block title %}Subscription - BuildBetter{% endblock %}
+{% block title %}
+    Subscription - BuildBetter
+{% endblock %}
+
 {% block styles %}
     {{ super() }}
     <link rel="stylesheet" href="{{ url_for('static', filename='subscription.css') }}">
 {% endblock %}
+
 {% block dashboard_content %}
     <div class="dashboard-page-heading">
         <div>
@@ -12,26 +16,46 @@
         </div>
     </div>
 
-    <section class="dashboard-card dashboard-detail-card sub-card" aria-labelledby="current-plan-title">
+    {% set is_active = subscription and subscription.status == 'active' %}
+    <section class="dashboard-card dashboard-detail-card sub-card plan-card{% if is_active %} is-active{% endif %}" aria-labelledby="current-plan-title">
+        <div class="sub-card-head">
+            <div class="plan-card-title">
+                <div>
+                    <p class="dashboard-eyebrow">Current plan</p>
+                    <h2 id="current-plan-title">{{ tiers.pro.label if subscription else 'Free' }}</h2>
+                </div>
+            </div>
+            {% if is_active %}
+                <span class="status-tag status-ready">Active</span>
+            {% elif subscription %}
+                <span class="status-tag status-attention">Expired</span>
+            {% endif %}
+        </div>
+
         {% if subscription %}
             <dl class="dashboard-detail-list">
-                <div><dt>Plan</dt><dd>{{ tiers.pro.label if subscription.plan_name == 'Pro' else subscription.plan_name }}</dd></div>
-                <div><dt>Status</dt><dd>{{ subscription.status|replace('_', ' ')|title }}</dd></div>
-                {% if subscription.current_period_end %}
+                <div>
+                    <dt>{{ subscription.period_label }}</dt>
+                    <dd>{{ subscription.current_period_end }}</dd>
+                </div>
+                {% if is_active %}
                     <div>
-                        <dt>{{ subscription.period_label }}</dt>
-                        <dd>{{ subscription.current_period_end }}</dd>
+                        <dt>Time remaining</dt>
+                        <dd class="{{ 'plan-expiring' if days_left <= 7 }}">
+                            {% if days_left == 0 %}Ends today{% else %}{{ days_left }} day{{ '' if days_left == 1 else 's' }}{% endif %}
+                        </dd>
                     </div>
                 {% endif %}
             </dl>
-        {% else %}
-            <p class="dashboard-muted">No subscription is active.</p>
-        {% endif %}
-        {% if not subscription or subscription.status != 'active' %}
-            <div class="sub-actions">
-                <a class="dashboard-button dashboard-button-primary" href="{{ url_for('subscription.subscribe') }}">Subscribe</a>
-            </div>
         {% endif %}
     </section>
 
+    {% if not is_active %}
+        <section class="plan-options" aria-labelledby="plan-options-title">
+            <h2 id="plan-options-title">{{ 'Renew your membership' if subscription else 'Upgrade to ' ~ tiers.pro.label }}</h2>
+            <p>
+                <a class="dashboard-button dashboard-button-primary" href="{{ url_for('subscription.about_pro') }}">Click here to learn more about Pro</a>
+            </p>
+        </section>
+    {% endif %}
 {% endblock %}

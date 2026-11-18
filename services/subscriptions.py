@@ -7,21 +7,21 @@ PRO_PLANS = {
         "billing": "Monthly",
         "badge": "Stay flexible", "frequency": "per month",
         "detail": "Monthly plan", "button_label": "Continue",
-        "terms": "All prices are in USD."
+        "terms": ""
     },
     "yearly": {
         "name": "Yearly Pro", "price": 19200, "interval": "year",
         "billing": "Yearly",
         "badge": "Save about 20%", "frequency": "per year",
         "button_label": "Continue",
-        "terms": "All prices are in USD.",
+        "terms": "",
     },
     "lifetime": {
         "name": "Lifetime Pro", "price": 100000000, "interval": "once",
         "billing": "One-time",
         "badge": "One payment", "frequency": "One-time purchase",
         "detail": "Lifetime plan", "button_label": "Continue",
-        "terms": "All prices are in USD.",
+        "terms": "",
     },
 }
 

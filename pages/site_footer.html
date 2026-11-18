@@ -41,5 +41,6 @@
     </div>
     <div class="wrap footer-base">
         <p>&copy; BuildBetter</p>
+        <a href="{{ url_for('contact') }}" {% if request.endpoint == 'contact' %}aria-current="page"{% endif %}>Contact us</a>
     </div>
 </footer>

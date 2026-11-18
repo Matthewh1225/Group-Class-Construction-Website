@@ -1,10 +1,14 @@
 <fieldset class="field-group">
-    <legend>Building size and rooms</legend>
+    <legend>Building size</legend>
     <div class="field-row">
         {{ number_field('footprintSqFt', 'Ground-floor area', unit='sq ft') }}
         {{ number_field('floors', 'Floors', default=1, whole=True, required=False) }}
-        {{ number_field('bedrooms', 'Total bedrooms', minimum=0, whole=True) }}
-        {{ number_field('bathrooms', 'Total bathrooms', minimum=0, whole=True) }}
     </div>
-    <p class="optional">Ground-floor area is the space the building covers before adding extra floors.</p>
+</fieldset>
+<fieldset class="field-group">
+    <legend>Rooms (optional)</legend>
+    <div class="field-row">
+        {{ number_field('bedrooms', 'Total bedrooms', minimum=0, whole=True, required=False) }}
+        {{ number_field('bathrooms', 'Total bathrooms', minimum=0, whole=True, required=False) }}
+    </div>
 </fieldset>

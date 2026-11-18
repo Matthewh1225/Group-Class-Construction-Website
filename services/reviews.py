@@ -9,11 +9,36 @@ SORT_ORDERS = {
     "lowest": "r.rating ASC, r.createdAt DESC, r.id DESC",
     "oldest": "r.createdAt ASC, r.id ASC",
 }
+PRODUCT_SEARCH_LIMIT = 20      # products shown for one search in the review form
+PRODUCT_SEARCH_MIN_LENGTH = 2  # shorter searches would match most of the catalog
+PRODUCT_SEARCH_MAX_WORDS = 5
 
 
-def get_review_products():
+def get_review_product(product_id):
+    """One active product that can be reviewed, or None."""
+    if product_id is None:
+        return None
     with database_cursor() as cursor:
-        cursor.execute("SELECT id, name, sku FROM Product WHERE isActive = 1 ORDER BY name, id")
+        cursor.execute("SELECT id, name, sku FROM Product WHERE id = %s AND isActive = 1", (product_id,))
+        return cursor.fetchone()
+
+
+def search_review_products(search):
+    """Active products whose name or SKU contains every search word, sorted by name (at most 20)."""
+    words = search.split()[:PRODUCT_SEARCH_MAX_WORDS]
+    if len(search.strip()) < PRODUCT_SEARCH_MIN_LENGTH or not words:
+        return []
+    conditions = []
+    values = []
+    for word in words:
+        # LOCATE treats user-entered % and _ as literal text; LOWER makes it ignore letter case.
+        conditions.append("(LOCATE(%s, LOWER(name)) > 0 OR LOCATE(%s, LOWER(IFNULL(sku, ''))) > 0)")
+        values.extend([word.lower(), word.lower()])
+    sql = ("SELECT id, name, sku FROM Product WHERE isActive = 1 AND " + " AND ".join(conditions)
+           + " ORDER BY name, id LIMIT %s")
+    values.append(PRODUCT_SEARCH_LIMIT)
+    with database_cursor() as cursor:
+        cursor.execute(sql, values)
         return cursor.fetchall()
 
 
@@ -51,7 +76,7 @@ def create_review(user_id, data):
                            (review["product_id"],))
             product = cursor.fetchone()
             if product is None:
-                raise ValueError("That product is no longer available. Please choose another.")
+                raise ValueError("Product unavailable. Choose another.")
             product_name = product["name"]
         cursor.execute(
             """INSERT INTO Customer_review (userId, reviewType, productId, productName, rating, title, body)

@@ -14,6 +14,10 @@ _pool_connections = 0
 _pool_lock = Lock()
 
 
+class DatabaseBusyError(mysql.connector.Error):
+    """A named transaction lock is held by another request."""
+
+
 def using_local_database():
     # Use LOCAL_DB_* when DB_TARGET=local; otherwise use DB_*.
     return os.getenv("DB_TARGET", "remote").strip().lower() == "local"
@@ -38,7 +42,6 @@ def database_settings():
 
 
 def pooled_connection():
-    # Get a connection from this process's pool.
     global _pool, _pool_pid, _pool_connections
 
     with _pool_lock:
@@ -72,7 +75,6 @@ def pooled_connection():
 
 
 def close_database(error=None):
-    # Return the connection to the pool, even after an error.
     connection = g.pop("database_connection", None)
     if connection is not None:
         connection.close()
@@ -87,6 +89,7 @@ def database_cursor(lock_name=None):
         if in_request:
             g.database_connection = connection
     locked = False
+    operation = lock_name
     if lock_name:
         lock_name = hashlib.sha256(f"{connection.database}:{lock_name}".encode()).hexdigest()
     try:
@@ -95,7 +98,10 @@ def database_cursor(lock_name=None):
                 cursor.execute("SELECT GET_LOCK(%s, 10) AS acquired", (lock_name,))
                 locked = cursor.fetchone()["acquired"] == 1
                 if not locked:
-                    raise mysql.connector.Error("The planner queue is busy. Try again shortly.")
+                    message = "Another request is updating this data. Try again shortly."
+                    if operation.startswith("cart_"):
+                        message = "Your cart is being updated. Please try again shortly."
+                    raise DatabaseBusyError(message)
             yield cursor
             connection.commit()
     except Exception:

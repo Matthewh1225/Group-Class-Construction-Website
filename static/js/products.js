@@ -16,7 +16,6 @@ function checkProductImages(container) {
     }
 }
 
-// Use the placeholder if an image fails to load.
 document.addEventListener("error", function (event) {
     if (event.target.matches("img[data-fallback-src]")) {
         useFallbackImage(event.target);
@@ -47,7 +46,6 @@ if (moreCategories) {
         }
     });
 
-    // relatedTarget is the next focused element.
     moreCategories.addEventListener("focusout", function (event) {
         if (!moreCategories.contains(event.relatedTarget)) {
             setMoreMenuOpen(false);
@@ -59,5 +57,10 @@ if (moreCategories) {
             setMoreMenuOpen(false);
         }
     });
+}
 
+for (const select of document.querySelectorAll("#catalog-sort, #catalog-per-page")) {
+    select.addEventListener("change", function () {
+        select.form.requestSubmit();
+    });
 }

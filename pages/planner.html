@@ -10,10 +10,9 @@
 <div class="planner-page" id="plan-project">
     <header class="planner-heading">
         <div>
-            <h1>What are you building?</h1>
+            <h1 class="sr-only">AI Planner</h1>
         </div>
         <div class="planner-heading-links">
-            {# The route checks the account's Pro expiry date. #}
             {% if pro_allowed %}
                 <span class="planner-pro-badge"><span aria-hidden="true">&#9733;</span> Pro member</span>
             {% endif %}
@@ -37,7 +36,6 @@
             <p class="planner-form-error" role="alert">{{ popup_message }}</p>
         {% endif %}
         <section id="method-step" class="planner-step" {% if has_details %}hidden{% endif %}>
-            {# planner.js focuses this heading when returning to this step. #}
             <h2 class="sr-only" tabindex="-1">Choose how to start</h2>
             <div class="planner-methods">
                 <button id="choose-template" class="planner-method" type="button">
@@ -56,34 +54,14 @@
                         <path class="drawing-guide" d="M143 104H198M170 75V116M191 87V116"/>
                     </svg>
                     <strong>Custom project</strong>
-                    <span class="method-action">write your description <span aria-hidden="true">&rarr;</span></span>
+                    <span class="method-action">Write your description <span aria-hidden="true">&rarr;</span></span>
                 </button>
             </div>
-
-            {# Show upgrade details for accounts without Pro. #}
-            {% if not pro_allowed %}
-                <aside class="planner-pro" aria-labelledby="planner-pro-title">
-                    <div>
-                        <h3 id="planner-pro-title">Quantum Ultra Deep Pro Max+</h3>
-                        <ul class="planner-pro-list">
-
-                        </ul>
-                    </div>
-                    <div class="planner-pro-actions">
-                        {% if session.get("user_id") %}
-                            <a class="btn btn-ghost" href="{{ url_for('subscription.subscribe') }}">Upgrade to Pro</a>
-                        {% else %}
-                            <a class="btn btn-ghost" href="{{ url_for('auth.register') }}">Create a free account</a>
-                        {% endif %}
-                        <a class="text-link" href="{{ url_for('subscription.about_pro') }}">What Pro includes</a>
-                    </div>
-                </aside>
-            {% endif %}
         </section>
 
         <section id="template-step" class="planner-step" hidden>
             <button class="back-button step-back" type="button">&larr; Project type</button>
-            <h2 tabindex="-1">Choose your starting point.</h2>
+            <h2 tabindex="-1">Choose a project</h2>
             <div class="planner-templates">
                 {% for template_id, template in project_templates.items() %}
                     <button id="template-{{ template_id }}" type="button" class="template-option" data-template="{{ template_id }}">
@@ -113,39 +91,18 @@
                     {% include template.form %}
                     <div class="form-field">
                         <label for="{{ template_id }}-notes">Anything else? <span class="optional">(optional)</span></label>
-                        <textarea id="{{ template_id }}-notes" class="planner-input" name="userInput" placeholder="Preferred materials, style, location, or anything to leave out...">{{ form_data.get('userInput', '') }}</textarea>
+                        <textarea id="{{ template_id }}-notes" class="planner-input" name="userInput" placeholder="Materials, style, or other notes">{{ form_data.get('userInput', '') }}</textarea>
                     </div>
                     {% include "project_forms/plan_buttons.html" %}
                 </form>
             </section>
         {% endfor %}
 
-        <section id="size-step" class="planner-step" hidden>
-            <button class="back-button step-back" type="button">&larr; Project type</button>
-            <h2 tabindex="-1">Set the scale.</h2>
-            <div class="planner-sizes">
-                {% for size, example in project_sizes.items() %}
-                    <button id="size-{{ size }}" type="button" class="project-option" data-size="{{ size }}">
-                        {% set size_rank = loop.index %}
-                        <span class="size-scale" aria-hidden="true">
-                            {% for tick in range(4) %}
-                                <span {% if tick < size_rank %}class="is-filled"{% endif %}></span>
-                            {% endfor %}
-                        </span>
-                        <strong>{{ size|title }}</strong>
-                        <span class="size-example">{{ example }}</span>
-                        <span class="template-size">Choose {{ size }} <span aria-hidden="true">&rarr;</span></span>
-                    </button>
-                {% endfor %}
-            </div>
-        </section>
-
         <section id="planner-form" class="planner-container" {% if project_mode != 'custom' %}hidden{% endif %}>
-            <button class="details-back step-back" type="button">&larr; Project size</button>
-            <h2 tabindex="-1">Describe your project.</h2>
+            <button class="back-button step-back" type="button">&larr; Project type</button>
+            <h2 tabindex="-1">Describe your project</h2>
             <form method="post" action="{{ url_for('planner.submit_planning_job') }}">
                 <input name="projectMode" type="hidden" value="custom">
-                <input id="project-size" name="projectSize" type="hidden" value="{{ project_size or '' }}">
                 <div class="form-field">
                     <label for="user-input">Project description</label>
                     <textarea id="user-input" name="userInput" class="planner-input" placeholder="Example: A 10 x 12 ft backyard workshop with a concrete slab, one window and a metal roof." required>{{ form_data.get('userInput', '') }}</textarea>

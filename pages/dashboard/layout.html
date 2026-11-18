@@ -10,6 +10,9 @@
 {% block navbar_scripts %}
 {% endblock %}
 
+{% block flash_messages %}
+{% endblock %}
+
 
 {% block styles %}
     <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
@@ -57,6 +60,13 @@
         <symbol id="icon-close" viewBox="0 0 24 24">
             <path d="m6 6 12 12M18 6 6 18"/>
         </symbol>
+        <symbol id="icon-card" viewBox="0 0 24 24">
+            <rect x="2" y="5" width="20" height="14" rx="2"/>
+            <path d="M2 10h20M6 15h4"/>
+        </symbol>
+        <symbol id="icon-home" viewBox="0 0 24 24">
+            <path d="M3 11 12 4l9 7M5 10v10h14V10M10 20v-6h4v6"/>
+        </symbol>
         <symbol id="icon-settings" viewBox="0 0 24 24">
             <path d="m9 3-1 3-3 1-2 3 2 2-1 4 3 2 3-1 2 4 3-1 1-3 3-1 2-3-2-2 1-4-3-2-3 1-2-4Z"/>
             <circle cx="12" cy="12" r="3"/>
@@ -80,45 +90,38 @@
                     </svg>
                 </button>
             </div>
+            {% set nav_groups = [
+                ('Workspace', [
+                    ('dashboard.projects', ['dashboard.projects', 'dashboard.project_detail'], 'Saved Projects', 'icon-folder'),
+                    ('planner.planning_history', ['planner.planning_history'], 'Planning History', 'icon-plan'),
+                ]),
+                ('Purchases', [
+                    ('dashboard.orders', ['dashboard.orders', 'dashboard.order_detail'], 'Orders', 'icon-bag'),
+                    ('dashboard.payments', ['dashboard.payments', 'dashboard.payment_edit'], 'Saved Payments', 'icon-card'),
+                ]),
+                ('Account', [
+                    ('subscription.manage_subscription', ['subscription.manage_subscription'], 'Subscription', 'icon-spark'),
+                    ('dashboard.settings', ['dashboard.settings', 'dashboard.change_password'], 'Account Settings', 'icon-settings'),
+                ]),
+            ] %}
             <nav class="dashboard-side-nav" aria-label="Dashboard navigation">
-                {% if admin_nav %}
-                    <a href="{{ url_for('dashboard.dashboard') }}" {% if is_admin %}aria-current="page"{% endif %}>
-                        <svg class="dashboard-icon" aria-hidden="true">
-                            <use href="#icon-user"/>
-                        </svg>
-                        Users
-                    </a>
-                {% endif %}
-                <a href="{{ url_for('dashboard.projects') }}" {% if request.endpoint in ['dashboard.projects', 'dashboard.project_detail'] %}aria-current="page"{% endif %}>
+                <a href="{{ url_for('dashboard.dashboard') }}" {% if request.endpoint == 'dashboard.dashboard' %}aria-current="page"{% endif %}>
                     <svg class="dashboard-icon" aria-hidden="true">
-                        <use href="#icon-folder"/>
+                        <use href="#{{ 'icon-user' if admin_nav else 'icon-home' }}"/>
                     </svg>
-                    Saved Projects
+                    {{ 'Users' if admin_nav else 'Overview' }}
                 </a>
-                <a href="{{ url_for('planner.planning_history') }}" {% if request.endpoint == 'planner.planning_history' %}aria-current="page"{% endif %}>
-                    <svg class="dashboard-icon" aria-hidden="true">
-                        <use href="#icon-plan"/>
-                    </svg>
-                    Planning History
-                </a>
-                <a href="{{ url_for('dashboard.orders') }}" {% if request.endpoint in ['dashboard.orders', 'dashboard.order_detail'] %}aria-current="page"{% endif %}>
-                    <svg class="dashboard-icon" aria-hidden="true">
-                        <use href="#icon-bag"/>
-                    </svg>
-                    Orders
-                </a>
-                <a href="{{ url_for('subscription.manage_subscription') }}" {% if request.endpoint == 'subscription.manage_subscription' %}aria-current="page"{% endif %}>
-                    <svg class="dashboard-icon" aria-hidden="true">
-                        <use href="#icon-spark"/>
-                    </svg>
-                    Subscription
-                </a>
-                <a href="{{ url_for('dashboard.settings') }}" {% if request.endpoint == 'dashboard.settings' %}aria-current="page"{% endif %}>
-                    <svg class="dashboard-icon" aria-hidden="true">
-                        <use href="#icon-settings"/>
-                    </svg>
-                    Account
-                </a>
+                {% for group_label, links in nav_groups %}
+                    <p class="dashboard-nav-label">{{ group_label }}</p>
+                    {% for endpoint, current_endpoints, label, icon in links %}
+                        <a href="{{ url_for(endpoint) }}" {% if request.endpoint in current_endpoints %}aria-current="page"{% endif %}>
+                            <svg class="dashboard-icon" aria-hidden="true">
+                                <use href="#{{ icon }}"/>
+                            </svg>
+                            {{ label }}
+                        </a>
+                    {% endfor %}
+                {% endfor %}
             </nav>
             <div class="dashboard-sidebar-bottom">
                 <a href="{{ url_for('home') }}"><span aria-hidden="true">&larr;</span>Back to Store</a>
@@ -128,12 +131,15 @@
         </div>
         <div class="dashboard-main">
             {% set dashboard_sections = {
-                'dashboard.dashboard': 'Saved Projects',
+                'dashboard.dashboard': 'Overview',
                 'dashboard.projects': 'Saved Projects',
                 'dashboard.project_detail': 'Saved Projects',
                 'dashboard.orders': 'Orders',
                 'dashboard.order_detail': 'Orders',
-                'dashboard.settings': 'Account',
+                'dashboard.settings': 'Account Settings',
+                'dashboard.change_password': 'Account Settings',
+                'dashboard.payments': 'Saved Payments',
+                'dashboard.payment_edit': 'Saved Payments',
                 'subscription.manage_subscription': 'Subscription',
                 'planner.planning_history': 'Planning History'
             } %}
@@ -147,7 +153,7 @@
                     <div class="dashboard-header-breadcrumb">
                         <span class="dashboard-header-area">{{ 'Admin' if is_admin else 'Dashboard' }}</span>
                         <span class="dashboard-topbar-slash" aria-hidden="true">/</span>
-                        <span id="dashboard-header-section">{{ 'Users' if is_admin else dashboard_sections.get(request.endpoint, 'Saved Projects') }}</span>
+                        <span id="dashboard-header-section">{{ 'Users' if is_admin else dashboard_sections.get(request.endpoint, 'Overview') }}</span>
                     </div>
                 </div>
                 <div class="dashboard-header-utilities">
@@ -179,17 +185,22 @@
                         <div class="dashboard-account-menu">
                             <p>{{ session.get('display_name', 'Account') }}</p>
                             {% if not admin_nav %}
-                                <a href="{{ url_for('dashboard.settings') }}">Account</a>
+                                <a href="{{ url_for('dashboard.settings') }}">Account settings</a>
                             {% endif %}
                             <form method="post" action="{{ url_for('auth.logout') }}">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                <button type="submit">Logout</button>
+                                <button type="submit">Log out</button>
                             </form>
                         </div>
                     </details>
                 </div>
             </header>
             <div class="dashboard-page">
+                {% block dashboard_messages %}
+                    {% for category, message in get_flashed_messages(with_categories=True) %}
+                        <p class="dashboard-message {{ category }}" role="{{ 'alert' if category == 'error' else 'status' }}">{{ message }}</p>
+                    {% endfor %}
+                {% endblock %}
                 {% block dashboard_content %}
                 {% endblock %}
             </div>

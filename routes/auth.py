@@ -6,9 +6,10 @@ from urllib.parse import urlencode
 from urllib.request import urlopen
 import time
 import certifi
-from flask import Blueprint, current_app, redirect, render_template, request, session, url_for,flash
+from flask import Blueprint, current_app, redirect, render_template, request, session, url_for, flash
 from mysql.connector import Error, IntegrityError
 
+from services.cart import add_item
 from utils.passwords import MAX_PASSWORD_LENGTH
 from utils.users import check_login, create_user, find_or_create_google_user, full_name, get_account
 
@@ -17,25 +18,50 @@ auth_bp = Blueprint("auth", __name__)
 # Use certifi for Google's HTTPS certificate check.
 SSL_CONTEXT = ssl.create_default_context(cafile=certifi.where())
 
-INACTIVITY_LIMIT =  60 *20 # 20 min without a request before logging out
+INACTIVITY_LIMIT = 60 * 20  # log out after 20 minutes without a request
 
 
 def login_required(view):
-    # Keep the route name for Flask.
     @wraps(view)
     def check_login_before_view(*args, **kwargs):
         is_logged_in = "user_id" in session
         if not is_logged_in:
-            login_url = url_for("auth.login")
-            return redirect(login_url)
+            # After logging in, send them back to the page they wanted.
+            if request.method == "GET":
+                session["after_login"] = {"next": request.full_path.rstrip("?")}
+            return redirect(url_for("auth.login"))
         return view(*args, **kwargs)
 
     return check_login_before_view
 
 
+def is_local_path(path):
+    # Only follow links inside this site.
+    return isinstance(path, str) and path.startswith("/") and not path.startswith("//") and "\\" not in path
+
+
+def after_login_url(user_id):
+    """Finish what the visitor was doing before logging in, and return where to send them."""
+    pending = session.pop("after_login", None) or {}
+    product = pending.get("add_product")
+    if product:
+        try:
+            name = add_item(user_id, product["product_id"], product["quantity"])
+            flash("Added " + name + " to your cart.", "success")
+        except ValueError as error:
+            flash(str(error), "error")
+    if is_local_path(pending.get("next")):
+        return pending["next"]
+    return url_for("dashboard.dashboard")
+
+
 def start_session(user_id, display_name, role):
+    # Keep the page or cart item the visitor was waiting on.
+    after_login = session.get("after_login")
     # A new login needs a fresh CSRF token.
     session.clear()
+    if after_login:
+        session["after_login"] = after_login
     session["last_active"] = time.time()
     session["user_id"] = user_id
     session["display_name"] = display_name
@@ -47,7 +73,6 @@ def refresh_logged_in_user():
     if "user_id" not in session or request.endpoint == "static":
         return None
 
-    # Log out inactive users.
     last_active = session.get("last_active", 0)
     if time.time() - last_active > INACTIVITY_LIMIT:
         session.clear()
@@ -69,9 +94,8 @@ def refresh_logged_in_user():
 def login():
     if request.method == "GET":
         return render_template("login.html", google_client_id=os.getenv("GOOGLE_CLIENT_ID"))
-    
+
     data = request.get_json(silent=True)
-    
     if not isinstance(data, dict):
         return {"error": "Invalid form data."}, 400
 
@@ -95,7 +119,7 @@ def login():
         return {"error": "This account is disabled."}, 403
 
     start_session(user["id"], full_name(user["firstName"], user["lastName"]), user["role"])
-    return {"redirect_url": url_for("dashboard.dashboard")}
+    return {"redirect_url": after_login_url(user["id"])}
 
 
 @auth_bp.route("/register", methods=["GET", "POST"])
@@ -118,10 +142,9 @@ def register():
         return {"error": "Registration unavailable."}, 503
 
     start_session(user_id, full_name(data["firstName"].strip(), data["lastName"].strip()), "user")
-    return {"redirect_url": url_for("dashboard.dashboard")}, 201
+    return {"redirect_url": after_login_url(user_id)}, 201
 
 
-# Ask Google to check the sign-in token.
 def read_google_token(token):
     url = "https://oauth2.googleapis.com/tokeninfo?" + urlencode({"id_token": token})
     with urlopen(url, timeout=5, context=SSL_CONTEXT) as response:
@@ -162,7 +185,7 @@ def google_login():
     if user["accountStatus"] != "active":
         return {"error": "This account is disabled."}, 403
     start_session(user["id"], full_name(user["firstName"], user["lastName"]), user["role"])
-    return {"redirect_url": url_for("dashboard.dashboard")}
+    return {"redirect_url": after_login_url(user["id"])}
 
 
 @auth_bp.route("/logout", methods=["POST"])

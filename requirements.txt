@@ -7,7 +7,7 @@ groq
 Flask-Limiter[redis]
 argon2-cffi==25.1.0
 certifi
-openrouter
+httpx
 pydantic>=2.12,<3
 --extra-index-url https://download.pytorch.org/whl/cpu
 torch==2.15.0

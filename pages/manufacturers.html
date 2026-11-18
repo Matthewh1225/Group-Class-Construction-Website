@@ -12,16 +12,26 @@
     <header>
         <h1 id="manufacturers-title">Manufacturers</h1>
     </header>
-    {% if manufacturers %}
-        <ul class="manufacturer-grid">
-            {% for manufacturer in manufacturers %}
-                <li>
-                    <a class="manufacturer-panel" href="{{ manufacturer.catalog_url }}">
-                        <span>{{ manufacturer.name }}</span>
-                    </a>
-                </li>
+    {% if groups %}
+        <nav class="manufacturer-jump" aria-label="Jump to a category">
+            {% for group in groups %}
+                <a href="#manufacturers-{{ group.url_name }}">{{ group.name }} <span>{{ group.manufacturers|length }}</span></a>
             {% endfor %}
-        </ul>
+        </nav>
+        {% for group in groups %}
+            <section class="manufacturer-group" id="manufacturers-{{ group.url_name }}" aria-labelledby="heading-{{ group.url_name }}">
+                <h2 id="heading-{{ group.url_name }}">{{ group.name }} <span>{{ group.manufacturers|length }} manufacturer{{ '' if group.manufacturers|length == 1 else 's' }}</span></h2>
+                <ul class="manufacturer-grid">
+                    {% for manufacturer in group.manufacturers %}
+                        <li>
+                            <a class="manufacturer-panel" href="{{ manufacturer.catalog_url }}">
+                                <span>{{ manufacturer.name }}</span>
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </section>
+        {% endfor %}
     {% else %}
         <p class="manufacturer-empty">No manufacturers listed.</p>
     {% endif %}

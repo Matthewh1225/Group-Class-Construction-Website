@@ -1,0 +1,17 @@
+{% macro card_fields(card={}) %}
+<div class="mock-card-fields">
+    <label>Cardholder name <input name="cardholder" value="{{ card.get('cardholder', '') }}" autocomplete="cc-name"></label>
+    <label>Card number
+        <input name="card_number" inputmode="numeric" autocomplete="cc-number"
+               {% if card %}placeholder="&bull;&bull;&bull;&bull; {{ card.get('card_number', '')[-4:] }} (leave blank to keep)"{% else %}placeholder="1234 5678 9012 3456"{% endif %}>
+    </label>
+    <label>Card type
+        <select name="card_type">
+            {% for brand in ['Card', 'Visa', 'Mastercard', 'American Express', 'Discover'] %}
+            <option value="{{ brand }}" {% if card.get('card_type', 'Card') == brand %}selected{% endif %}>{{ brand }}</option>
+            {% endfor %}
+        </select>
+    </label>
+    <label>Expiration <input type="month" name="expiration" value="{{ card.get('expiration', '') }}"></label>
+</div>
+{% endmacro %}

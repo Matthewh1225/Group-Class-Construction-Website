@@ -1,5 +1,5 @@
 import json
-import math
+
 CREW_RATES = {
     "general": {"name": "General labor", "rate": 40},
     "carpenter": {"name": "Carpenters", "rate": 55},
@@ -16,8 +16,8 @@ CREW_RATES = {
 }
 
 HOURS_PER_DAY = 8
-MAX_WORKERS = 9999
-MAX_DAYS = 365*10
+MAX_WORKERS = 9999  # also used by the crew form, the AI schema and the Auditor prompt
+MAX_DAYS = 365 * 10
 
 
 def read_days(value):
@@ -41,7 +41,6 @@ def parse_crew(crew_json):
     return check_crew(data)
 
 
-# Shared by the crew form and the AI planner.
 def check_crew(data):
     if not isinstance(data, dict) or not isinstance(data.get("members"), list):
         raise ValueError("The crew could not be read. Please choose it again.")
@@ -116,6 +115,6 @@ def estimate_crew_cost(crew):
         "hourly": format_money(total_hourly),
         "days": format_range(f"{shortest:,}", f"{longest:,}") + " working days",
         "cost": format_range(format_money(total_low), format_money(total_high)),
-        # The cart charges the high end (longest days), so the real job can only cost less
+        # Charge the longest estimated duration.
         "price_cents": total_high * 100,
     }

@@ -4,11 +4,13 @@ from flask import Blueprint, abort, flash, redirect, render_template, request, s
 
 from planning.ai_config import WORKFLOW_TIERS
 from planning.jobs import answer_job, cancel_job, count_jobs, get_job, list_jobs, pro_access_allowed, restart_job, submit_job
-from planning.project_forms import PROJECT_SIZES, PROJECT_TEMPLATES, build_project
-from planning.presentation import (STAGE_STATUS_LABELS, add_machinery_details, add_store_details, suggested_items, matched_materials_total,  project_spec_rows, stage_rows, status_label)
+from planning.project_forms import PROJECT_TEMPLATES, build_project
+from planning.presentation import (STAGE_STATUS_LABELS, add_machinery_details, add_store_details, in_stock_summary,
+                                   project_spec_rows, stage_rows, status_label)
+from routes.auth import login_required
 from services.cart import add_materials_to_cart
 from services.crews import CREW_RATES, HOURS_PER_DAY, estimate_crew_cost
-from services.projects import (can_save_project, default_project_name, get_project_saved_from_job, save_job_as_project)
+from services.projects import (can_save_project, get_project_saved_from_job, rename_plan, save_job_as_project)
 
 planner_bp = Blueprint("planner", __name__)
 
@@ -22,9 +24,9 @@ def show_planner(popup_message=None, form_data=None):
         has_details = form_data.get("projectTemplate") in PROJECT_TEMPLATES
     return render_template(
         "planner.html", popup_message=popup_message,
-        project_mode=form_data.get("projectMode"), project_size=form_data.get("projectSize"),
+        project_mode=form_data.get("projectMode"),
         project_template=form_data.get("projectTemplate"), form_data=form_data,
-        project_templates=PROJECT_TEMPLATES, project_sizes=PROJECT_SIZES, has_details=has_details,
+        project_templates=PROJECT_TEMPLATES, has_details=has_details,
         submission_key=secrets.token_urlsafe(24), workflow_tiers=WORKFLOW_TIERS,
         pro_allowed=pro_access_allowed(session.get("user_id")),
     )
@@ -45,9 +47,8 @@ def planner():
 
 
 @planner_bp.post("/planner/jobs")
+@login_required
 def submit_planning_job():
-    if "user_id" not in session:
-        return redirect(url_for("auth.login"))
     try:
         project = build_project(request.form)
         tier = request.form.get("planType", "fast")
@@ -68,11 +69,12 @@ def planning_job(job_id):
     job = get_user_job(job_id)
     materials = get_plan_materials(job)
     machinery = add_machinery_details((job["result"] or {}).get("machinery", []))
-    items = suggested_items(materials)
+    in_stock_count, in_stock_subtotal = in_stock_summary(materials)
     label, tone = status_label(job)
     template = PROJECT_TEMPLATES.get(job["project"].get("project_type"), {})
-    title = template.get("title", "Your project")
     saved_project = get_project_saved_from_job(job_id, session["user_id"])
+    project_name = saved_project["name"] if saved_project else job.get("project_name")
+    title = project_name or template.get("title", "Your project") + " plan"
     recommendation = None
     crew_estimate = None
     if job["result"]:
@@ -85,8 +87,8 @@ def planning_job(job_id):
     if saved_project:
         crew_url = url_for("crews.crews", project_id=saved_project["id"])
     return render_template("planner_job.html", job=job, materials=materials, machinery=machinery,
-                           suggested_items=items, matched_materials_total=matched_materials_total(items),
-                           title=title,
+                           in_stock_count=in_stock_count, matched_materials_total=in_stock_subtotal,
+                           title=title, project_name=project_name,
                            project_fields=project_spec_rows(job["project"]),
                            stage_rows=stage_rows(job), stage_status_labels=STAGE_STATUS_LABELS,
                            status_label=label, status_tone=tone,
@@ -94,7 +96,20 @@ def planning_job(job_id):
                            crew_rates=CREW_RATES, hours_per_day=HOURS_PER_DAY,
                            saved_project=saved_project, crew_recommendation=recommendation, crew_url=crew_url,
                            crew_estimate=crew_estimate,
-                           can_save=can_save_project(job), default_name=default_project_name(job))
+                           can_save=can_save_project(job))
+
+
+@planner_bp.post("/planner/jobs/<job_id>/name")
+@login_required
+def planning_job_name(job_id):
+    try:
+        if not rename_plan(job_id, session["user_id"], request.form.get("name")):
+            abort(404)
+    except ValueError as error:
+        flash(str(error), "error")
+    else:
+        flash("Project name saved.", "success")
+    return redirect(url_for("planner.planning_job", job_id=job_id, _anchor="plan-messages"), code=303)
 
 
 @planner_bp.post("/planner/jobs/<job_id>/cart")
@@ -102,6 +117,7 @@ def planning_job_add_to_cart(job_id):
     job = get_user_job(job_id)
     materials = get_plan_materials(job)
     position = request.form.get("material", type=int)
+    action_type = request.form.get("action_type")
     if position is None:
         chosen = materials
     elif 0 <= position < len(materials):
@@ -109,7 +125,7 @@ def planning_job_add_to_cart(job_id):
     else:
         chosen = []
 
-    result = add_materials_to_cart(session["user_id"], chosen)
+    result = add_materials_to_cart(session["user_id"], chosen, action_type=action_type)
     added = result["added"]
     preordered = result["preordered"]
     failed = result["failed"]
@@ -183,9 +199,8 @@ def planning_job_restart(job_id):
 
 
 @planner_bp.get("/planner/history")
+@login_required
 def planning_history():
-    if "user_id" not in session:
-        return redirect(url_for("auth.login"))
     page_size = 20
     total = count_jobs(session["user_id"])
     last_page = max(1, (total + page_size - 1) // page_size)

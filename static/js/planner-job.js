@@ -1,6 +1,15 @@
 const jobPage = document.getElementById("planning-job");
 const progress = document.getElementById("job-progress");
 const stageLabels = JSON.parse(document.getElementById("stage-status-labels").textContent);
+const titleEditor = document.getElementById("plan-title-editor");
+
+titleEditor.addEventListener("toggle", function () {
+    if (titleEditor.open) {
+        const name = document.getElementById("project-name");
+        name.focus();
+        name.select();
+    }
+});
 
 async function updateJob() {
     try {
@@ -18,14 +27,18 @@ async function updateJob() {
                 }
             }
         }
-        if (job.status !== "queued" && job.status !== "running") {
+        if (job.status !== "queued" && job.status !== "running" && !titleEditor.open) {
             window.location.reload();
             return;
         }
-        progress.textContent = job.label;
+        if (progress) {
+            progress.textContent = job.label;
+        }
         window.setTimeout(updateJob, 2000);
     } catch {
-        progress.textContent = "Progress unavailable. Refresh to check the job.";
+        if (progress) {
+            progress.textContent = "Refresh to check progress.";
+        }
     }
 }
 

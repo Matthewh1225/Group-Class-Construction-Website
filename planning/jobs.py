@@ -1,4 +1,3 @@
-
 import hashlib
 import json
 import time
@@ -9,12 +8,14 @@ from utils.database import database_cursor
 
 from .ai_config import WORKFLOW_TIERS
 
-LEASE_SECONDS = 15 * 60  # Saving progress renews this time limit.
+# Saving progress renews the lease, and the workflow saves before every AI call, so it only has
+# to outlast one call (3 tries x 5 minutes plus retry delays is about 16 minutes), with extra margin.
+LEASE_SECONDS = 40 * 60
 MAX_RUNNING_JOBS = 2
 MAX_QUEUED_JOBS = 100
 MAX_REQUEST_BYTES = 20000
 MAX_ANSWER_LENGTH = 2000
-ONE_DAY = 24 * 60 * 60# seconds
+ONE_DAY = 24 * 60 * 60
 
 # Other fields go in the JSON data column.
 COLUMN_FIELDS = ["id", "owner", "tier", "status", "created", "updated"]
@@ -24,7 +25,7 @@ class LeaseLost(Exception):
     pass
 
 
-def decode(row):
+def job_from_row(row):
     if row is None:
         return None
     job = json.loads(row["data"])
@@ -33,7 +34,7 @@ def decode(row):
     return job
 
 
-def encode(job):
+def job_to_json(job):
     data = job.copy()
     for field in COLUMN_FIELDS:
         data.pop(field, None)
@@ -61,7 +62,7 @@ def mark_processing_stages(job, new_state):
             job["stages"][stage] = new_state
 
 
-# Check that a reused submission key has the same inputs.
+# Hash the inputs so submit_job can detect a reused key with different data.
 def check_submission(owner, submission_key, project, tier, answers):
     if tier not in WORKFLOW_TIERS:
         raise ValueError("This planning tier is unavailable.")
@@ -100,11 +101,12 @@ def submit_job(owner, submission_key, project, tier="fast", answers=None, resume
     data = {"project": project, "questions": [], "answers": answers,
             "specification": None, "result": None, "error": None,
             "stages": pending_stages(tier)}
-    # Reuse finished steps when restarting.
     if resume is not None:
         data["specification"] = resume["specification"]
         data["checkpoints"] = resume["checkpoints"]
         data["stages"] = resume["stages"]
+        if resume.get("project_name"):
+            data["project_name"] = resume["project_name"]
     with database_cursor(lock_name="planner_queue") as cursor:
         cursor.execute(
             "SELECT * FROM planner_jobs WHERE owner = %s AND submission_key = %s",
@@ -114,7 +116,7 @@ def submit_job(owner, submission_key, project, tier="fast", answers=None, resume
         if existing:
             if existing["request_hash"] != request_hash:
                 raise ValueError("This submission key already belongs to another request.")
-            return decode(existing)
+            return job_from_row(existing)
         cursor.execute(
             "SELECT COUNT(*) AS total FROM planner_jobs WHERE owner = %s AND tier = %s AND created >= %s",
             (owner, tier, now - ONE_DAY),
@@ -125,7 +127,7 @@ def submit_job(owner, submission_key, project, tier="fast", answers=None, resume
         check_queue_capacity(cursor, owner)
         cursor.execute(
             "INSERT INTO planner_jobs (id, owner, submission_key, request_hash, tier, status, created, updated, data) VALUES (%s, %s, %s, %s, %s, 'queued', %s, %s, %s)",
-            (job_id, owner, submission_key, request_hash, tier, now, now, encode(data)),
+            (job_id, owner, submission_key, request_hash, tier, now, now, job_to_json(data)),
         )
         return find_job(cursor, job_id, owner)
 
@@ -135,7 +137,7 @@ def find_job(cursor, job_id, owner, for_update=False):
     if for_update:
         query += " FOR UPDATE"
     cursor.execute(query, (job_id, owner))
-    return decode(cursor.fetchone())
+    return job_from_row(cursor.fetchone())
 
 
 def get_job(job_id, owner):
@@ -152,7 +154,7 @@ def count_jobs(owner):
 def list_jobs(owner, limit=20, offset=0):
     with database_cursor() as cursor:
         cursor.execute(
-            """SELECT j.*, s.id AS saved_project_id FROM planner_jobs j
+            """SELECT j.*, s.id AS saved_project_id, s.name AS saved_name FROM planner_jobs j
                LEFT JOIN saved_projects s ON s.owner = j.owner AND s.job_id = j.id
                WHERE j.owner = %s ORDER BY j.created DESC, j.id DESC LIMIT %s OFFSET %s""",
             (owner, limit, offset),
@@ -160,25 +162,25 @@ def list_jobs(owner, limit=20, offset=0):
         rows = cursor.fetchall()
     jobs = []
     for row in rows:
-        job = decode(row)
+        job = job_from_row(row)
         job["saved_project_id"] = row["saved_project_id"]
+        job["saved_name"] = row["saved_name"]
         jobs.append(job)
     return jobs
 
 
-# Mark jobs as failed after their worker's time limit runs out.
 def fail_interrupted_jobs(cursor, now):
     cursor.execute(
         "SELECT * FROM planner_jobs WHERE status = 'running' AND lease_until < %s FOR UPDATE", (now,)
     )
     expired_rows = cursor.fetchall()
     for row in expired_rows:
-        job = decode(row)
+        job = job_from_row(row)
         job["error"] = "Planning was interrupted before it finished."
         mark_processing_stages(job, "failed")
         cursor.execute(
             "UPDATE planner_jobs SET status = 'failed', worker = NULL, data = %s, updated = %s WHERE id = %s",
-            (encode(job), now, row["id"]),
+            (job_to_json(job), now, row["id"]),
         )
 
 
@@ -201,7 +203,7 @@ def claim_job(worker):
             "UPDATE planner_jobs SET status = 'running', worker = %s, lease_until = %s, updated = %s WHERE id = %s",
             (worker, now + LEASE_SECONDS, now, row["id"]),
         )
-        job = decode(row)
+        job = job_from_row(row)
         job["status"] = "running"
         job["updated"] = now
         return job
@@ -210,10 +212,13 @@ def claim_job(worker):
 def save_job(job, worker):
     now = time.time()
     with database_cursor() as cursor:
-        # Only the current worker can save a running job.
+        # Keep the name stored by the user while the worker was planning.
         cursor.execute(
-            "UPDATE planner_jobs SET data = %s, status = %s, updated = %s, lease_until = %s WHERE id = %s AND worker = %s AND status = 'running'",
-            (encode(job), job["status"], now, now + LEASE_SECONDS, job["id"], worker),
+            """UPDATE planner_jobs
+               SET data = JSON_MERGE_PATCH(%s, JSON_OBJECT('project_name', JSON_EXTRACT(data, '$.project_name'))),
+                   status = %s, updated = %s, lease_until = %s
+               WHERE id = %s AND worker = %s AND status = 'running'""",
+            (job_to_json(job), job["status"], now, now + LEASE_SECONDS, job["id"], worker),
         )
         if cursor.rowcount != 1:
             raise LeaseLost("This worker no longer owns the job, or the job was cancelled.")
@@ -238,7 +243,7 @@ def answer_job(job_id, owner, answers):
         job["stages"]["interpreter"] = "done"
         cursor.execute(
             "UPDATE planner_jobs SET data = %s, status = 'queued', worker = NULL, lease_until = 0, updated = %s WHERE id = %s",
-            (encode(job), time.time(), job_id),
+            (job_to_json(job), time.time(), job_id),
         )
 
 
@@ -247,7 +252,6 @@ def restart_job(job_id, owner):
     job = get_job(job_id, owner)
     if job is None or job["status"] != "failed":
         raise ValueError("Only failed plans can be started again.")
-    # Keep finished steps and reset the rest.
     checkpoints = job.get("checkpoints", {})
     stages = {}
     for stage, state in job["stages"].items():
@@ -256,7 +260,8 @@ def restart_job(job_id, owner):
             stages[stage] = "done"
         else:
             stages[stage] = "pending"
-    progress = {"specification": job["specification"], "checkpoints": checkpoints, "stages": stages}
+    progress = {"specification": job["specification"], "checkpoints": checkpoints, "stages": stages,
+                "project_name": job.get("project_name")}
     return submit_job(owner, "restart-" + job_id, job["project"], job["tier"], job["answers"], progress)
 
 
@@ -268,7 +273,7 @@ def cancel_job(job_id, owner):
         mark_processing_stages(job, "cancelled")
         cursor.execute(
             "UPDATE planner_jobs SET status = 'cancelled', worker = NULL, data = %s, updated = %s WHERE id = %s AND owner = %s AND status IN ('queued', 'running', 'needs_input')",
-            (encode(job), time.time(), job_id, owner),
+            (job_to_json(job), time.time(), job_id, owner),
         )
         changed = cursor.rowcount
     return changed == 1

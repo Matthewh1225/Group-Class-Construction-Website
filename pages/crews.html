@@ -54,7 +54,7 @@
             {% if project %}
                 <button id="save-crew" class="btn btn-primary" type="submit" formaction="{{ url_for('dashboard.project_crew', project_id=project.id) }}" disabled>Save crew to project</button>
             {% endif %}
-            <button id="add-crew-to-cart" class="btn btn-primary" type="submit" disabled>Add Crew to Cart</button>
+            <button id="add-crew-to-cart" class="btn btn-primary" type="submit" disabled>Add crew to cart</button>
             <p class="crews-note">Based on {{ hours_per_day }}-hour days.</p>
         </div>
     </form>

@@ -1,5 +1,4 @@
-
-// Use the same password rules as Python.
+// Same password rules as the Python side.
 export function passwordChecks(value, maximumLength) {
     let characterCount = 0;
     for (const character of value) {
@@ -58,7 +57,7 @@ export async function submitAccountForm(form, message, data) {
     } finally {
         for (const input of form.querySelectorAll('input[type="password"]')) {
             input.value = "";
-        // Update the checklist after clearing the password.
+            // Update the checklist after clearing the password.
             input.dispatchEvent(new Event("input"));
         }
         form.removeAttribute("aria-busy");

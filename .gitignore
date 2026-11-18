@@ -8,5 +8,10 @@ venv/
 .env
 .vscode/
 instance/
+# Local data, caches and backups
 data/
+# The MiniLM vector cache is committed; batch checkpoints and half-written files are not.
+vector_cache/product_vectors_qwen.npz
+vector_cache/*.batches/
+vector_cache/*.new.npz
 planner_log.txt

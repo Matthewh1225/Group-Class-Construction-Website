@@ -1,17 +1,24 @@
 .dashboard-message {
-    color: var(--text);
-    padding: 0.75rem;
+    margin: 0 0 20px;
+    padding: 12px 16px;
+    border: 1px solid var(--line-strong);
+    border-left-width: 4px;
     border-radius: var(--radius);
+    background: var(--panel);
+    color: var(--text);
+    font-size: 14px;
 }
 
 .dashboard-message.success {
     background: var(--success-bg);
-    border: 1px solid var(--success-border);
+    border-color: var(--success-border);
+    border-left-color: var(--success);
 }
 
 .dashboard-message.error {
     background: var(--danger-bg);
-    border: 1px solid var(--danger-border);
+    border-color: var(--danger-border);
+    border-left-color: var(--danger);
 }
 
 .dashboard-symbols {
@@ -63,6 +70,7 @@
 .dashboard-shell a:focus-visible,
 .dashboard-shell button:focus-visible,
 .dashboard-shell input:focus-visible,
+.dashboard-shell select:focus-visible,
 .dashboard-shell summary:focus-visible {
     outline: 2px solid var(--dash-accent);
     outline-offset: 3px;
@@ -133,11 +141,13 @@
 }
 
 .dashboard-nav-label {
+    margin: 20px 0 2px;
     padding: 0 13px;
     color: var(--muted);
     font-size: 10px;
     font-weight: 750;
     letter-spacing: 0.2em;
+    text-transform: uppercase;
 }
 
 .dashboard-side-nav,
@@ -170,8 +180,9 @@
 
 .dashboard-side-nav a[aria-current="page"] {
     color: var(--dash-accent);
-    background: rgba(245,151,9,0.1);
-    border-color: rgba(245,151,9,0.16);
+    background: var(--amber-tint);
+    border-color: var(--amber-tint);
+    box-shadow: inset 3px 0 0 var(--dash-accent);
 }
 
 .dashboard-sidebar-bottom {
@@ -250,7 +261,8 @@
 }
 
 .dashboard-utility:hover:not(:disabled) {
-    background: var(--panel-raised);
+    border-color: var(--dash-accent);
+    color: var(--dash-accent);
 }
 
 .dashboard-utility:disabled {
@@ -297,7 +309,7 @@
 }
 
 .dashboard-account summary:hover {
-    background: var(--panel-raised);
+    border-color: var(--dash-accent);
 }
 
 .dashboard-account-name {
@@ -355,7 +367,8 @@
 
 .dashboard-account-menu a:hover,
 .dashboard-account-menu button:hover {
-    background: var(--panel-raised);
+    background: var(--amber-tint);
+    color: var(--dash-accent);
 }
 
 .dashboard-account-menu form {
@@ -398,11 +411,6 @@
     letter-spacing: -0.03em;
 }
 
-.dashboard-page-heading p:not(.dashboard-eyebrow):not(.sheet-tag) {
-    margin-bottom: 0;
-    color: var(--dash-muted);
-    font-size: 15px;
-}
 
 .dashboard-eyebrow {
     margin-bottom: 11px;
@@ -412,9 +420,6 @@
     text-transform: uppercase;
 }
 
-.dashboard-shell .sheet-tag {
-    margin-bottom: 1.1rem;
-}
 
 .dashboard-stat-icon {
     display: grid;
@@ -463,8 +468,9 @@
     color: var(--text);
 }
 
-.dashboard-button-secondary:hover {
-    background: var(--panel-raised);
+.dashboard-shell .dashboard-button-secondary:hover:not(:disabled) {
+    border-color: var(--dash-accent);
+    color: var(--dash-accent);
 }
 
 .dashboard-button-danger {
@@ -551,14 +557,6 @@
     text-decoration: underline;
 }
 
-.dashboard-card-actions {
-    padding-top: 15px;
-    border-top: 1px solid var(--dash-line);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-}
 
 .dashboard-tag {
     display: inline-block;
@@ -623,6 +621,9 @@
 }
 
 .dashboard-table-wrap {
+    /* relative: screen-reader-only labels inside the table stay inside this scroll box
+       instead of making the whole page scroll sideways on phones. */
+    position: relative;
     overflow-x: auto;
 }
 
@@ -732,6 +733,10 @@
         border-bottom: 0;
         transform: translateX(-100%);
         visibility: hidden;
+    }
+
+    /* Only slide after the user opens the menu, not when the page first hides it. */
+    .dashboard-drawer-animated .dashboard-sidebar {
         transition: transform 180ms ease, visibility 180ms;
     }
 
@@ -842,7 +847,9 @@
         transition: none;
     }
 
-    .dashboard-button:hover:not(:disabled),
+    .dashboard-button:hover:not(:disabled) {
+        transform: none;
+    }
 }
 
 .admin-stat-grid {
@@ -1315,15 +1322,18 @@
     line-height: 1.5;
 }
 
-.admin-password-field {
+.admin-password-field,
+.dashboard-password-field {
     position: relative;
 }
 
-.admin-password-field input {
+.admin-password-field input,
+.dashboard-password-field input {
     padding-right: 65px;
 }
 
-.admin-password-field button {
+.admin-password-field button,
+.dashboard-password-field button {
     position: absolute;
     right: 5px;
     top: 5px;
@@ -1688,9 +1698,6 @@
     }
 }
 
-.project-message {
-    margin-bottom: 20px;
-}
 
 .project-filters {
     display: flex;
@@ -1727,9 +1734,6 @@
     padding: 24px 0;
 }
 
-.dashboard-shell .project-history-link {
-    margin-top: 24px;
-}
 
 /* Use normal text for row labels. */
 .dashboard-data-table tbody th {
@@ -1752,149 +1756,6 @@
     font-size: 13px;
 }
 
-.project-section + .project-section {
-    margin-top: 20px;
-}
-
-.project-section h3 {
-    margin: 22px 0 6px;
-    font-size: 14px;
-}
-
-.project-section p {
-    max-width: 72ch;
-    font-size: 14px;
-}
-
-.project-facts {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    margin-bottom: 4px;
-}
-
-.project-specs {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    margin: 16px 0 0;
-    padding-top: 16px;
-    border-top: 1px solid var(--dash-line);
-}
-
-.project-answers div + div {
-    margin-top: 10px;
-}
-
-.project-answers dt {
-    color: var(--dash-muted);
-    font-size: 13px;
-}
-
-.project-answers dd {
-    margin: 2px 0 0;
-    font-size: 14px;
-}
-
-.project-materials th,
-.project-materials td {
-    vertical-align: top;
-}
-
-.project-material-notes {
-    min-width: 260px;
-    white-space: normal !important;
-}
-
-.project-materials small,
-.project-material-notes small {
-    display: block;
-    margin-top: 4px;
-    color: var(--dash-muted);
-    font-size: 12px;
-    font-weight: 400;
-    white-space: normal;
-}
-
-.project-cost {
-    color: var(--amber) !important;
-    font-size: 18px !important;
-}
-
-.project-actions {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 12px 20px;
-    margin-top: 18px;
-}
-
-.project-actions form {
-    margin: 0;
-}
-
-.project-link-button {
-    padding: 0;
-    border: 0;
-    background: none;
-    cursor: pointer;
-}
-
-.project-rename {
-    display: grid;
-    gap: 6px;
-    margin-top: 24px;
-    padding-top: 20px;
-    border-top: 1px solid var(--dash-line);
-}
-
-.project-rename label {
-    color: var(--dash-muted);
-    font-size: 12px;
-}
-
-.project-rename div {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-}
-
-.project-rename input {
-    flex: 0 1 360px;
-    min-width: 0;
-    min-height: 42px;
-    padding: 9px 12px;
-    font: inherit;
-    font-size: 14px;
-}
-
-.project-delete {
-    margin-top: 20px;
-    padding-top: 16px;
-    border-top: 1px solid var(--dash-line);
-}
-
-.project-delete summary {
-    color: var(--danger);
-    cursor: pointer;
-    font-size: 13px;
-    font-weight: 700;
-}
-
-.project-delete form {
-    margin-top: 12px;
-}
-
-.project-delete p {
-    margin-bottom: 12px;
-}
-
-@media (max-width: 900px) {
-    .project-facts {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    .project-specs {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-}
-
 @media (max-width: 520px) {
     .project-filters label:first-child,
     .project-filters input,
@@ -1903,9 +1764,6 @@
         width: 100%;
     }
 
-    .project-specs {
-        grid-template-columns: minmax(0, 1fr);
-    }
 }
 
 .plan-row-actions {
@@ -1913,4 +1771,626 @@
 }
 .plan-row-actions:empty {
     display: none;
+}
+
+
+/* Card headings that also hold a button or link. */
+.dashboard-detail-card .dashboard-section-heading h2 {
+    margin-bottom: 0;
+}
+
+.dashboard-detail-card .dashboard-section-heading {
+    align-items: center;
+}
+
+/* Page headings with a main action keep the button level with the title. */
+.dashboard-page-heading {
+    align-items: center;
+}
+
+.dashboard-page-heading h1:last-child {
+    margin-bottom: 0;
+}
+
+.dashboard-page-heading > div > p:last-child {
+    max-width: 62ch;
+}
+
+.dashboard-card {
+    transition: border-color 0.16s, box-shadow 0.16s, transform 0.16s;
+}
+
+/* Smaller buttons for actions inside lists. */
+.dashboard-button-small {
+    min-height: 34px;
+    padding: 6px 12px;
+    font-size: 12px;
+}
+
+/* Quiet red button for "Remove" actions; turns solid on hover. */
+.dashboard-shell .dashboard-button-ghost-danger {
+    border-color: var(--danger-border);
+    background: transparent;
+    color: var(--danger);
+}
+
+.dashboard-shell .dashboard-button-ghost-danger:hover:not(:disabled) {
+    background: var(--danger-solid);
+    border-color: var(--danger-solid);
+    color: white;
+}
+
+/* Forms */
+.dashboard-form {
+    display: grid;
+    gap: 18px;
+}
+
+.dashboard-fieldset {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px 16px;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+
+.dashboard-field {
+    display: grid;
+    /* start: a hint under one field doesn't push the neighbouring field down. */
+    align-content: start;
+    gap: 6px;
+    min-width: 0;
+}
+
+.dashboard-field-wide {
+    grid-column: 1 / -1;
+}
+
+.dashboard-field label,
+.mock-card-fields label {
+    color: var(--dash-muted);
+    font-size: 12px;
+    font-weight: 650;
+}
+
+.dashboard-field small {
+    color: var(--dash-muted);
+    font-size: 12px;
+}
+
+.dashboard-field input,
+.dashboard-field select,
+.mock-card-fields input,
+.mock-card-fields select {
+    width: 100%;
+    min-height: 44px;
+    padding: 10px 12px;
+    font-size: 14px;
+    transition: border-color 0.16s, background-color 0.16s;
+}
+
+.dashboard-field input:hover:not(:disabled),
+.dashboard-field select:hover:not(:disabled),
+.mock-card-fields input:hover,
+.mock-card-fields select:hover {
+    border-color: var(--line-strong);
+}
+
+.dashboard-field input:focus,
+.dashboard-field select:focus,
+.mock-card-fields input:focus,
+.mock-card-fields select:focus {
+    border-color: var(--dash-accent);
+}
+
+/* Browsers mark a field invalid only after the user has typed in it. */
+.dashboard-field input:user-invalid {
+    border-color: var(--danger);
+}
+
+/* A locked (view-only) form reads like plain text instead of greyed-out inputs. */
+.dashboard-fieldset:disabled input {
+    padding-inline: 0;
+    border-color: transparent;
+    background: transparent;
+    color: var(--dash-text);
+    font-weight: 650;
+    opacity: 1;
+    cursor: default;
+    /* No fade, or the borders flash when the page first locks the form. */
+    transition: none;
+}
+
+.dashboard-fieldset:disabled small {
+    display: none;
+}
+
+.dashboard-form-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding-top: 18px;
+    border-top: 1px solid var(--dash-line);
+}
+
+.dashboard-checkbox {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.dashboard-checkbox input {
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    accent-color: var(--dash-accent);
+}
+
+/* The card-number fields come from payment_fields.html, shared with checkout. */
+/* One field per row: the add-card form sits in a narrow column. */
+.dashboard-shell .mock-card-fields {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 18px;
+    margin: 0;
+}
+
+/* min-width: 0 lets a long dropdown option shrink instead of spilling out of the card. */
+.dashboard-shell .mock-card-fields label {
+    display: grid;
+    gap: 6px;
+    min-width: 0;
+}
+
+.dashboard-shell .mock-card-fields input,
+.dashboard-shell .mock-card-fields select {
+    min-width: 0;
+}
+
+/* Tables */
+.dashboard-number-cell {
+    text-align: right !important;
+    font-variant-numeric: tabular-nums;
+}
+
+.dashboard-wrap-cell {
+    min-width: 220px;
+    white-space: normal !important;
+}
+
+.dashboard-row-links tbody tr {
+    transition: background-color 0.16s;
+}
+
+.dashboard-row-links tbody tr:hover {
+    background: var(--surface-faint);
+}
+
+.dashboard-row-links tbody th a {
+    color: var(--dash-text);
+    font-weight: 650;
+    text-decoration: none;
+}
+
+.dashboard-row-links tbody tr:hover th a {
+    color: var(--dash-accent);
+}
+
+.dashboard-row-arrow {
+    text-align: right !important;
+}
+
+.dashboard-row-arrow a {
+    font-weight: 700;
+    text-decoration: none !important;
+}
+
+/* Pagination */
+.dashboard-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    margin-top: 24px;
+}
+
+/* Empty states */
+.dashboard-empty p {
+    margin-bottom: 16px;
+}
+
+/* Overview */
+.overview-tiles {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.overview-tile {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-height: 168px;
+    padding: 20px;
+}
+
+.overview-tile:hover,
+.payment-card:hover {
+    border-color: var(--dash-accent);
+    transform: translateY(-2px);
+}
+
+.overview-tile-label {
+    color: var(--dash-muted);
+    font-size: 13px;
+}
+
+.overview-tile strong {
+    font: 750 30px/1.1 var(--font-display);
+}
+
+.overview-tile-note {
+    margin-top: auto;
+    color: var(--dash-muted);
+    font-size: 12px;
+}
+
+/* Account Settings */
+.settings-layout {
+    max-width: 760px;
+}
+
+.settings-main {
+    display: grid;
+    gap: 16px;
+}
+
+.dashboard-password-field button {
+    top: 6px;
+}
+
+.settings-meta {
+    margin: 24px 0 0;
+    padding-top: 20px;
+    border-top: 1px solid var(--dash-line);
+}
+
+.settings-meta div {
+    padding-bottom: 0;
+    border-bottom: 0;
+}
+
+/* Saved Payments */
+.payments-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 380px;
+    gap: 16px;
+    align-items: start;
+}
+
+/* While editing there is only the form, so let it take a comfortable width. */
+.payments-layout > .payment-form-card:only-child {
+    grid-column: 1 / -1;
+    max-width: 560px;
+}
+
+.payment-card-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 16px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.payment-card {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 20px;
+}
+
+.payment-card.is-default {
+    border-top: 3px solid var(--dash-accent);
+}
+
+.payment-card-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.payment-card-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 700;
+}
+
+.dashboard-shell .payment-card-number {
+    margin: 10px 0 0;
+    font: 600 22px/1.2 var(--font-mono);
+    letter-spacing: 0.08em;
+}
+
+.dashboard-shell .payment-card-meta {
+    margin-bottom: 8px;
+    color: var(--dash-muted);
+    font-size: 13px;
+}
+
+.payment-card-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: auto;
+    padding-top: 14px;
+    border-top: 1px solid var(--dash-line);
+}
+
+.payment-card-actions form {
+    margin: 0;
+}
+
+.payment-card-actions .dashboard-button {
+    min-height: 34px;
+    padding: 6px 12px;
+    font-size: 12px;
+}
+
+.payment-empty h3 {
+    margin: 4px 0;
+}
+
+/* Order details */
+.order-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 320px;
+    gap: 16px;
+    align-items: start;
+}
+
+.order-side {
+    display: grid;
+    gap: 16px;
+}
+
+.order-totals {
+    display: grid;
+    gap: 10px;
+    margin: 0;
+    font-size: 14px;
+}
+
+.order-totals div {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.order-totals dt {
+    color: var(--dash-muted);
+}
+
+.order-totals dd {
+    margin: 0;
+    font-variant-numeric: tabular-nums;
+}
+
+.order-totals .order-total-row {
+    padding-top: 12px;
+    border-top: 1px solid var(--dash-line);
+    font-size: 17px;
+    font-weight: 750;
+}
+
+.order-totals .order-total-row dt {
+    color: var(--dash-text);
+}
+
+.order-info {
+    grid-template-columns: 1fr;
+    margin: 0;
+}
+
+.order-info dd {
+    white-space: normal;
+}
+
+.order-info div:last-child {
+    padding-bottom: 0;
+    border-bottom: 0;
+}
+
+/* Text-style red button for less prominent "Remove" actions in lists. */
+.dashboard-shell .dashboard-link-danger {
+    padding: 4px 0;
+    border: 0;
+    background: none;
+    color: var(--danger);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 650;
+    cursor: pointer;
+}
+
+.dashboard-shell .dashboard-link-danger:hover {
+    text-decoration: underline;
+}
+
+/* Line the row actions up with the project title column. */
+@media (min-width: 901px) {
+    .plan-row-actions {
+        padding-left: 92px;
+    }
+}
+
+/* Saved Projects */
+.dashboard-shell .project-filters {
+    padding: 16px;
+}
+
+.project-filters .dashboard-field:first-child {
+    flex: 1 1 280px;
+}
+
+.dashboard-shell .project-count {
+    margin-bottom: 10px;
+}
+
+.dashboard-shell .project-no-match {
+    padding: 26px;
+}
+
+.project-no-match h2 {
+    font-size: 18px;
+}
+
+/* Subscription */
+.plan-card.is-active {
+    border-top: 3px solid var(--dash-accent);
+}
+
+.plan-card-title {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.plan-card-title .dashboard-stat-icon {
+    margin: 0;
+}
+
+.plan-card-title .dashboard-eyebrow {
+    margin-bottom: 2px;
+}
+
+/* Tablet */
+@media (max-width: 1080px) {
+    .overview-tiles {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .payments-layout,
+    .order-layout {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+/* Phone */
+@media (max-width: 620px) {
+    .dashboard-page-heading .dashboard-button {
+        width: 100%;
+    }
+
+    /* Two small tiles per row keep the overview short on phones. */
+    .overview-tiles {
+        gap: 10px;
+    }
+
+    .overview-tile {
+        min-height: 0;
+        padding: 14px;
+    }
+
+    .overview-tile .dashboard-stat-icon {
+        margin-bottom: 6px;
+    }
+
+    .overview-tile strong {
+        font-size: 24px;
+    }
+
+    /* Keep a card's title and its "View all" link on one line. */
+    .dashboard-detail-card .dashboard-section-heading {
+        flex-direction: row;
+        align-items: center;
+    }
+
+    .dashboard-fieldset {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .dashboard-form-actions .dashboard-button {
+        flex: 1 1 140px;
+    }
+
+    .project-filters .dashboard-field,
+    .project-filters .dashboard-button {
+        flex: 1 1 100%;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .dashboard-card,
+    .overview-tile:hover,
+    .payment-card:hover {
+        transition: none;
+        transform: none;
+    }
+}
+
+/* Subscription */
+.plan-expiring {
+    color: var(--amber-bright) !important;
+}
+
+.plan-options {
+    margin-top: 28px;
+}
+
+.plan-options h2 {
+    margin-bottom: 14px;
+    font: 700 20px/1.25 var(--font-display);
+}
+
+.plan-option {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 22px;
+}
+
+.plan-option:hover {
+    border-color: var(--dash-accent);
+    transform: translateY(-2px);
+}
+
+.plan-option h3 {
+    margin-bottom: 8px;
+    font-size: 16px;
+}
+
+.plan-option .dashboard-button {
+    margin-top: 18px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .plan-option:hover {
+        transform: none;
+    }
+}
+
+.plan-option {
+    border-top: 3px solid var(--dash-line);
+}
+
+/* No empty space under the last thing in the plan card. */
+.plan-card .sub-card-head:last-child {
+    margin-bottom: 0;
+}
+
+.plan-card .dashboard-detail-list {
+    margin-bottom: 0;
+}
+
+.plan-card .dashboard-detail-list div {
+    padding-bottom: 0;
+    border-bottom: 0;
 }

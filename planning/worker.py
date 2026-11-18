@@ -1,5 +1,3 @@
-
-
 import argparse
 import logging
 from threading import Event
@@ -13,7 +11,8 @@ load_dotenv()
 from .jobs import LeaseLost, claim_job, save_job, mark_processing_stages
 from .schemas import PlanningError
 from .workflow import run_workflow
-from services.vector_search import load_vector_search
+from services.vector_search import load_vector_search, update_cache_if_needed
+from utils.database import DatabaseBusyError
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +31,12 @@ def mark_failed(job, worker, message):
 
 
 def process_one(worker):
-    job = claim_job(worker)
+    try:
+        job = claim_job(worker)
+    except DatabaseBusyError:
+        # Another worker using the same database is checking the queue right now.
+        logger.warning("Planner queue is busy; trying again shortly.")
+        return None
     if job is None:
         return None
 
@@ -57,7 +61,8 @@ def process_one(worker):
 def run_worker(stop_event=None, once=False):
     if stop_event is None:
         stop_event = Event()
-    # Load vector search before taking jobs.
+    # Rebuild missing or outdated vectors before taking jobs; failures fall back to SQL search.
+    update_cache_if_needed()
     load_vector_search()
     logger.info("Watching planner jobs in MySQL")
     worker = uuid.uuid4().hex
@@ -83,7 +88,7 @@ def run_worker(stop_event=None, once=False):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Process durable BuildBetter planner jobs.")
+    parser = argparse.ArgumentParser(description="Run the BuildBetter planner worker.")
     parser.add_argument("--once", action="store_true", help="Process at most one queued job.")
     options = parser.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")

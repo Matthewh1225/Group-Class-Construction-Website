@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Contact Us - BuildBetter{% endblock %}
+{% block styles %}
+    <meta name="description" content="Get in touch with BuildBetter and scan our QR code to visit on your phone.">
+    <link rel="stylesheet" href="{{ url_for('static', filename='contact.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="wrap contact-page">
+    <header class="contact-header">
+        <h1>Contact us</h1>
+    </header>
+
+    <div class="contact-grid">
+        <section class="contact-details" aria-labelledby="contact-title">
+            <h2 id="contact-title">Let's connect</h2>
+            {% if contact_email %}
+            <div class="contact-method">
+                <h3>Email</h3>
+                <p>{{ contact_email }}</p>
+            </div>
+            {% endif %}
+            {% if contact_phone %}
+            <div class="contact-method">
+                <h3>Phone</h3>
+                <p>{{ contact_phone }}</p>
+            </div>
+            {% endif %}
+            {% if contact_fax %}
+            <div class="contact-method">
+                <h3>Fax</h3>
+                <p>{{ contact_fax }}</p>
+            </div>
+            {% endif %}
+            {% if contact_linkedin %}
+            <div class="contact-method">
+                <h3>LinkedIn</h3>
+                <p>BuildBetter on LinkedIn</p>
+            </div>
+            {% endif %}
+        </section>
+
+        <section class="contact-qr" aria-labelledby="qr-title">
+            <h2 id="qr-title">BuildBetter on your phone</h2>
+            <p>Scan to open our website on your phone.</p>
+            <a class="contact-qr-image" href="{{ url_for('static', filename='images/BuildBetter_QR.png') }}"
+               target="_blank" rel="noopener" aria-label="Open the full-size BuildBetter QR code in a new tab">
+                <img src="{{ url_for('static', filename='images/BuildBetter_QR.png') }}"
+                     alt="QR code for buildbetter.lol" width="2048" height="2048" decoding="async">
+            </a>
+        </section>
+    </div>
+</div>
+{% endblock %}
+
+{% block footer %}{% include "site_footer.html" %}{% endblock %}

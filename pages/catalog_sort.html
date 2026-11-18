@@ -1,0 +1,28 @@
+{% if subcategories %}
+<div class="catalog-sort">
+    <label for="catalog-subcategory">Product type</label>
+    <select id="catalog-subcategory" name="subcategory">
+        <option value="">All types</option>
+        {% for value in subcategories %}
+        <option value="{{ value }}" {% if subcategory == value %}selected{% endif %}>{{ value }}</option>
+        {% endfor %}
+    </select>
+</div>
+{% endif %}
+<div class="catalog-sort">
+    <label for="catalog-sort">Sort by</label>
+    <select id="catalog-sort" name="sort">
+        <option value="" {% if not sort %}selected{% endif %}>Default</option>
+        {% for value, option in sort_options.items() %}
+        <option value="{{ value }}" {% if sort == value %}selected{% endif %}>{{ option[0] }}</option>
+        {% endfor %}
+    </select>
+</div>
+<div class="catalog-sort">
+    <label for="catalog-per-page">Items per page</label>
+    <select id="catalog-per-page" name="per_page">
+        {% for size in page_sizes %}
+        <option value="{{ size }}" {% if per_page == size %}selected{% endif %}>{{ size }}</option>
+        {% endfor %}
+    </select>
+</div>

@@ -5,14 +5,16 @@ from planning.ai_config import WORKFLOW_TIERS
 from routes.auth import login_required
 from services.orders import add_receipt_totals, get_order, get_order_items, get_user_orders
 from services.crews import parse_crew
+from services.payments import delete_card, get_card, list_cards, save_card, validate_card
 from services.projects import (PROJECT_STATUS_LABELS, delete_project, get_project_details, count_projects, get_project_list,
                                rename_project, save_project_crew, set_project_completed)
-from utils.users import create_user, delete_user_completely, get_all_users, set_user_status
+from services.subscriptions import get_user_subscription
+from utils.users import (change_user_password, check_profile_form, create_user, delete_user_completely, full_name,
+                         get_all_users, get_profile, set_user_status, update_profile)
 
 dashboard_bp = Blueprint("dashboard", __name__)
 
 
-# Refresh roles before handling form submissions.
 @dashboard_bp.route("/dashboard", methods=["GET", "POST"])
 @login_required
 def dashboard():
@@ -33,8 +35,7 @@ def dashboard():
             flash("Email already in use.", "error")
         except Error:
             current_app.logger.exception("Unable to create an admin user")
-            flash("User creation is temporarily unavailable. Nothing was changed.", "error")
-        # Redirect to avoid resubmitting the form on refresh.
+            flash("Unable to create user. Try again.", "error")
         return redirect(url_for("dashboard.dashboard", add_user="error"))
 
     if role == "admin":
@@ -60,7 +61,24 @@ def dashboard():
             admin_workspace=True, user_statistics=user_statistics,
         )
 
-    return redirect(url_for("dashboard.settings"))
+    return show_overview()
+
+
+def show_overview():
+    user_id = session["user_id"]
+    project_count = count_projects(user_id)
+    orders = get_user_orders(user_id)
+    cards = list_cards(user_id)
+    default_card = None
+    for card in cards:
+        if card["is_default"]:
+            default_card = card
+    return render_template(
+        "dashboard/overview.html", project_count=project_count,
+        order_count=len(orders), card_count=len(cards),
+        default_card=default_card, subscription=get_user_subscription(user_id),
+        workflow_tiers=WORKFLOW_TIERS,
+    )
 
 
 @dashboard_bp.get("/dashboard/projects")
@@ -96,29 +114,43 @@ def project_detail(project_id):
     return redirect(url_for("planner.planning_job", job_id=project["job_id"]))
 
 
+# Return to the "Saved project" controls after an update.
+def back_to_saved_project(project):
+    return redirect(url_for("planner.planning_job", job_id=project["job_id"], _anchor="save-project"), code=303)
+
+
 @dashboard_bp.post("/dashboard/projects/<int:project_id>/rename")
 @login_required
 def project_rename(project_id):
-    get_project_or_404(project_id)
+    project = get_project_or_404(project_id)
     try:
         rename_project(project_id, session["user_id"], request.form.get("name"))
         flash("Project name saved.", "success")
     except ValueError as error:
         flash(str(error), "error")
-    return redirect(url_for("dashboard.project_detail", project_id=project_id))
+    return back_to_saved_project(project)
 
 
 @dashboard_bp.post("/dashboard/projects/<int:project_id>/completed")
 @login_required
 def project_completed(project_id):
-    get_project_or_404(project_id)
+    project = get_project_or_404(project_id)
     completed = request.form.get("completed") == "yes"
     set_project_completed(project_id, session["user_id"], completed)
     if completed:
         flash("Project marked as completed.", "success")
     else:
         flash("Project reopened.", "success")
-    return redirect(url_for("dashboard.project_detail", project_id=project_id))
+    return back_to_saved_project(project)
+
+
+@dashboard_bp.post("/dashboard/projects/<int:project_id>/crew/remove")
+@login_required
+def project_crew_remove(project_id):
+    project = get_project_or_404(project_id)
+    save_project_crew(project_id, session["user_id"], None)
+    flash("Crew removed from this project.", "success")
+    return back_to_saved_project(project)
 
 
 @dashboard_bp.post("/dashboard/projects/<int:project_id>/crew")
@@ -135,21 +167,12 @@ def project_crew(project_id):
     return redirect(url_for("dashboard.project_detail", project_id=project_id, _anchor="crew"))
 
 
-@dashboard_bp.post("/dashboard/projects/<int:project_id>/crew/remove")
-@login_required
-def project_crew_remove(project_id):
-    get_project_or_404(project_id)
-    save_project_crew(project_id, session["user_id"], None)
-    flash("Crew removed from this project.", "success")
-    return redirect(url_for("dashboard.project_detail", project_id=project_id, _anchor="crew"))
-
-
 @dashboard_bp.post("/dashboard/projects/<int:project_id>/delete")
 @login_required
 def project_delete(project_id):
     project = get_project_or_404(project_id)
     delete_project(project_id, session["user_id"])
-    flash("Removed from Saved Projects. Your planning history was kept.", "success")
+    flash("Project removed. Planning history kept.", "success")
     if request.form.get("return_to") == "history":
         return redirect(url_for("planner.planning_history"), code=303)
     if request.form.get("return_to") == "plan":
@@ -174,12 +197,66 @@ def order_detail(order_id):
     return render_template("dashboard/order_detail.html", order=order, items=items)
 
 
-@dashboard_bp.get("/dashboard/settings")
+def show_settings(profile=None, profile_error=None, password_error=None):
+    """Render settings with errors from either the profile or password form."""
+    user_id = session["user_id"]
+    if profile is None:
+        profile = get_profile(user_id)
+        if profile is None:
+            abort(404)
+    status = 400 if profile_error or password_error else 200
+    return render_template(
+        "dashboard/settings.html", profile=profile, profile_error=profile_error, password_error=password_error,
+    ), status
+
+
+@dashboard_bp.route("/dashboard/settings", methods=["GET", "POST"])
 @login_required
 def settings():
-    return render_template(
-        "dashboard/settings.html", profile={"display_name": session.get("display_name", "")},
-    )
+    if request.method == "GET":
+        return show_settings()
+
+    # Use the session's user ID so the form cannot target another account.
+    user_id = session["user_id"]
+    try:
+        new_profile = check_profile_form(request.form)
+        update_profile(user_id, new_profile)
+    except ValueError as problem:
+        error = str(problem)
+    except IntegrityError:
+        error = "Another account already uses that email."
+    except Error:
+        current_app.logger.exception("Unable to update account %s", user_id)
+        error = "Couldn't save changes. Try again."
+    else:
+        session["display_name"] = full_name(new_profile["firstName"], new_profile["lastName"])
+        flash("Account updated.", "success")
+        return redirect(url_for("dashboard.settings"), code=303)
+
+    profile = get_profile(user_id)
+    if profile is None:
+        abort(404)
+    # Keep submitted values after errors.
+    profile = dict(profile)
+    profile.update(request.form.to_dict())
+    return show_settings(profile=profile, profile_error=error)
+
+
+@dashboard_bp.post("/dashboard/settings/password")
+@login_required
+def change_password():
+    try:
+        change_user_password(
+            session["user_id"], request.form.get("current_password", ""),
+            request.form.get("new_password", ""), request.form.get("confirm_password", ""),
+        )
+    except ValueError as problem:
+        return show_settings(password_error=str(problem))
+    except Error:
+        current_app.logger.exception("Unable to change the password for account %s", session["user_id"])
+        return show_settings(password_error="Couldn't change password. Try again.")
+    flash("Password changed.", "success")
+    return redirect(url_for("dashboard.settings"), code=303)
 
 
 @dashboard_bp.post("/dashboard/users/<int:user_id>/status")
@@ -198,7 +275,7 @@ def change_user_status(user_id):
         return redirect(url_for("dashboard.dashboard"))
     except Error:
         current_app.logger.exception("Unable to change status for user %s", user_id)
-        flash("The account status could not be changed. Try again shortly.", "error")
+        flash("Unable to change account status. Try again.", "error")
         return redirect(url_for("dashboard.dashboard"))
 
     if not found:
@@ -219,14 +296,14 @@ def delete_user(user_id):
         return redirect(url_for("dashboard.dashboard"))
     # Check DELETE on the server too.
     if request.form.get("confirm_text") != "DELETE":
-        flash("Type DELETE to confirm. Nothing was deleted.", "error")
+        flash("Type DELETE to confirm.", "error")
         return redirect(url_for("dashboard.dashboard"))
 
     try:
         deleted = delete_user_completely(user_id)
     except Error:
         current_app.logger.exception("Deleting user %s failed", user_id)
-        flash("Unable to delete user. Nothing was removed.", "error")
+        flash("Unable to delete user. Try again.", "error")
         return redirect(url_for("dashboard.dashboard"))
 
     if deleted:
@@ -234,3 +311,48 @@ def delete_user(user_id):
     else:
         flash("User not found.", "error")
     return redirect(url_for("dashboard.dashboard"))
+
+
+@dashboard_bp.route("/dashboard/payments", methods=["GET", "POST"])
+@login_required
+def payments():
+    if request.method == "POST":
+        try:
+            save_card(session["user_id"], validate_card(request.form))
+            flash("Card saved.", "success")
+        except ValueError as error:
+            flash(str(error), "error")
+        return redirect(url_for("dashboard.payments"), code=303)
+    return render_template("dashboard/payments.html", cards=list_cards(session["user_id"]))
+
+
+@dashboard_bp.route("/dashboard/payments/<int:card_id>/edit", methods=["GET", "POST"])
+@login_required
+def payment_edit(card_id):
+    card = get_card(session["user_id"], card_id)
+    if request.method == "POST":
+        try:
+            save_card(session["user_id"], validate_card(request.form, existing_card=card), card_id)
+            flash("Card updated.", "success")
+            return redirect(url_for("dashboard.payments"), code=303)
+        except ValueError as error:
+            flash(str(error), "error")
+    return render_template("dashboard/payments.html", cards=[], editing=card)
+
+
+@dashboard_bp.post("/dashboard/payments/<int:card_id>/delete")
+@login_required
+def payment_delete(card_id):
+    delete_card(session["user_id"], card_id)
+    flash("Card removed.", "success")
+    return redirect(url_for("dashboard.payments"), code=303)
+
+
+@dashboard_bp.post("/dashboard/payments/<int:card_id>/default")
+@login_required
+def payment_default(card_id):
+    card = get_card(session["user_id"], card_id)
+    card["is_default"] = True
+    save_card(session["user_id"], card, card_id)
+    flash("Default card updated.", "success")
+    return redirect(url_for("dashboard.payments"), code=303)

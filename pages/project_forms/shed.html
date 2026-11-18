@@ -3,15 +3,14 @@
     <div class="field-row">
         {{ number_field('lengthFt', 'Length', unit='ft') }}
         {{ number_field('widthFt', 'Width', unit='ft') }}
-        {{ number_field('heightFt', 'Height', default=8, unit='ft', required=False) }}
     </div>
 </fieldset>
 <fieldset class="field-group">
-    <legend>Extras (optional)</legend>
+    <legend>A couple of details</legend>
+    <div class="field-row">
+        {{ number_field('heightFt', 'Wall height', default=8, unit='ft', required=False) }}
+    </div>
     <div class="choice-grid">
-        {{ checkbox('ramp', 'Add a ramp') }}
-        {{ checkbox('window', 'Add a window') }}
-        {{ checkbox('ac', 'Add air conditioning') }}
-        {{ checkbox('lighting', 'Add lighting') }}
+        {{ checkbox('window', 'Include a window') }}
     </div>
 </fieldset>

@@ -1,9 +1,7 @@
 const methodStep = document.getElementById("method-step");
 const templateStep = document.getElementById("template-step");
-const sizeStep = document.getElementById("size-step");
 const plannerStep = document.getElementById("planner-form");
 const steps = document.querySelectorAll(".planner-step, .planner-container");
-const sizeInput = document.getElementById("project-size");
 const progressSteps = document.querySelectorAll(".planner-progress li");
 
 function showProgress(stage) {
@@ -36,15 +34,8 @@ document.getElementById("choose-template").addEventListener("click", function ()
 });
 
 document.getElementById("choose-custom").addEventListener("click", function () {
-    showStep(sizeStep);
+    showStep(plannerStep);
 });
-
-for (const button of document.querySelectorAll(".project-option")) {
-    button.addEventListener("click", function () {
-        sizeInput.value = button.dataset.size;
-        showStep(plannerStep);
-    });
-}
 
 for (const button of document.querySelectorAll(".template-option")) {
     button.addEventListener("click", function () {
@@ -60,14 +51,9 @@ for (const button of document.querySelectorAll(".template-back")) {
 
 for (const button of document.querySelectorAll(".back-button")) {
     button.addEventListener("click", function () {
-        sizeInput.value = "";
         showStep(methodStep);
     });
 }
-
-document.querySelector(".details-back").addEventListener("click", function () {
-    showStep(sizeStep);
-});
 
 // Share AI mode and Generate controls across both forms.
 const plannerForms = document.querySelectorAll(".planner-page form");
@@ -85,7 +71,7 @@ for (const form of plannerForms) {
     form.addEventListener("submit", function () {
         const status = form.querySelector(".plan-status");
         const button = form.querySelector(".planner-generate");
-        status.textContent = "Starting planning...";
+        status.textContent = "Starting your plan...";
         status.hidden = false;
         button.disabled = true;
         button.classList.add("is-busy");

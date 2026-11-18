@@ -13,19 +13,12 @@
     margin-bottom: 28px;
 }
 
-.crews-header .sheet-tag {
-    margin-bottom: 14px;
-}
 
 .crews h1 {
     font: 800 clamp(2rem, 5vw, 3rem) / 1.08 var(--font-display);
     letter-spacing: -0.02em;
 }
 
-.crews-lede {
-    margin-top: 12px;
-    font-size: 1.08rem;
-}
 
 .crews-note {
     margin-top: 6px;

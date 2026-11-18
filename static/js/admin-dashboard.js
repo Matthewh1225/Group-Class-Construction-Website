@@ -53,7 +53,7 @@ function userMatches(user, query) {
     if (roleFilter.value === "user") {
         return user.role !== "admin";
     }
-    return true; 
+    return true;
 }
 
 function compareUsers(a, b) {
@@ -61,7 +61,6 @@ function compareUsers(a, b) {
     if (state.sort === "joined") {
         compared = a.joined.localeCompare(b.joined);
     } else {
-
         compared = collator.compare(a[state.sort], b[state.sort]);
     }
 
@@ -82,13 +81,12 @@ function showPage(matched) {
     if (state.page > pageCount) {
         state.page = pageCount;
     }
-    const start = (state.page - 1) * state.pageSize; 
-    const end = start + state.pageSize;              
+    const start = (state.page - 1) * state.pageSize;
+    const end = start + state.pageSize;
 
     for (const user of users) {
         user.row.hidden = true;
     }
-    // Move the existing rows into the new order.
     for (let index = 0; index < matched.length; index++) {
         const row = matched[index].row;
         row.hidden = index < start || index >= end;
@@ -116,10 +114,10 @@ function showPage(matched) {
 
 function updateSortLabels() {
     const ascending = state.direction === "asc";
-    let arrow = "↓"; 
+    let arrow = "↓";
     let nextDirectionLabel = "Sort ascending";
     if (ascending) {
-        arrow = "↑"; 
+        arrow = "↑";
         nextDirectionLabel = "Sort descending";
     }
     directionButton.textContent = arrow;
@@ -227,7 +225,6 @@ function setupUserTable() {
 }
 
 
-
 // Use textContent to display user data as plain text.
 function showUserDetails(user) {
     let role = "User";
@@ -314,7 +311,6 @@ function setupRowButtons() {
 }
 
 
-
 function validateField(input) {
     if (["firstName", "lastName", "email"].includes(input.name)) {
         input.value = input.value.trim();
@@ -323,7 +319,6 @@ function validateField(input) {
     let error = "";
     if (input.validity.valueMissing) {
         error = "This field is required.";
-
     } else if (input.name === "email" && input.validity.typeMismatch) {
         error = "Enter a valid email.";
     } else if (input.name === "password") {
@@ -405,7 +400,6 @@ function setupAddUserForm() {
         addDialog.showModal();
     }
 }
-
 
 
 if (tableBody !== null) {

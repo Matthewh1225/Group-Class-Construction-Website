@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% from "cart/cart_components.html" import format_money_cents %}
+{% from "payment_fields.html" import card_fields with context %}
 {% set plan = plans[selected_plan] %}
 
 {% block title %}Pro checkout - BuildBetter{% endblock %}
@@ -22,7 +23,6 @@
         </div>
     </header>
     <div id="checkout-error" class="sub-checkout-error" role="alert" tabindex="-1" {% if not checkout_error %}hidden{% endif %}>
-        <strong>Checkout could not be completed</strong>
         <p>{{ checkout_error or '' }}</p>
     </div>
 
@@ -46,55 +46,60 @@
                 </div>
             </fieldset>
 
-            <fieldset class="sub-panel" disabled>
-                <legend class="sr-only">Payment details</legend>
+            <fieldset class="sub-panel">
+                <legend class="sr-only">Payment method</legend>
                 <div class="sub-section-heading"><span>02</span><h2>Payment details</h2></div>
-                {# Fields without names aren't submitted. #}
-                <div class="sub-payment-fields">
-                    <div class="sub-payment-field">
-                        <label for="card-first-name">First name</label>
-                        <input id="card-first-name" type="text" autocomplete="on" maxlength="40" placeholder="John" required>
-                    </div>
-                    <div class="sub-payment-field">
-                        <label for="card-last-name">Last name</label>
-                        <input id="card-last-name" type="text" autocomplete="on" maxlength="40" placeholder="Doe" required>
-                    </div>
-                    <div class="sub-payment-field sub-card-number">
-                        <label for="card-number">Card number</label>
-                        <input id="card-number" type="text" inputmode="numeric" autocomplete="on" placeholder="1234 5678 90" required>
-                    </div>
-                    <div class="sub-payment-field">
-                        <label for="card-expiry">Expiration date</label>
-                        <input id="card-expiry" type="text" inputmode="numeric" autocomplete="on" placeholder="MM/YY" required>
-                    </div>
-                    <div class="sub-payment-field">
-                        <label for="card-code">Security code</label>
-                        <input id="card-code" type="password" inputmode="numeric" autocomplete="on"  placeholder="123" required>
-                    </div>
+                <div class="sub-payment-choice">
+                    <label for="payment-method">Payment method</label>
+                    <select id="payment-method" name="payment_method">
+                        {% for card in saved_cards %}
+                            <option value="{{ card.id }}" {% if card.is_default %}selected{% endif %}>{% if card.is_default %}Use default card — {% endif %}{{ card.card_type }} &bull;&bull;&bull;&bull; {{ card.card_number[-4:] }}</option>
+                        {% endfor %}
+                        <option value="new" {% if not saved_cards %}selected{% endif %}>Add a new card</option>
+                    </select>
+                    <fieldset id="new-mock-card" hidden>
+                        <legend>New card</legend>
+                        {{ card_fields() }}
+                        <label><input type="checkbox" name="save_card" value="1"> Save this card</label>
+                    </fieldset>
                 </div>
             </fieldset>
         </div>
 
         <aside id="order-summary" class="sub-summary" data-plan="{{ selected_plan }}" aria-labelledby="summary-title">
-            <div class="sub-summary-heading"><span class="sub-pro-mark">PRO</span><div><p></p></div></div>
+            <div class="sub-summary-heading"><span class="sub-pro-mark">PRO</span></div>
             <div id="plan-summary" aria-live="polite" aria-atomic="true">
                 <dl class="sub-summary-lines">
                     <div><dt id="summary-plan">{{ plan.name }}</dt><dd id="summary-price">{{ format_money_cents(plan.price) }}</dd></div>
                     <div><dt>Billing</dt><dd id="summary-billing">{{ plan.billing }}</dd></div>
+                    <div id="subscription-discount-row" {% if not totals.get('discount_cents') %}hidden{% endif %}>
+                        <dt>Discount</dt><dd id="subscription-discount-value">-{{ format_money_cents(totals.get('discount_cents', 0)) }}</dd>
+                    </div>
+                    <div><dt>Estimated tax (8.5%)</dt><dd id="subscription-tax">{{ format_money_cents(totals.tax_cents) }}</dd></div>
                     <div id="yearly-savings" class="sub-savings" {% if not plan.savings_cents %}hidden{% endif %}>
                         <dt>Annual savings vs. monthly</dt><dd id="summary-savings">{{ format_money_cents(plans.yearly.savings_cents) }}</dd>
                     </div>
                 </dl>
-                <div class="sub-total"><div><span>Total</span><small>USD</small></div><strong id="summary-total">{{ format_money_cents(plan.price) }}</strong></div>
+                <div class="sub-total"><div><span>Estimated total</span></div><strong id="summary-total">{{ format_money_cents(totals.total_cents) }}</strong></div>
             </div>
             <p id="summary-terms">{{ plan.terms }}</p>
             <button id="subscription-submit" class="shopping-button shopping-primary sub-submit" type="submit">
                 <span id="checkout-button-label">{{ plan.button_label }}</span>
                 <span class="sub-submit-arrow" aria-hidden="true">&rarr;</span>
             </button>
+            <div class="shopping-discount-entry">
+                <label for="subscription-discount-code">Discount code</label>
+                <div>
+                    <input id="subscription-discount-code" name="discount_code" type="text" maxlength="40" autocomplete="off" value="{{ discount_code }}">
+                    <button class="shopping-button shopping-secondary" id="subscription-apply-discount" type="button">Apply</button>
+                </div>
+                <p id="subscription-discount-message" role="status" aria-live="polite"></p>
+            </div>
         </aside>
     </form>
 </div>
 <script id="pro-plan-data" type="application/json">{{ plans|tojson }}</script>
+<script src="{{ url_for('static', filename='js/mock-payments.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/discount-preview.js') }}" defer></script>
 <script src="{{ url_for('static', filename='js/subscription-checkout.js') }}" defer></script>
 {% endblock %}

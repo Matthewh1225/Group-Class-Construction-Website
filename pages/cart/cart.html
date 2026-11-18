@@ -4,13 +4,15 @@
 {% block shopping_content %}
 <header class="shopping-heading">
     <div><h1>Your cart</h1></div>
+    {% if cart_items or preorder_items or crew_items %}
+    <form method="post" action="{{ url_for('shopping.remove_all_from_cart') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="shopping-button shopping-secondary" type="submit">Remove all</button>
+    </form>
+    {% endif %}
     <a class="shopping-link" href="{{ url_for('products.products') }}">Continue shopping <span aria-hidden="true">&rarr;</span></a>
 </header>
-{% if cart_items or preorder_items or crew_items %}
-<div class="shopping-columns">
-    <section class="shopping-panel" aria-label="Cart items">
-        {% for item in cart_items %}
-        {# Quantity and Remove controls submit these forms. #}
+{% macro cart_row(item) %}
         <form id="update-{{ item.product_id }}" method="post" action="{{ url_for('shopping.update_cart') }}">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="hidden" name="product_id" value="{{ item.product_id }}">
@@ -24,11 +26,12 @@
             <div class="shopping-cart-product">
                 {{ product_name(item) }}
                 <p>{{ format_money_cents(item.unit_price_cents) }} / {{ item.unit }}</p>
+                <p>In stock: {{ item.quantity }} {{ item.unit }}</p>
                 {% if item.error %}<p class="shopping-notice" role="status">{{ item.error }}</p>{% endif %}
             </div>
             <div class="shopping-cart-controls">
-                <label for="cart-quantity-{{ item.product_id }}">Quantity</label>
-                <input id="cart-quantity-{{ item.product_id }}" name="quantity" type="number" min="1" step="1" value="{{ item.quantity }}" form="update-{{ item.product_id }}" required class="shopping-cart-quantity">
+                <label for="cart-quantity-{{ item.product_id }}">Total requested</label>
+                <input id="cart-quantity-{{ item.product_id }}" name="quantity" type="number" min="1" step="1" value="{{ item.requested_quantity }}" form="update-{{ item.product_id }}" required class="shopping-cart-quantity">
                 <button class="shopping-button shopping-secondary" type="submit" form="update-{{ item.product_id }}">Update</button>
             </div>
             <div class="shopping-cart-line-total">
@@ -38,16 +41,15 @@
                 </div>
             </div>
         </article>
-        {% endfor %}
+{% endmacro %}
 
-        {% if preorder_items %}
-        <h2 class="shopping-preorder-title">Pre-orders</h2>
-        {% for item in preorder_items %}
+{% macro preorder_row(item) %}
         <article class="shopping-cart-row">
             {{ product_image(item) }}
             <div class="shopping-cart-product">
                 <span class="shopping-product-name">{{ item.name }}</span>
-                <p>{{ format_money_cents(item.unit_price_cents) }} / {{ item.unit }} (est.)</p>
+                <p>{{ format_money_cents(item.unit_price_cents) }} / {{ item.unit }}{% if not item.catalog_item %} (est.){% endif %}</p>
+                {% if item.error %}<p class="shopping-notice" role="status">{{ item.error }}</p>{% endif %}
             </div>
             <div class="shopping-cart-controls">
                 <span>Qty {{ item.quantity }} {{ item.unit }}</span>
@@ -60,7 +62,36 @@
                 </form>
             </div>
         </article>
+{% endmacro %}
+
+{% if cart_items or preorder_items or crew_items %}
+<div class="shopping-columns">
+    <section class="shopping-panel" aria-label="Cart items">
+        {% for item in cart_items[:5] %}
+            {{ cart_row(item) }}
         {% endfor %}
+        {% if cart_items|length > 5 %}
+        <details class="shopping-more-details shopping-cart-more">
+            <summary class="shopping-more-summary">Show more ({{ cart_items|length - 5 }})</summary>
+            {% for item in cart_items[5:] %}
+                {{ cart_row(item) }}
+            {% endfor %}
+        </details>
+        {% endif %}
+
+        {% if preorder_items %}
+        <h2 class="shopping-preorder-title">Pre-orders</h2>
+        {% for item in preorder_items[:5] %}
+            {{ preorder_row(item) }}
+        {% endfor %}
+        {% if preorder_items|length > 5 %}
+        <details class="shopping-more-details shopping-cart-more">
+            <summary class="shopping-more-summary">Show more ({{ preorder_items|length - 5 }})</summary>
+            {% for item in preorder_items[5:] %}
+                {{ preorder_row(item) }}
+            {% endfor %}
+        </details>
+        {% endif %}
         {% endif %}
 
         {% if crew_items %}
@@ -85,14 +116,10 @@
         </div>
         {% endif %}
     </section>
-    {{ order_summary(summary_items, totals=totals) }}
+    {{ order_summary(summary_items, totals=totals, discount_code=discount_code|default('')) }}
 </div>
 {% else %}
 <section class="shopping-panel shopping-empty">
-    <svg class="shopping-empty-art" viewBox="0 0 160 100" aria-hidden="true" focusable="false">
-        <path class="shopping-art-marks" d="M8 88H152M24 18H136M24 14V22M136 14V22"/>
-        <path d="M24 70H136V78H24ZM30 78V88M80 78V88M130 78V88M24 34H136V70H24Z" stroke-dasharray="5 4"/>
-    </svg>
     <h2>Your cart is empty</h2>
     <div class="shopping-empty-actions">
         <a class="shopping-button shopping-primary" href="{{ url_for('products.products') }}">Browse products</a>

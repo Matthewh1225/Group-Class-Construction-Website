@@ -1,5 +1,5 @@
 {% extends "cart/layout.html" %}
-{% from "cart/cart_components.html" import order_summary %}
+{% from "cart/cart_components.html" import order_summary with context %}
 {% block title %}Checkout - BuildBetter{% endblock %}
 {% macro field(name, label, autocomplete, type='text', required=True, wide=False, maxlength=120) %}
     <div class="shopping-field{% if wide %} shopping-field-wide{% endif %}">
@@ -16,27 +16,34 @@
     </div>
 {% endmacro %}
 
+{% from "payment_fields.html" import card_fields with context %}
 {% block shopping_content %}
 <header class="shopping-heading">
-    <div><p class="sheet-tag"><span>C-03</span>Contact &amp; delivery</p><h1>Checkout</h1></div>
+    <div><h1>Checkout</h1></div>
     <a class="shopping-link" href="{{ url_for('shopping.show_cart') }}"><span aria-hidden="true">&larr;</span> Back to cart</a>
 </header>
 {% if error %}<p class="shopping-notice" role="alert">{{ error }}</p>{% endif %}
 <div class="shopping-columns">
     <form class="shopping-checkout-form" id="checkout-form" method="post" action="{{ url_for('shopping.checkout') }}">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <input type="hidden" name="checkout_key" value="{{ checkout_key }}">
         <section class="shopping-panel">
             <h2>Contact and delivery</h2>
             <div class="shopping-field-grid">
                 {{ field('first_name', 'First name', 'given-name', maxlength=70) }}
                 {{ field('last_name', 'Last name', 'family-name', maxlength=70) }}
-                {{ field('email', 'Email', 'email', type='email', maxlength=254) }}
                 {{ field('phone', 'Phone', 'tel', required=False, maxlength=30) }}
                 {{ field('street_address', 'Street address', 'address-line1', maxlength=200, wide=True) }}
                 {{ field('apartment', 'Apartment / Suite', 'address-line2', required=False, maxlength=200) }}
                 {{ field('city', 'City', 'address-level2', maxlength=100) }}
-                {{ field('state', 'State abbreviation (e.g. IL)', 'address-level1', maxlength=2) }}
+                <div class="shopping-field">
+                    <label for="state">State</label>
+                    <select id="state" name="state" autocomplete="address-level1" required>
+                        <option value="">Select a state</option>
+                        {% for code, name in states.items() %}
+                            <option value="{{ code }}" {% if form_data.get('state', '').upper() == code %}selected{% endif %}>{{ name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
                 {{ field('zip_code', 'ZIP code', 'postal-code', maxlength=10) }}
                 <div class="shopping-field">
                     <label for="country">Country</label>
@@ -50,7 +57,50 @@
                 <span>Email me a receipt</span>
             </label>
         </section>
+        <section class="shopping-panel">
+            <h2>Shipping method</h2>
+            <div class="shopping-shipping-options" role="radiogroup" aria-label="Shipping method">
+                {% set methods = shipping_methods if (shipping_methods is defined and shipping_methods) else {
+                    'standard': {'key': 'standard', 'label': 'Standard', 'price_cents': 999, 'price_display': '$9.99', 'description': 'Reliable ground delivery in 3–5 business days.'},
+                    'two_day': {'key': 'two_day', 'label': '2-Day', 'price_cents': 1999, 'price_display': '$19.99', 'description': 'Expedited delivery to your job site in 2 business days.'},
+                    'quantum': {'key': 'quantum', 'label': 'Quantum', 'price_cents': 100000000, 'price_display': '$1,000,000.00', 'description': "Teleported through a wormhole. Arrived yesterday; do not observe the box or Schrödinger's drywall will collapse."}
+                } %}
+                {% for method in methods.values() %}
+                <label class="shopping-shipping-option" for="shipping-{{ method.key }}">
+                    <input
+                        type="radio"
+                        id="shipping-{{ method.key }}"
+                        name="shipping_method"
+                        value="{{ method.key }}"
+                        data-price-cents="{{ method.price_cents }}"
+                        {% if form_data.get('shipping_method', 'standard') == method.key %}checked{% endif %}
+                    >
+                    <span class="shipping-method-details">
+                        <span class="shipping-method-name">{{ method.label }}</span>
+                        {% if method.description %}
+                        <span class="shipping-method-desc">{{ method.description }}</span>
+                        {% endif %}
+                    </span>
+                    <strong class="shipping-method-price">{{ method.price_display }}</strong>
+                </label>
+                {% endfor %}
+            </div>
+        </section>
+        <section class="shopping-panel">
+            <h2>Payment</h2>
+            <label for="payment-method">Use saved payment</label>
+            <select id="payment-method" name="payment_method">
+                {% for card in saved_cards %}<option value="{{ card.id }}" {% if form_data.get('payment_method') == card.id|string or (not form_data and card.is_default) %}selected{% endif %}>{{ card.card_type }} &bull;&bull;&bull;&bull; {{ card.card_number[-4:] }}{% if card.is_default %} (Default){% endif %}</option>{% endfor %}
+                <option value="new" {% if not saved_cards or form_data.get('payment_method') == 'new' %}selected{% endif %}>New card</option>
+            </select>
+            <fieldset id="new-mock-card">
+                <legend>New card</legend>
+                {{ card_fields() }}
+                <label><input type="checkbox" name="save_card" value="1"> Save this card</label>
+            </fieldset>
+        </section>
     </form>
-    {{ order_summary(cart_items, checkout=True, totals=totals) }}
+    <script src="{{ url_for('static', filename='js/mock-payments.js') }}" defer></script>
+    {{ order_summary(cart_items, checkout=True, totals=totals, discount_code=form_data.get('discount_code', '')) }}
 </div>
 {% endblock %}

@@ -9,8 +9,8 @@
     {% if verified_order %}
         <header class="shopping-heading">
             <div>
-                <h1>Order succeeded</h1>
-                <p>Order {{ verified_order.number }} was placed.</p>
+                <h1>Order placed</h1>
+                <p>Your order number is {{ verified_order.number }}.</p>
             </div>
         </header>
         <section class="shopping-panel shopping-confirmation-details">
@@ -27,6 +27,12 @@
                     <dt>Subtotal</dt>
                     <dd>{{ format_money_cents(verified_order.subtotal_cents) }}</dd>
                 </div>
+                {% if verified_order.discount_cents %}
+                    <div>
+                        <dt>Discount</dt>
+                        <dd>-{{ format_money_cents(verified_order.discount_cents) }}</dd>
+                    </div>
+                {% endif %}
                 <div>
                     <dt>Shipping</dt>
                     <dd>{{ format_money_cents(verified_order.shipping_cents) }}</dd>
@@ -36,7 +42,7 @@
                     <dd>{{ format_money_cents(verified_order.tax_cents) }}</dd>
                 </div>
                 <div>
-                    <dt>Final total</dt>
+                    <dt>Total</dt>
                     <dd>{{ format_money_cents(verified_order.total_cents) }}</dd>
                 </div>
             </dl>
@@ -47,7 +53,7 @@
                         {{ product_image(item) }}
                         <div>
                             {{ product_name(item) }}
-                            <small>Qty {{ item.quantity }} &middot; {{ format_money_cents(item.unit_price_cents) }} each</small>
+                            <small>{{ item.quantity }} {{ item.unit|default('') }} &middot; {{ format_money_cents(item.unit_price_cents) }} each{% if item.preorder %} &middot; Pre-order{% endif %}</small>
                         </div>
                         <strong>{{ format_money_cents(item.total_cents) }}</strong>
                     </li>
@@ -63,8 +69,8 @@
         </section>
     {% endif %}
     <nav class="shopping-confirmation-links" aria-label="Next steps">
-        <a class="shopping-button shopping-secondary" href="{{ url_for('dashboard.orders') }}">Order History</a>
-        <a class="shopping-button shopping-primary" href="{{ url_for('products.products') }}">Continue Shopping {{ icon('arrow') }}</a>
-        <a class="shopping-link" href="{{ url_for('dashboard.dashboard') }}">User Dashboard</a>
+        <a class="shopping-button shopping-secondary" href="{{ url_for('dashboard.orders') }}">Order history</a>
+        <a class="shopping-button shopping-primary" href="{{ url_for('products.products') }}">Continue shopping {{ icon('arrow') }}</a>
+        <a class="shopping-link" href="{{ url_for('dashboard.dashboard') }}">Dashboard</a>
     </nav>
 {% endblock %}

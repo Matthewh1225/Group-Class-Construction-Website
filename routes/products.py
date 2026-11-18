@@ -1,59 +1,49 @@
-import os
-
 from flask import Blueprint, abort, current_app, render_template, request
 from mysql.connector import Error
 
-from services.products import get_manufacturer, search_products
+from services.products import CATALOG_SORTS, DEFAULT_PAGE_SIZE, PAGE_SIZES, get_manufacturer, get_subcategories, search_products
 
 products_bp = Blueprint("products", __name__)
 
 # url_name matches the database category and URL filter.
 PRODUCT_CATEGORIES = [
-    {"url_name": "lumber", "code": "MAT-01", "name": " Lumber & Building Materials"},
-    {"url_name": "fasteners", "code": "MAT-02", "name": "Hardware & Fasteners"},
-    {"url_name": "concrete", "code": "MAT-03", "name": "Concrete & Masonry"},
-    {"url_name": "tools", "code": "MAT-06", "name": "Tools"},
-    {"url_name": "electrical", "code": "MAT-07", "name": "Electrical"},
-    {"url_name": "drywall", "code": "MAT-04", "name": "Drywall & Insulation"},
-    {"url_name": "roofing", "code": "MAT-05", "name": "Roofing & Siding"},
-    {"url_name": "plumbing", "code": "MAT-08", "name": "Plumbing"},
-    {"url_name": "hvac", "code": "MAT-09", "name": "HVAC"},
-    {"url_name": "flooring", "code": "MAT-10", "name": "Flooring & Tile"},
-    {"url_name": "paint", "code": "MAT-11", "name": "Paint & Supplies"},
-    {"url_name": "doors-windows", "code": "MAT-12", "name": "Doors & Windows"},
-    {"url_name": "structural-metals", "code": "MAT-13", "name": "Structural Metals"},
-    {"url_name": "facility-equipment", "code": "MAT-14", "name": "Facility Equipment"},
-    {"url_name": "fire-safety", "code": "MAT-15", "name": "Fire Protection & Safety"},
-    {"url_name": "vertical-transportation", "code": "MAT-16", "name": "Elevators & Escalators"},
-    {"url_name": "sitework", "code": "MAT-17", "name": "Sitework & Landscaping"},
+    {"url_name": "lumber", "name": "Lumber & Wood", "code": "MAT-01"},
+    {"url_name": "fasteners", "name": "Hardware & Fasteners", "code": "MAT-02"},
+    {"url_name": "concrete", "name": "Concrete & Masonry", "code": "MAT-03"},
+    {"url_name": "tools", "name": "Tools", "code": "MAT-06"},
+    {"url_name": "electrical", "name": "Electrical", "code": "MAT-07"},
+    {"url_name": "drywall", "name": "Drywall & Insulation", "code": "MAT-04"},
+    {"url_name": "roofing", "name": "Roofing & Siding", "code": "MAT-05"},
+    {"url_name": "plumbing", "name": "Plumbing", "code": "MAT-08"},
+    {"url_name": "hvac", "name": "HVAC", "code": "MAT-09"},
+    {"url_name": "flooring", "name": "Flooring & Tile", "code": "MAT-10"},
+    {"url_name": "paint", "name": "Paint & Finishes", "code": "MAT-11"},
+    {"url_name": "doors-windows", "name": "Doors & Windows", "code": "MAT-12"},
+    {"url_name": "structural-metals", "name": "Structural Metals", "code": "MAT-13"},
+    {"url_name": "facility-equipment", "name": "Facility Equipment", "code": "MAT-14"},
+    {"url_name": "fire-safety", "name": "Fire Safety", "code": "MAT-15"},
+    {"url_name": "vertical-transportation", "name": "Vertical Transportation", "code": "MAT-16"},
+    {"url_name": "sitework", "name": "Sitework & Drainage", "code": "MAT-17"},
+    {"url_name": "automotive", "name": "Automotive", "code": "MAT-18"},
 ]
 
 # Products share a category image; paths are relative to static/.
 PLACEHOLDER_IMAGE = "images/placeholder.png"
 CATEGORY_IMAGES = {
-    "lumber": "images/Lumber & Building Materials.png",
-    "fasteners": "images/Hardware & Fasteners.png",
-    "concrete": "images/Concrete & Masonry.png",
-    "tools": "images/Tools.png",
-    "electrical": "images/Electrical.png",
-    "drywall": "images/drywall & insulation.png",
-    "roofing": "images/roofing.png",
-    "plumbing": "images/Plumbing.png",
-    "hvac": "images/HVAC.png",
-    "flooring": "images/Flooring & Tile.png",
-    "paint": "images/Paint & Supplies.png",
-    "doors-windows": "images/Doors & Windows.png",
-    "heavy-machinery": "images/Heavy Machinery.png",
+    "lumber": "images/Lumber & Building Materials.webp",
+    "fasteners": "images/Hardware & Fasteners.webp",
+    "concrete": "images/Concrete & Masonry.webp",
+    "tools": "images/Tools.webp",
+    "electrical": "images/Electrical.webp",
+    "drywall": "images/drywall & insulation.webp",
+    "roofing": "images/roofing.webp",
+    "plumbing": "images/Plumbing.webp",
+    "hvac": "images/HVAC.webp",
+    "flooring": "images/Flooring & Tile.webp",
+    "paint": "images/Paint & Supplies.webp",
+    "doors-windows": "images/Doors & Windows.webp",
+    "heavy-machinery": "images/Heavy Machinery.webp",
 }
-
-
-# Find a machine image using its name.
-def find_machine_image(machine_name):
-    file_name = machine_name.strip().lower().replace(" ", "-") + ".png"
-    image_path = "images/machines/" + file_name
-    if os.path.exists(os.path.join(current_app.static_folder, image_path)):
-        return image_path
-    return None
 
 
 def find_category(url_name):
@@ -68,20 +58,32 @@ def load_product_page(category_url_name):
     if "manufacturer" in request.args and (manufacturer_id is None or manufacturer_id < 1):
         abort(404)
     search = request.args.get("query", "").strip()[:200]
-    page = max(1, request.args.get("page", 1, type=int))
+    sort = request.args.get("sort")
+    if sort not in CATALOG_SORTS:
+        sort = None
+    first_page = 1 if (category_url_name or search or manufacturer_id or sort) else 0
+    page = max(first_page, request.args.get("page", first_page, type=int))
+    # Only the dropdown choices are allowed; anything else uses the default.
+    requested_size = request.args.get("per_page", type=int)
+    per_page = requested_size if requested_size in PAGE_SIZES else DEFAULT_PAGE_SIZE
 
     manufacturer = None
     product_list = []
     total_pages = 1
     catalog_error = False
+    subcategory = request.args.get('subcategory', '').strip()[:60] or None
+    subcategories = []
     # Keep category links visible if loading products fails.
     try:
+        subcategories = get_subcategories(category_url_name)
+        if subcategory and subcategory not in subcategories:
+            abort(404)
         if manufacturer_id is not None:
             manufacturer = get_manufacturer(manufacturer_id)
             if manufacturer is None:
                 abort(404)
         product_list, total_pages = search_products(search=search, category_url_name=category_url_name,
-                                                 page=page, manufacturer_id=manufacturer_id)
+                                                 page=page, manufacturer_id=manufacturer_id, sort=sort, per_page=per_page, subcategory=subcategory)
         if page > total_pages:
             abort(404)
     except Error:
@@ -90,6 +92,8 @@ def load_product_page(category_url_name):
 
     for product in product_list:
         product["image"] = CATEGORY_IMAGES.get(product["category"], PLACEHOLDER_IMAGE)
+        if product["category"] == "heavy-machinery":
+            product["category_name"] = "Heavy Machinery"
         stock = product["available_quantity"]
         product["can_buy"] = stock >= 1
         if product["can_buy"]:
@@ -101,13 +105,20 @@ def load_product_page(category_url_name):
 
     return {
         "products": product_list,
+        "subcategory": subcategory,
+        "subcategories": subcategories,
         "has_next": page < total_pages,
         "total_pages": total_pages,
         "catalog_error": catalog_error,
         "manufacturer": manufacturer,
         "manufacturer_id": manufacturer_id,
         "search": search,
+        "sort": sort,
+        "sort_options": CATALOG_SORTS,
         "page": page,
+        "first_page": first_page,
+        "per_page": per_page,
+        "page_sizes": PAGE_SIZES,
         "placeholder_image": PLACEHOLDER_IMAGE,
     }
 
@@ -132,12 +143,4 @@ def products():
 @products_bp.get("/heavy-machinery")
 def heavy_machinery():
     catalog = load_product_page("heavy-machinery")
-
-    for machine in catalog["products"]:
-        machine["category_name"] = "Heavy Machinery"
-        # Use the machine's picture if it exists.
-        machine_image = find_machine_image(machine["product_name"])
-        if machine_image is not None:
-            machine["image"] = machine_image
-
     return render_template("heavy_machinery.html", **catalog)

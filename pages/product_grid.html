@@ -1,7 +1,6 @@
                 <div class="catalog-grid">
                     {% for product in products %}
                         <article class="product-card">
-                            {# Use category pictures, with a placeholder if missing. #}
                             <div class="product-image grid-bg">
                                 <img src="{{ url_for('static', filename=product.image) }}" alt="" width="480" height="320" loading="lazy"
                                      data-fallback-src="{{ url_for('static', filename=placeholder_image) }}">
@@ -11,13 +10,15 @@
                                 <p class="product-category">{{ product.category_name or 'Materials & tools' }}</p>
                                 <h3 class="product-name" title="{{ product.product_name }}">{{ product.product_name }}</h3>
                                 {% if product.manufacturer_name %}<p class="product-manufacturer">{{ product.manufacturer_name }}</p>{% endif %}
+                                {% if product.details %}<p>{{ product.details }}</p>{% endif %}
+                                {% if product.description %}<p>{{ product.description }}</p>{% endif %}
                                 <p class="product-meta">
-                                    {% if product.pack_quantity > 1 %}<span>{{ '%g'|format(product.pack_quantity) }} per {{ product.unit }}</span>{% endif %}
+                                    {% if product.content_quantity %}<span>{{ '%g'|format(product.content_quantity) }} {{ product.content_unit|replace('_', ' ') }} per {{ product.unit|replace('_', ' ') }}</span>{% endif %}
                                 </p>
                             </div>
 
                             <footer class="product-footer">
-                                <a class="product-reviews-link" href="{{ url_for('reviews', product=product.product_id, _anchor='community-reviews') }}">Read or write a review <span aria-hidden="true">↗</span></a>
+                                <a class="product-reviews-link" href="{{ url_for('reviews.reviews', product=product.product_id, _anchor='community-reviews') }}">Read or write a review <span aria-hidden="true">↗</span></a>
                                 <div class="product-price-row">
                                     {% if product.unit_price is not none %}
                                         <p class="product-price">${{ '{:,.2f}'.format(product.unit_price) }} <span>/ {{ product.unit }}</span></p>
@@ -26,20 +27,21 @@
                                     {% endif %}
                                     <span class="product-status{% if product.availability_status == 'available' %} product-status-available{% endif %}">{{ product.availability_label }}</span>
                                 </div>
-                                {% if product.can_buy %}
+                                {% if product.unit_price is not none %}
                                     <form class="product-cart-form" method="post" action="{{ url_for('shopping.add_to_cart') }}">
                                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                         <input type="hidden" name="product_id" value="{{ product.product_id }}">
                                         <input type="hidden" name="category" value="{{ selected_url_name }}">
                                         {% if manufacturer_id %}<input type="hidden" name="manufacturer" value="{{ manufacturer_id }}">{% endif %}
                                         <input type="hidden" name="query" value="{{ search }}">
+                                        <input type="hidden" name="sort" value="{{ sort }}">
                                         <input type="hidden" name="page" value="{{ page }}">
                                         <label for="quantity-{{ product.product_id }}">Qty<span class="sr-only"> ({{ product.unit }})</span></label>
-                                        <input id="quantity-{{ product.product_id }}" name="quantity" type="number" min="1" step="1" max="{{ product.available_quantity }}" value="1" required>
-                                        <button class="btn btn-primary" type="submit">Add to Cart</button>
+                                        <input id="quantity-{{ product.product_id }}" name="quantity" type="number" min="1" step="1"  value="1" required>
+                                        <button class="btn btn-primary" type="submit">Add to cart</button>
                                     </form>
                                 {% else %}
-                                    <button class="product-cart-unavailable" type="button" disabled>Add to Cart</button>
+                                    <button class="product-cart-unavailable" type="button" disabled>Add to cart</button>
                                 {% endif %}
                             </footer>
                         </article>

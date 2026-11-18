@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% block title %}
-    BuildBetter - AI materials planning for your next build
+    BuildBetter - Plan your project
 {% endblock %}
 
 {% block styles %}
@@ -13,7 +13,6 @@
 {% block content %}
 <div class="home">
 
-    {# Shared ground pattern for the hero drawing. #}
     <svg class="home-defs" width="0" height="0" aria-hidden="true" focusable="false">
         <defs>
             <pattern id="hatch-ground" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
@@ -89,7 +88,7 @@
                     <path d="M10 35H46V43H10ZM16 43H52V51H16ZM22 35V43M34 43V51M18 17L26 9L37 20L32 25L26 19L22 23ZM29 22L44 37L49 32L34 17"/>
                 </svg>
                 <div class="service-copy">
-                    <h2 id="materials-title">Stock up for your next build.</h2>
+                    <h2 id="materials-title">Materials &amp; tools</h2>
                     <p>Shop construction materials and power tools.</p>
                 </div>
                 <a class="btn btn-ghost service-button" href="{{ url_for('products.products') }}">Shop materials &amp; tools <span class="arrow" aria-hidden="true">&rarr;</span></a>
@@ -101,8 +100,8 @@
                     <path d="M16 27C16 17 22 11 29 10M35 10C42 11 48 17 48 27M29 22V8H35V22M12 27H52V33H12ZM20 33V37A12 12 0 0 0 44 37V33M12 57V53C12 47 19 44 24 44M40 44C45 44 52 47 52 53V57M24 46L32 53L40 46"/>
                 </svg>
                 <div class="service-copy">
-                    <h2 id="crew-title">The right people for the job.</h2>
-                    <p>Choose your crew that fits you.</p>
+                    <h2 id="crew-title">Crews</h2>
+                    <p>Choose workers for your project.</p>
                 </div>
                 <a class="btn btn-ghost service-button" href="{{ url_for('crews.crews') }}">Build your crew <span class="arrow" aria-hidden="true">&rarr;</span></a>
             </section>
@@ -114,8 +113,8 @@
                     <path d="M14 43V30H33V43M20 30V19H30L35 30M22 23H28L31 30M34 32L43 12L49 14L56 34M38 33L45 20L51 35M50 34H59V43H49L45 39ZM14 48H35"/>
                 </svg>
                 <div class="service-copy">
-                    <h2 id="machinery-title">Built for the bigger jobs.</h2>
-                    <p>Heavy machinery for large-scale projects, from bulldozers and cranes.</p>
+                    <h2 id="machinery-title">Heavy machinery</h2>
+                    <p>Browse cranes, excavators, and more.</p>
                 </div>
                 <a class="btn btn-ghost service-button" href="{{ url_for('products.heavy_machinery') }}">Explore machinery <span class="arrow" aria-hidden="true">&rarr;</span></a>
             </section>
@@ -125,8 +124,8 @@
     <section class="section section-alt" id="planner" aria-labelledby="planner-title">
         <div class="wrap planner-grid">
             <div class="planner-copy" data-reveal>
-                <h2 id="planner-title">Your next build starts here.</h2>
-                <p class="section-lede"> Describe your project to the AI Planner and get an estimated materials list matched to products in our store.</p>
+                <h2 id="planner-title">Plan your project</h2>
+                <p class="section-lede">Get a materials estimate for your project.</p>
                 <div class="actions">
                     <a class="btn btn-primary" href="{{ url_for('planner.planner') }}">Start with AI Planner <span class="arrow" aria-hidden="true">&rarr;</span></a>
                 </div>
@@ -152,7 +151,7 @@
                         <span class="step-num" aria-hidden="true">03</span>
                         <div>
                             <h3>Shop</h3>
-                            <p class="console-text">&ldquo;Review your materials list before adding to cart.&rdquo;<span class="caret" aria-hidden="true"></span></p>
+                            <p class="console-text">&ldquo;Review materials and add to cart.&rdquo;<span class="caret" aria-hidden="true"></span></p>
                         </div>
                     </li>
                 </ol>

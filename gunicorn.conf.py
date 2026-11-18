@@ -11,14 +11,14 @@ accesslog = "-"
 errorlog = "-"
 
 
-def _embedded_enabled():
+def embedded_planner_enabled():
     # Run the planner on Render unless turned off.
     value = os.getenv("PLANNER_EMBEDDED_WORKER", os.getenv("RENDER", "false"))
     return value.strip().lower() == "true"
 
 
 def post_worker_init(worker):
-    if not _embedded_enabled():
+    if not embedded_planner_enabled():
         return
     if worker.cfg.workers != 1:
         raise RuntimeError("The embedded planner requires Gunicorn --workers 1.")

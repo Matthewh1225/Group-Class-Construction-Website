@@ -4,68 +4,52 @@
     Order Details - BuildBetter
 {% endblock %}
 
+{% macro dollars(cents) -%}
+    ${{ '{:,.2f}'.format(cents / 100) }}
+{%- endmacro %}
+
 {% block dashboard_content %}
     <nav class="dashboard-breadcrumb" aria-label="Breadcrumb">
-        <a href="{{ url_for('dashboard.projects') }}">Saved Projects</a>
-        <span>/</span>
-        <a href="{{ url_for('dashboard.orders') }}">Order History</a>
-        <span>/</span>
-        <span>Order Details</span>
+        <a href="{{ url_for('dashboard.orders') }}">Orders</a>
+        <span aria-hidden="true">/</span>
+        <span>Order {{ order.number }}</span>
     </nav>
     <div class="dashboard-page-heading">
         <div>
-            <h1>{{ 'Order ' ~ order.number if order else 'Order details' }}</h1>
+            <h1>Order {{ order.number }}</h1>
+            <p class="project-heading-meta">
+                <span class="dashboard-tag">{{ order.status or '—' }}</span>
+                <span>Placed {{ order.placed_at or '—' }}</span>
+            </p>
         </div>
+        <a class="dashboard-button dashboard-button-secondary" href="{{ url_for('dashboard.orders') }}">
+            <span aria-hidden="true">&larr;</span> All orders
+        </a>
     </div>
-    {% if order %}
-        <section class="dashboard-card dashboard-detail-card">
-            <dl class="dashboard-detail-list">
-                <div>
-                    <dt>Date placed</dt>
-                    <dd>{{ order.placed_at or '—' }}</dd>
-                </div>
-                <div>
-                    <dt>Status</dt>
-                    <dd>{{ order.status or '—' }}</dd>
-                </div>
-                <div>
-                    <dt>Subtotal</dt>
-                    <dd>${{ '{:,.2f}'.format(order.subtotal_cents / 100) }}</dd>
-                </div>
-                <div>
-                    <dt>Shipping</dt>
-                    <dd>${{ '{:,.2f}'.format(order.shipping_cents / 100) }}</dd>
-                </div>
-                <div>
-                    <dt>Estimated tax</dt>
-                    <dd>${{ '{:,.2f}'.format(order.tax_cents / 100) }}</dd>
-                </div>
-                <div>
-                    <dt>Order total</dt>
-                    <dd>{{ order.total if order.total is defined and order.total is not none and order.total != '' else '—' }}</dd>
-                </div>
-                <div>
-                    <dt>Ship to</dt>
-                    <dd>{{ order.shipping if order.shipping is defined and order.shipping is not none and order.shipping != '' else '—' }}</dd>
-                </div>
-            </dl>
+
+    <div class="order-layout">
+        <section class="dashboard-card dashboard-detail-card" aria-labelledby="order-items-title">
+            <div class="dashboard-section-heading">
+                <h2 id="order-items-title">Items</h2>
+                <span class="dashboard-muted">{{ items|length }} item{{ '' if items|length == 1 else 's' }}</span>
+            </div>
             <div class="dashboard-table-wrap">
                 <table class="dashboard-data-table">
                     <thead>
                         <tr>
                             <th scope="col">Product</th>
-                            <th scope="col">Quantity</th>
-                            <th scope="col">Unit Price</th>
-                            <th scope="col">Total</th>
+                            <th scope="col" class="dashboard-number-cell">Quantity</th>
+                            <th scope="col" class="dashboard-number-cell">Unit price</th>
+                            <th scope="col" class="dashboard-number-cell">Total</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for item in items %}
                             <tr>
-                                <td>{{ item.name }}</td>
-                                <td>{{ item.quantity }}</td>
-                                <td>{{ item.unit_price if item.unit_price is defined and item.unit_price is not none and item.unit_price != '' else '—' }}</td>
-                                <td>{{ item.total if item.total is defined and item.total is not none and item.total != '' else '—' }}</td>
+                                <th scope="row" class="dashboard-wrap-cell">{{ item.name }}{% if item.preorder %}<small>Pre-order</small>{% endif %}</th>
+                                <td class="dashboard-number-cell">{{ item.quantity }}</td>
+                                <td class="dashboard-number-cell">{{ item.unit_price or '—' }}</td>
+                                <td class="dashboard-number-cell">{{ item.total or '—' }}</td>
                             </tr>
                         {% else %}
                             <tr>
@@ -76,5 +60,26 @@
                 </table>
             </div>
         </section>
-    {% endif %}
+
+        <aside class="order-side">
+            <section class="dashboard-card dashboard-detail-card" aria-labelledby="order-summary-title">
+                <h2 id="order-summary-title">Summary</h2>
+                <dl class="order-totals">
+                    <div><dt>Subtotal</dt><dd>{{ dollars(order.subtotal_cents) }}</dd></div>
+                    <div><dt>Shipping</dt><dd>{{ dollars(order.shipping_cents) }}</dd></div>
+                    <div><dt>Estimated tax</dt><dd>{{ dollars(order.tax_cents) }}</dd></div>
+                    <div class="order-total-row"><dt>Order total</dt><dd>{{ order.total or '—' }}</dd></div>
+                </dl>
+            </section>
+            <section class="dashboard-card dashboard-detail-card" aria-labelledby="order-delivery-title">
+                <h2 id="order-delivery-title">Delivery &amp; payment</h2>
+                <dl class="dashboard-detail-list order-info">
+                    <div><dt>Ship to</dt><dd>{{ order.shipping or '—' }}</dd></div>
+                    {% if order.payment_brand %}
+                        <div><dt>Payment method</dt><dd>{{ order.payment_brand }} &bull;&bull;&bull;&bull; {{ order.payment_last4 }}</dd></div>
+                    {% endif %}
+                </dl>
+            </section>
+        </aside>
+    </div>
 {% endblock %}

@@ -1,4 +1,5 @@
 import os
+from threading import Lock
 
 from flask import request, session
 from flask_limiter import Limiter
@@ -20,7 +21,7 @@ limiter = Limiter(
 
 
 @limiter.request_filter
-def static_asset_request():
+def is_static_file_request():
     return request.endpoint == "static"
 
 
@@ -32,7 +33,7 @@ def account_rate_limit_key():
 
 
 POST_LIMITS = {
-    "reviews": "5 per minute; 20 per hour",
+    "reviews.reviews": "5 per minute; 20 per hour",
     "auth.login": "10 per minute; 50 per hour",
     "auth.register": "5 per minute; 20 per hour",
     "auth.google_login": "10 per minute; 50 per hour",
@@ -40,7 +41,16 @@ POST_LIMITS = {
     "planner.planning_job_add_to_cart": "30 per minute",
     "planner.planning_job_answers": "4 per minute; 30 per hour",
     "planner.planning_job_restart": "4 per minute; 30 per hour",
+    "dashboard.settings": "10 per minute; 50 per hour",
+    "dashboard.change_password": "5 per minute; 20 per hour",
+    "dashboard.payments": "10 per minute; 50 per hour",
 }
+
+# Flask-Limiter stores each "with limiter.limit(...)" limit under the line that opened it, and
+# every POST policy shares one line below, so two threads could swap policies mid-request.
+# The lock makes each request register and check its limit alone. A thread lock is enough
+# because limits are kept per process.
+POST_LIMIT_LOCK = Lock()
 
 
 def check_request_limits():
@@ -53,7 +63,9 @@ def check_request_limits():
         with limiter.shared_limit("10 per second; 200 per minute", key_func=account_rate_limit_key,
                                   scope="account-traffic"):
             pass
-    if request.endpoint in {"products.products", "products.heavy_machinery", "manufacturers", "reviews"} and request.method in {"GET", "HEAD"}:
+    catalog_pages = {"products.products", "products.heavy_machinery", "manufacturers", "reviews.reviews",
+                     "reviews.review_product_search"}
+    if request.endpoint in catalog_pages and request.method in {"GET", "HEAD"}:
         # Page changes and search terms share one catalog budget.
         with limiter.shared_limit("10 per second; 200 per minute", scope="catalog-traffic"):
             pass
@@ -61,9 +73,10 @@ def check_request_limits():
     policy = POST_LIMITS.get(request.endpoint)
     if request.method != "POST" or policy is None:
         return
-    with limiter.limit(policy, scope=f"early-{request.endpoint}-ip"):
-        pass
-    if request.endpoint == "reviews":
+    with POST_LIMIT_LOCK:
+        with limiter.limit(policy, scope=f"early-{request.endpoint}-ip"):
+            pass
+    if request.endpoint == "reviews.reviews":
         with limiter.limit("5 per minute; 20 per hour", key_func=account_rate_limit_key,
                            scope="review-post-account"):
             pass

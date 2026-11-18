@@ -1,4 +1,3 @@
-
 const sidebar = document.getElementById("dashboard-sidebar");
 const menuButton = document.getElementById("dashboard-menu-toggle");
 const closeButton = sidebar.querySelector(".dashboard-sidebar-close");
@@ -8,7 +7,6 @@ const accountMenu = document.querySelector(".dashboard-account");
 // Match the mobile breakpoint in dashboard.css.
 const mobile = window.matchMedia("(max-width: 760px)");
 let drawerOpen = false;
-
 
 
 function setDrawerOpen(open, restoreFocus) {
@@ -41,6 +39,8 @@ document.body.classList.add("dashboard-navigation-ready");
 setDrawerOpen(false, false);
 
 menuButton.addEventListener("click", function () {
+    // Turn on the slide animation now, so it doesn't play when the page loads.
+    document.body.classList.add("dashboard-drawer-animated");
     setDrawerOpen(true, false);
 });
 closeButton.addEventListener("click", function () {
@@ -98,7 +98,6 @@ mobile.addEventListener("change", function () {
 });
 
 
-
 document.addEventListener("keydown", function (event) {
     if (event.key === "Escape" && accountMenu.open) {
         accountMenu.open = false;
@@ -113,6 +112,14 @@ document.addEventListener("click", function (event) {
 });
 
 
+// Forms with data-confirm ask before doing something that can't be undone.
+for (const form of document.querySelectorAll("form[data-confirm]")) {
+    form.addEventListener("submit", function (event) {
+        if (!window.confirm(form.dataset.confirm)) {
+            event.preventDefault();
+        }
+    });
+}
 
 for (const time of document.querySelectorAll("time[data-timestamp]")) {
     const date = new Date(Number(time.dataset.timestamp) * 1000);
