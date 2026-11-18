@@ -11,6 +11,9 @@ accesslog = "-"
 errorlog = "-"
 
 
+PLANNER_THREADS = int(os.getenv("PLANNER_THREADS", "2"))  # plans run at the same time
+
+
 def embedded_planner_enabled():
     # Run the planner on Render unless turned off.
     value = os.getenv("PLANNER_EMBEDDED_WORKER", os.getenv("RENDER", "false"))
@@ -34,12 +37,12 @@ def post_worker_init(worker):
     worker.planner_stop = Event()
     worker.planner_thread = Thread(
         target=run_worker,
-        kwargs={"stop_event": worker.planner_stop},
+        kwargs={"stop_event": worker.planner_stop, "threads": PLANNER_THREADS},
         name="planner-worker",
         daemon=True,
     )
     worker.planner_thread.start()
-    worker.log.info("Started embedded planner worker.")
+    worker.log.info("Started embedded planner worker with %s threads.", PLANNER_THREADS)
 
 
 def worker_exit(server, worker):

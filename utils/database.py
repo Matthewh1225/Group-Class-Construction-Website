@@ -49,7 +49,7 @@ def pooled_connection():
         if _pool is None or _pool_pid != pid:
             pool = MySQLConnectionPool(
                 pool_name="buildbetter",
-                pool_size=int(os.getenv("DB_POOL_SIZE", "5")),
+                pool_size=int(os.getenv("DB_POOL_SIZE", "8")),
                 pool_reset_session=True,
             )
             pool.set_config(

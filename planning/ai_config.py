@@ -1,17 +1,18 @@
 
 
 AI_TIMEOUT = 300  # seconds for one AI request
+GEMINI_FAST_TIMEOUT = 60  # Flash Lite answers in seconds; a hung call should move on to the next model
 
 # api_key and model_env are .env names; models sharing a key share its rate limit.
 # enforces_schema=False means the schema goes in the prompt and the reply is checked.
 MODELS = {
     # One Gemini key per tier. Google counts limits per project, so keys only help if their projects differ.
     "gemini-3.5-flash-lite_fast": {
-        "provider": "gemini", "api_key": "GEMINI_API_KEY",
+        "provider": "gemini", "api_key": "GEMINI_API_KEY", "timeout": GEMINI_FAST_TIMEOUT,
         "model_env": "GEMINI_3_5_FLASH_LITE_MODEL", "default": "gemini-3.5-flash-lite",
     },
     "gemini-3.5-flash-lite_standard": {
-        "provider": "gemini", "api_key": "GEMINI_API_KEY2",
+        "provider": "gemini", "api_key": "GEMINI_API_KEY2", "timeout": GEMINI_FAST_TIMEOUT,
         "model_env": "GEMINI_3_5_FLASH_LITE_MODEL", "default": "gemini-3.5-flash-lite",
     },
     "gemini-3.8-flash_standard": {
@@ -29,6 +30,7 @@ MODELS = {
     # The Fast and Standard Matcher uses key 4, or key 1 if key 4 is not set.
     "gemini-3.5-flash-lite_matcher": {
         "provider": "gemini", "api_key": "GEMINI_API_KEY4", "fallback_api_key": "GEMINI_API_KEY",
+        "timeout": GEMINI_FAST_TIMEOUT,
         "model_env": "GEMINI_3_5_FLASH_LITE_MODEL", "default": "gemini-3.5-flash-lite",
     },
     "openai/gpt-oss-120b": {

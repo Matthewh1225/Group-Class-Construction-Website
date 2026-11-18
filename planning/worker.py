@@ -1,6 +1,6 @@
 import argparse
 import logging
-from threading import Event
+from threading import Event, Thread
 import uuid
 
 from dotenv import load_dotenv
@@ -58,12 +58,19 @@ def process_one(worker):
     return job["id"]
 
 
-def run_worker(stop_event=None, once=False):
+def run_worker(stop_event=None, once=False, threads=1):
     if stop_event is None:
         stop_event = Event()
     # Rebuild missing or outdated vectors before taking jobs; failures fall back to SQL search.
     update_cache_if_needed()
     load_vector_search()
+    # Extra threads share the model and cache, so a slow plan doesn't hold up the others.
+    for number in range(2, threads + 1):
+        Thread(target=watch_queue, args=(stop_event,), name=f"planner-worker-{number}", daemon=True).start()
+    watch_queue(stop_event, once)
+
+
+def watch_queue(stop_event, once=False):
     logger.info("Watching planner jobs in MySQL")
     worker = uuid.uuid4().hex
 
@@ -90,10 +97,11 @@ def run_worker(stop_event=None, once=False):
 def main():
     parser = argparse.ArgumentParser(description="Run the BuildBetter planner worker.")
     parser.add_argument("--once", action="store_true", help="Process at most one queued job.")
+    parser.add_argument("--threads", type=int, default=1, help="How many jobs to plan at the same time.")
     options = parser.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
     try:
-        run_worker(once=options.once)
+        run_worker(once=options.once, threads=options.threads)
     except KeyboardInterrupt:
         logger.info("Planner worker interrupted.")
 

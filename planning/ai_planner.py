@@ -40,6 +40,7 @@ for model_name, settings in MODELS.items():
         "client": make_client(settings["provider"], settings["api_key"], settings.get("fallback_api_key")),
         "model": os.getenv(settings["model_env"]) or settings["default"],
         "enforces_schema": settings.get("enforces_schema", True),
+        "timeout": settings.get("timeout", AI_TIMEOUT),
     }
 
 
@@ -67,7 +68,7 @@ def call_gemini(model, prompt, thinking_level, system_instruction, response_sche
         "system_instruction": system_instruction,
         "thinking_config": {"thinking_level": thinking_level},
         "max_output_tokens": output_tokens,
-        "http_options": {"timeout": AI_TIMEOUT * 1000, "retry_options": GEMINI_RETRY_OPTIONS},
+        "http_options": {"timeout": model["timeout"] * 1000, "retry_options": GEMINI_RETRY_OPTIONS},
         "automatic_function_calling": {"disable": True},
         "response_mime_type": "application/json",
         "response_json_schema": response_schema,
